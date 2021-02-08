@@ -8,6 +8,8 @@ node_modules/
 dist/
 stingray_cli.egg-info
 
+# venv
+venv/
 
 # Compiled Java class files
 *.class
