@@ -1,2 +1,1 @@
 requests > 2.20
-stingray_cli_core == 2.1.3

@@ -245,7 +245,7 @@ def main():
         Log.info(f"Saving pdf report to file {pdf_report_file_name}.")
         pdf_report_file_name = pdf_report_file_name if pdf_report_file_name.endswith(
             '.pdf') else f'{pdf_report_file_name}.pdf'
-        with open(pdf_report_file_name, 'wb', encoding='utf8') as f:
+        with open(pdf_report_file_name, 'wb') as f:
             f.write(pdf_report.content)
 
         Log.info(f"Report for scan {dast['id']} successfully created and available at path: {pdf_report_file_name}.")

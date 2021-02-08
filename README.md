@@ -40,7 +40,7 @@ The launch options depend on the location of the apk file sent for analysis. Als
  * `company_id` - identifier of the company within which the scan will be performed
  * `architecture_id` - identifier of the operating system architecture on which the scan will be performed
  * `nowait` - an optional parameter specifying whether to wait for the scan to complete. If this flag is set, the script will not wait for the scan to complete, but will exit immediately after starting. If the flag is not selected, the script will wait for the completion of the analysis process and generate a report.
- * `report_json_file_name` - an optional parameter defining the name of the json file into which the scanning information in json format is uploaded. If the parameter is absent, the information will not be saved.
+ * `summary_report_json_file_name` - an optional parameter defining the name of the json file into which the scanning information in json format is uploaded. If the parameter is absent, the information will not be saved.
  * `pdf_report_file_name` - an optional parameter that specifies the name of the pdf file into which information on scanning in pdf format is uploaded. If the parameter is absent, the report will not be saved.
 
 ### Local file launch
