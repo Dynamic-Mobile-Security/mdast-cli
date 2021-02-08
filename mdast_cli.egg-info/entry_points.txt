@@ -1,0 +1,3 @@
+[console_scripts]
+mdast_cli = mdast_cli.mdast_scan:main
+
