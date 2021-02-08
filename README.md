@@ -6,6 +6,11 @@ During the execution of the script, the application is sent to the dynamic analy
 
 ## Install options
 
+### DockerHub
+You can run this script using [docker image](https://hub.docker.com/r/mobilesecurity/mdast_cli):
+
+`docker pull mobilesecurity/mdast_cli:latest`
+
 ### From PyPi
 It is possible to install a package using pip:
 
@@ -68,6 +73,19 @@ To download application from AppCenter distribution system you need to select th
 ## Launch examples
 
 ### Local file
+
+#### Docker launch
+After pulling run docker using command like this (all parameters are applied due to distribution_system choice):
+
+```
+docker run -it -v {path_to_folder_with_application}:/mdast/files -v {path_to_report_folder}:/mdast/report mobilesecurity/mdast_cli:latest --profile_id 1 --architecture_id 5 --testcase_id 4 --distribution_system file --file_path /mdast/files/{application_file_name} --url "https://saas.mobile.appsec.world" --company_id 1 --token eyJ0eXA4OiJKA1QiLbJhcGciO5JIU4I1NiJ1 --summary_report_json_file_name /mdast/report/json-repot.json --pdf_report_file_name /mdast/report/pdf-repot.pdf
+```
+
+Where:
+ * `{path_to_folder_with_application}` - absolute path to the folder where build application locating
+ * `{path_to_report_folder}` - absolute path to the folder where reports will be generated
+ * `{application_file_name}` - full name of the builded apk inside the `{path_to_folder_with_application}` folder
+
 
 #### Standard launch method
 To run analysis of a local file:
