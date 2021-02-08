@@ -3,10 +3,16 @@ import time
 import json
 import urllib3
 import argparse
+import os
 
 try:
     from mdast_cli_core import mDastToken as mDast
 except (ModuleNotFoundError, ImportError):
+    # Export package directory to python environment. Needed for run script without installing package
+    PACKAGE_PARENT = '..'
+    SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(__file__))))
+    sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
+
     from mdast_cli_core.token import mDastToken as mDast
 
 try:
