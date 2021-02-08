@@ -20,7 +20,7 @@ All examples below will use exactly this approach.
 ### Source
 It also supports launching by loading source files and launching the main script directly:
 
-`python3 mdast_cli / mdast_scan.py -h`
+`python3 mdast_cli/mdast_scan.py -h`
 
 With this method of launching, you must additionally install the packages specified in `requirements.txt`
 
