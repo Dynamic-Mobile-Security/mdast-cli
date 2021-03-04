@@ -70,6 +70,17 @@ To download application from AppCenter distribution system you need to select th
     * `appcenter_release_id` - ID of the specific release of the application to be downloaded from AppCenter. There is a possibility to select the "latest" value - the [latest available version](https://openapi.appcenter.ms/#/distribute/releases_getLatestByUser) of the application will be downloaded.
     * `appcenter_app_version` - this parameter finds and downloads the specific version of the application in accordance with its version ID (shown in Android Manifest) (the "version" field in the [AppCenter Documentation](https://openapi.appcenter.ms/#/distribute/releases_list))
 
+### Nexus
+To download application from maven repository you need to know repository where mobile application is stored and its group_id, artifact_id and version. To upload mobile application to Nexus you can use [this snippet](https://gist.github.com/Dynamic-Mobile-Security/9730e8eaa1b5d5f7f21e28beb63561a8) with your data.
+Also you need to select the `distribution_system nexus` and specify the following mandatory parameters:
+ * `nexus_url` - Http(s) url for Nexus server where mobile application is located.
+ * `nexus_login` - username for Nexus server with permissions to repository where mobile application located.
+ * `nexus_password` - password for the Nexus server with permissions to repository where mobile application located.
+ * `nexus_repo_name` - repository name in Nexus where mobile application is located.
+ * `nexus_group_id` - group_id of the uploaded mobile application from maven data.
+ * `nexus_artifact_id` - artifact_id of the uploaded mobile application from maven data.
+ * `nexus_version` - version of the uploaded mobile application from maven data.
+
 ## Launch examples
 
 ### Local file

@@ -20,16 +20,18 @@ try:
     from .helpers.logging import Log
     from .distribution_systems.hockey_app import HockeyApp
     from .distribution_systems.app_center import AppCenter
+    from .distribution_systems.nexus import NexusRepository
 except ImportError:
     from mdast_cli.helpers.const import *
     from mdast_cli.helpers.logging import Log
     from mdast_cli.distribution_systems.hockey_app import HockeyApp
     from mdast_cli.distribution_systems.app_center import AppCenter
+    from mdast_cli.distribution_systems.nexus import NexusRepository
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Start scan and get scan results.')
-    parser.add_argument('--distribution_system', type=str, help='Select how to get apk file', choices=['file', 'hockeyapp', 'appcenter'], required=True)
+    parser.add_argument('--distribution_system', type=str, help='Select how to get apk file', choices=['file', 'hockeyapp', 'appcenter', 'nexus'], required=True)
 
     # Arguments used for distribution_system = file
     parser.add_argument('--file_path', type=str, help='Path to local apk file for analyze. This argument required if distribution system set to "file"')
@@ -46,6 +48,16 @@ def parse_args():
     parser.add_argument('--appcenter_app_name', type=str, help='Application name in AppCenter. This argument required if distribution system set to "appcenter"')
     parser.add_argument('--appcenter_release_id', type=str, help='Release id in AppCenter. If not set - the latest release will be downloaded. This argument or "--ac_app_version" required if distribution system set to "appcenter"')
     parser.add_argument('--appcenter_app_version', type=str,help='Application version in AppCenter. This argument  or "--appcenter_release_id" required if distribution system set to "appcenter"')
+
+    # Agruments for Nexus
+    parser.add_argument('--nexus_url', type=str, help='Http url for Nexus server where mobile application is located. This argument required if distribution system set to "appcenter"')
+    parser.add_argument('--nexus_login', type=str, help='Login for Nexus server where mobile application is located. This argument required if distribution system set to "appcenter"')
+    parser.add_argument('--nexus_password', type=str, help='Password for Nexus server where mobile application is located. This argument required if distribution system set to "appcenter"')
+    parser.add_argument('--nexus_repo_name', type=str, help='Repository name in Nexus where mobile application is located. This argument required if distribution system set to "appcenter"')
+    parser.add_argument('--nexus_group_id', type=str, help='Group_id for mobile application. This argument required if distribution system set to "appcenter"')
+    parser.add_argument('--nexus_artifact_id', type=str, help='Artifact id for mobile application. This argument required if distribution system set to "appcenter"')
+    parser.add_argument('--nexus_version', type=str, help='Version to download from Nexus. This argument required if distribution system set to "appcenter"')
+
 
     # Main arguments
     parser.add_argument('--url', type=str, help='System url', required=True)
@@ -64,14 +76,29 @@ def parse_args():
         parser.error('"--distribution_system file" requires "--file_path" argument to be set')
     elif args.distribution_system == 'hockeyapp' and (
             args.hockey_token is None or
-            (args.hockey_bundle_id is None or args.hockey_public_id is None)):
+            (args.hockey_bundle_id is None or
+             args.hockey_public_id is None)):
         parser.error('"--distribution_system hockeyapp" requires "--hockey_token" and "--hockey_app" arguments to be set')
+
     elif args.distribution_system == 'appcenter' and (
-        args.appcenter_token is None or args.appcenter_owner_name is None or args.appcenter_app_name is None or (
+        args.appcenter_token is None or
+        args.appcenter_owner_name is None or
+        args.appcenter_app_name is None or (
         args.appcenter_release_id is None and args.appcenter_app_version is None)):
+
         parser.error(
             '"--distribution_system appcenter" requires "--appcenter_token", "--appcenter_owner_name",  "--appcenter_app_name" and '
             '"--appcenter_release_id" or "--appcenter_app_version" arguments to be set')
+
+    elif args.distribution_system == 'nexus' and (
+            args.nexus_url is None or
+            args.nexus_login is None or
+            args.nexus_password is None or
+            args.nexus_repo_name is None or
+            args.nexus_group_id is None or
+            args.nexus_artifact_id is None or
+            args.nexus_version is None):
+        parser.error('"--distribution_system nexus" requires "--nexus_url", "--nexus_login", "--nexus_password", "--nexus_repo_name" arguments to be set')
     return args
 
 
@@ -110,6 +137,15 @@ def main():
                               arguments.appcenter_app_version,
                               arguments.appcenter_release_id)
         app_file = appcenter.download_app()
+    elif distribution_system == 'nexus':
+        nexus_repository = NexusRepository(arguments.nexus_url,
+                                           arguments.nexus_login,
+                                           arguments.nexus_password,
+                                           arguments.nexus_repo_name,
+                                           arguments.nexus_group_id,
+                                           arguments.nexus_artifact_id,
+                                           arguments.nexus_version)
+        app_file = nexus_repository.download_app()
 
     mdast = mDast(url, token, company_id)
     get_architecture = mdast.get_architectures()
