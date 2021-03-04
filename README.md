@@ -34,6 +34,7 @@ Currently, several launch options are supported:
  * Local apk file
  * Applications from [HockeyApp](https://hockeyapp.net/)
  * Applications from [AppCenter](https://appcenter.ms)
+ * Applications from [Nexus Repository 3.x](https://help.sonatype.com/repomanager3) from maven repo.
 
 ## Launch parameters
 The launch options depend on the location of the apk file sent for analysis. Also, there are required parameters that must be specified for any type of launch:
