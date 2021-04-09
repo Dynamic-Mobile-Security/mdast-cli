@@ -27,5 +27,5 @@ DastStateDict = {
     11: "CANCELLING"
 }
 
-TRY_COUNT = 120
+TRY_COUNT = 1200
 SLEEP_TIMEOUT = 30
