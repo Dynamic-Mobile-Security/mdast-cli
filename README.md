@@ -40,7 +40,7 @@ Currently, several launch options are supported:
 The launch options depend on the location of the apk file sent for analysis. Also, there are required parameters that must be specified for any type of launch:
  * `url` - network address for system (the path to the root without the final /)
  * `profile_id` - ID of the profile to be analyzed
- * `testcase_id` - ID of the test case to be executed;
+ * `testcase_id` - ID of the test case to be executed. This is an optional parameter, if not set - manual scan with 20 seconds delay until finish will be executed;
  * `token` - CI/CD access token (refer to our documentation for ways to retrieve the token)
  * `distribution_system` - distribution method for the application; possible values: `file`, `hockeyapp` or `appcenter`. For detailed information refer to the respective sections below.
  * `company_id` - identifier of the company within which the scan will be performed
@@ -84,6 +84,23 @@ Also you need to select the `distribution_system nexus` and specify the followin
 
 ## Launch examples
 
+### Scan type
+There are several ways to start scan: with previously recorded tescase or without it.
+ * In first scenario with selected testcase - it will be replayed in the scan execution. 
+ * In second scenario without tescase, application will be installed on the device, started, waiting for 30 seconds and than stopped and further analysis will be performed.
+
+#### Start scan with testcase (run previosly recorded steps in application)
+To start this type of scan you need to specify `id` of previosly recorded testcase in `--testcase_id` parameter:
+```
+mdast_cli --testcase_id 4 --distribution_system file --file_path "/files/demo/apk/demo.apk" --url "https://saas.mobile.appsec.world" --profile_id 1 --company_id 1 - architecture_id 1 --token "eyJ0eXA4OiJKA1QiLbJhcGciO5JIU4I1NiJ1.eyJzdaJqZWNcX2lkIj53LCJle5AiOjf1OTM5OTU3MjB1.hrI6c4VN_U2mo5VjHvRoENPv2"
+```
+
+#### Start scan without testcase 
+To start this type of scan don't specify `--testcase_id` parameter:
+```
+mdast_cli --distribution_system file --file_path "/files/demo/apk/demo.apk" --url "https://saas.mobile.appsec.world" --profile_id 1 --company_id 1 - architecture_id 1 --token "eyJ0eXA4OiJKA1QiLbJhcGciO5JIU4I1NiJ1.eyJzdaJqZWNcX2lkIj53LCJle5AiOjf1OTM5OTU3MjB1.hrI6c4VN_U2mo5VjHvRoENPv2"
+```
+
 ### Local file
 
 #### Docker launch
@@ -118,9 +135,9 @@ As a result, an automated analysis of the `demo.apk` application with a profile 
 #### Generating a Summary report in JSON format
 
 ```
-mdast_cli --distribution_system file --file_path "/files/demo/apk/demo.apk" --url "https://saas.mobile.appsec.world" --profile_id 1 --testcase_id 4 --company_id 1 - architecture_id 1 --token "eyJ0eXA4OiJKA1QiLbJhcGciO5JIU4I1NiJ1.eyJzdaJqZWNcX2lkIj53LCJle5AiOjf1OTM5OTU3MjB1.hfI6c4VN_U2mo5VfCvRoENPvLvlPvN_U2mo5VfCvRoENhPlv
+mdast_cli --distribution_system file --file_path "/files/demo/apk/demo.apk" --url "https://saas.mobile.appsec.world" --profile_id 1 --testcase_id 4 --company_id 1 - architecture_id 1 --token "eyJ0eXA4OiJKA1QiLbJhcGciO5JIU4I1NiJ1.eyJzdaJqZWNcX2lkIj53LCJle5AiOjf1OTM5OTU3MjB1.hfI6c4VN_U2mo5VfCvRoENPvLvlPvN_U2mo5VfCvRoENhPlv" --summary_report_json_file_name json-scan-repot.json
 ```
-As a result, an automated analysis of the `demo.apk` application with a profile with` id` 1 will be launched and a test case with `id` 4 will be launched, and upon completion of scanning, a JSON report with the total number of defects and brief statistics will be uploaded along with the PDF report. scanning.
+As a result, an automated analysis of the `demo.apk` application with a profile with` id` 1 will be launched and a test case with `id` 4 will be launched, and upon completion of scanning, a JSON report with the total number of defects and brief statistics will be saved.
 
 ### HockeyApp by bundle_identifier and version
 To run application analysis from a HockeyApp system:
