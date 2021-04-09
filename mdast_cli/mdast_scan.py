@@ -168,43 +168,53 @@ def main():
     application = upload_application_resp.json()
     Log.info(f"Application uploaded successfully. Application id: {application['id']}")
 
-    Log.info(f"Create autoscan for application {application['id']}")
+    Log.info(f"Create scan for application {application['id']}")
 
+    scan_type = None
     # TODO Remove this after autoscan for ios will be available
     if 'Android' in architecture_type.get('name', ''):
-        create_dast_resp = mdast.create_auto_scan(profile_id=profile_id,
-                                                  app_id=application['id'],
-                                                  arch_id=architecture,
-                                                  test_case_id=testcase_id)
+        if not testcase_id:
+            create_dast_resp = mdast.create_manual_scan(profile_id=profile_id,
+                                                        app_id=application['id'],
+                                                        arch_id=architecture)
+            scan_type = 'manual'
+        else:
+            create_dast_resp = mdast.create_auto_scan(profile_id=profile_id,
+                                                      app_id=application['id'],
+                                                      arch_id=architecture,
+                                                      test_case_id=testcase_id)
+            scan_type = 'auto'
     elif 'iOS' in architecture_type.get('name', ''):
         create_dast_resp = mdast.create_manual_scan(profile_id=profile_id,
                                                     app_id=application['id'],
                                                     arch_id=architecture)
+        scan_type = 'auto'
     else:
-        Log.error("Cannot create autoscan - unknown architecture")
+        Log.error("Cannot create scan - unknown architecture")
         sys.exit(1)
 
     if not create_dast_resp.status_code == 201:
-        Log.error(f'Error while creating autoscan: {create_dast_resp.text}')
+        Log.error(f'Error while creating scan: {create_dast_resp.text}')
         sys.exit(1)
 
     dast = create_dast_resp.json()
-    Log.info(f"Autoscan created successfully. Scan id: {dast['id']}")
+    Log.info(f"Scan created successfully. Scan id: {dast['id']}")
 
     if not 'id' in dast and dast.get('id', '') != '':
-        Log.error(f'Something went wrong while creating autoscan: {dast}')
+        Log.error(f'Something went wrong while creating scan: {dast}')
         sys.exit(1)
 
-    Log.info(f"Start autoscan with id {dast['id']}")
+    Log.info(f"Start scan with id {dast['id']}")
     start_dast_resp = mdast.start_scan(dast['id'])
     if not start_dast_resp.status_code == 200:
-        Log.error(f"Error while starting autoscan with id {dast['id']}: {start_dast_resp.text}")
+        Log.error(f"Error while starting scan with id {dast['id']}: {start_dast_resp.text}")
         sys.exit(1)
 
     if not_wait_scan_end:
         Log.info('Scan successfully started. Don`t wait for end, exit with zero code')
         sys.exit(0)
-    Log.info(f"Autoscan started successfully.")
+
+    Log.info(f"Scan started successfully.")
     Log.info(f"Check scan state with id {dast['id']}")
     get_dast_info_resp = mdast.get_scan_info(dast['id'])
     if not get_dast_info_resp.status_code == 200:
@@ -233,7 +243,7 @@ def main():
 
     if not dast['state'] in (DastState.STARTED, DastState.STOPPING, DastState.ANALYZING, DastState.SUCCESS):
         Log.error(f"Error with scan id {dast['id']}. Current scan status: {dast['state']},"
-                  f" but expected to be {DastState.STARTED}, {DastState.ANALYZING} or {DastState.SUCCESS}")
+                  f" but expected to be {DastState.STARTED}, {DastState.ANALYZING}, {DastState.STOPPING} or {DastState.SUCCESS}")
         sys.exit(1)
     Log.info(f"Scan with {dast['id']} finished and now analyzing. Wait until analyzing stage is finished.")
 
@@ -248,6 +258,14 @@ def main():
     count = 0
 
     while dast_status in (DastState.STARTED, DastState.STOPPING, DastState.ANALYZING) and count < TRY_COUNT:
+        if count == 0 and scan_type == 'manual':
+            Log.info(f"This is manual scan, lets wait for {SLEEP_TIMEOUT} seconds and stop it.")
+            time.sleep(SLEEP_TIMEOUT)
+            stop_manual_dast_resp = mdast.stop_scan(dast['id'])
+            if not stop_manual_dast_resp.status_code == 200:
+                Log.error(f"Error while stopping scan with id {dast['id']}: {get_dast_info_resp.text}")
+                sys.exit(1)
+
         Log.info(f"Try to get scan status for scan id {dast['id']}. Count number {count}")
         get_dast_info_resp = mdast.get_scan_info(dast['id'])
         if not get_dast_info_resp.status_code == 200:
