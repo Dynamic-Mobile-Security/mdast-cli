@@ -217,7 +217,7 @@ def main():
     count = 0
 
     Log.info(f"Waiting until scan with id {dast['id']} started.")
-    while dast_status in (DastState.CREATED, DastState.STARTING) and count < TRY_COUNT:
+    while dast_status in (DastState.CREATED, DastState.INITIALIZING, DastState.STARTING) and count < TRY_COUNT:
         Log.info(f"Try to get scan status for scan id {dast['id']}. Count number {count}")
         get_dast_info_resp = mdast.get_scan_info(dast['id'])
         if not get_dast_info_resp.status_code == 200:
@@ -231,7 +231,7 @@ def main():
         Log.info(f"Wait {SLEEP_TIMEOUT} seconds and try again")
         time.sleep(SLEEP_TIMEOUT)
 
-    if not dast['state'] in (DastState.STARTED, DastState.ANALYZING, DastState.SUCCESS):
+    if not dast['state'] in (DastState.STARTED, DastState.STOPPING, DastState.ANALYZING, DastState.SUCCESS):
         Log.error(f"Error with scan id {dast['id']}. Current scan status: {dast['state']},"
                   f" but expected to be {DastState.STARTED}, {DastState.ANALYZING} or {DastState.SUCCESS}")
         sys.exit(1)
@@ -247,7 +247,7 @@ def main():
     Log.info(f"Current scan status: {DastStateDict.get(dast_status)}")
     count = 0
 
-    while dast_status in (DastState.STARTED, DastState.ANALYZING) and count < TRY_COUNT:
+    while dast_status in (DastState.STARTED, DastState.STOPPING, DastState.ANALYZING) and count < TRY_COUNT:
         Log.info(f"Try to get scan status for scan id {dast['id']}. Count number {count}")
         get_dast_info_resp = mdast.get_scan_info(dast['id'])
         if not get_dast_info_resp.status_code == 200:

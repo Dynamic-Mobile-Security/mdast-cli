@@ -5,6 +5,12 @@ class DastState:
     ANALYZING = 3
     SUCCESS = 4
     FAILED = 5
+    STOPPING = 6
+    RECALCULATING = 7
+    INTERRUPTING = 8
+    INITIALIZING = 9
+    CANCELLED = 10
+    CANCELLING = 11
 
 DastStateDict = {
     0: "CREATED",
@@ -12,7 +18,13 @@ DastStateDict = {
     2: "STARTED",
     3: "ANALYZING",
     4: "SUCCESS",
-    5: "FAILED"
+    5: "FAILED",
+    6: "STOPPING",
+    7: "RECALCULATING",
+    8: "INTERRUPTING",
+    9: "INITIALIZING",
+    10: "CANCELLED",
+    11: "CANCELLING"
 }
 
 TRY_COUNT = 120
