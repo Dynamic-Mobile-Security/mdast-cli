@@ -27,6 +27,8 @@ venv/
 target/
 dist/
 
+build/
+
 # JetBrains IDE
 .idea/
 
