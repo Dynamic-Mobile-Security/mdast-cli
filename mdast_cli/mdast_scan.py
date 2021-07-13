@@ -31,44 +31,77 @@ except ImportError:
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Start scan and get scan results.')
-    parser.add_argument('--distribution_system', type=str, help='Select how to get apk file', choices=['file', 'hockeyapp', 'appcenter', 'nexus'], required=True)
+    parser.add_argument('--distribution_system', type=str, help='Select how to get apk file',
+                        choices=['file', 'hockeyapp', 'appcenter', 'nexus'], required=True)
 
     # Arguments used for distribution_system = file
-    parser.add_argument('--file_path', type=str, help='Path to local apk file for analyze. This argument required if distribution system set to "file"')
+    parser.add_argument('--file_path', type=str, help='Path to local apk file for analyze. This argument required if '
+                                                      'distribution system set to "file"')
 
-    # Arguments used for distribution_system = hockeyapp
-    parser.add_argument('--hockey_token', type=str, help='Auth token for HockeyApp. This argument required if distribution system set to "hockeyapp"')
-    parser.add_argument('--hockey_bundle_id', type=str, help='Application bundle in HockeyApp. This argument or "--hockey_public_id" required if distribution system set to "hockeyapp"')
-    parser.add_argument('--hockey_public_id', type=str, help='Application identifier in HockeyApp. This argument or "--hockey_bundle_id" required if distribution system set to "hockeyapp"')
-    parser.add_argument('--hockey_version', type=str, help='Application version in HockeyApp. If not set - the latest version will be downloaded. This argument required if distribution system set to "hockeyapp"', default='latest')
+    # Arguments used for distribution_system hockeyapp
+    parser.add_argument('--hockey_token', type=str, help='Auth token for HockeyApp. This argument required if '
+                                                         'distribution system set to "hockeyapp"')
+    parser.add_argument('--hockey_bundle_id', type=str, help='Application bundle in HockeyApp. This argument or '
+                                                             '"--hockey_public_id" required if distribution system '
+                                                             'set to "hockeyapp"')
+    parser.add_argument('--hockey_public_id', type=str, help='Application identifier in HockeyApp. This argument or '
+                                                             '"--hockey_bundle_id" required if distribution system '
+                                                             'set to "hockeyapp"')
+    parser.add_argument('--hockey_version', type=str, help='Application version in HockeyApp. If not set - the latest '
+                                                           'version will be downloaded. This argument required if '
+                                                           'distribution system set to "hockeyapp"', default='latest')
 
-    # Arguments used for distribution_system = appcenter
-    parser.add_argument('--appcenter_token', type=str, help='Auth token for AppCenter. This argument required if distribution system set to "appcenter"')
-    parser.add_argument('--appcenter_owner_name', type=str, help='Application owner name in AppCenter. This argument required if distribution system set to "appcenter"')
-    parser.add_argument('--appcenter_app_name', type=str, help='Application name in AppCenter. This argument required if distribution system set to "appcenter"')
-    parser.add_argument('--appcenter_release_id', type=str, help='Release id in AppCenter. If not set - the latest release will be downloaded. This argument or "--ac_app_version" required if distribution system set to "appcenter"')
-    parser.add_argument('--appcenter_app_version', type=str,help='Application version in AppCenter. This argument  or "--appcenter_release_id" required if distribution system set to "appcenter"')
+    # Arguments used for distribution_system appcenter
+    parser.add_argument('--appcenter_token', type=str, help='Auth token for AppCenter. This argument required if '
+                                                            'distribution system set to "appcenter"')
+    parser.add_argument('--appcenter_owner_name', type=str, help='Application owner name in AppCenter. This argument '
+                                                                 'required if distribution system set to "appcenter"')
+    parser.add_argument('--appcenter_app_name', type=str, help='Application name in AppCenter. This argument required '
+                                                               'if distribution system set to "appcenter"')
+    parser.add_argument('--appcenter_release_id', type=str, help='Release id in AppCenter. If not set - the latest '
+                                                                 'release will be downloaded. This argument or '
+                                                                 '"--ac_app_version" required if distribution system '
+                                                                 'set to "appcenter"')
+    parser.add_argument('--appcenter_app_version', type=str, help='Application version in AppCenter. This argument  or '
+                                                                  '"--appcenter_release_id" required if distribution '
+                                                                  'system set to "appcenter"')
 
     # Agruments for Nexus
-    parser.add_argument('--nexus_url', type=str, help='Http url for Nexus server where mobile application is located. This argument required if distribution system set to "appcenter"')
-    parser.add_argument('--nexus_login', type=str, help='Login for Nexus server where mobile application is located. This argument required if distribution system set to "appcenter"')
-    parser.add_argument('--nexus_password', type=str, help='Password for Nexus server where mobile application is located. This argument required if distribution system set to "appcenter"')
-    parser.add_argument('--nexus_repo_name', type=str, help='Repository name in Nexus where mobile application is located. This argument required if distribution system set to "appcenter"')
-    parser.add_argument('--nexus_group_id', type=str, help='Group_id for mobile application. This argument required if distribution system set to "appcenter"')
-    parser.add_argument('--nexus_artifact_id', type=str, help='Artifact id for mobile application. This argument required if distribution system set to "appcenter"')
-    parser.add_argument('--nexus_version', type=str, help='Version to download from Nexus. This argument required if distribution system set to "appcenter"')
-
+    parser.add_argument('--nexus_url', type=str,
+                        help='Http url for Nexus server where mobile application is located.'
+                             ' This argument required if distribution system set to "appcenter"')
+    parser.add_argument('--nexus_login', type=str,
+                        help='Login for Nexus server where mobile application is located.'
+                             ' This argument required if distribution system set to "appcenter"')
+    parser.add_argument('--nexus_password', type=str,
+                        help='Password for Nexus server where mobile application is located.'
+                             'This argument required if distribution system set to "appcenter"')
+    parser.add_argument('--nexus_repo_name', type=str,
+                        help='Repository name in Nexus where mobile application is located. '
+                             'This argument required if distribution system set to "appcenter"')
+    parser.add_argument('--nexus_group_id', type=str,
+                        help='Group_id for mobile application. '
+                             'This argument required if distribution system set to "appcenter"')
+    parser.add_argument('--nexus_artifact_id', type=str,
+                        help='Artifact id for mobile application. '
+                             'This argument required if distribution system set to "appcenter"')
+    parser.add_argument('--nexus_version', type=str,
+                        help='Version to download from Nexus. '
+                             'This argument required if distribution system set to "appcenter"')
 
     # Main arguments
     parser.add_argument('--url', type=str, help='System url', required=True)
     parser.add_argument('--company_id', type=int, help='Company id for starting scan', required=True)
-    parser.add_argument('--architecture_id', type=int, help='Architecture id to perform scan', required=True)
+    parser.add_argument('--architecture_id', type=int, help='Architecture id to perform scan')
     parser.add_argument('--token', type=str, help='CI/CD Token for start scan and get results', required=True)
     parser.add_argument('--profile_id', type=int, help='Project id for scan', required=True)
     parser.add_argument('--testcase_id', type=int, help='Testcase Id')
-    parser.add_argument('--summary_report_json_file_name', type=str,  help='Name for the json file with summary results in structured format')
-    parser.add_argument('--pdf_report_file_name', type=str,  help='Name for the pdf report file.')
-    parser.add_argument('--nowait', '-nw', action='store_true', help='Wait before scan ends and get results if set to True. If set to False - just start scan and exit')
+    parser.add_argument('--summary_report_json_file_name', type=str,
+                        help='Name for the json file with summary results in structured format')
+    parser.add_argument('--pdf_report_file_name', type=str, help='Name for the pdf report file.')
+    parser.add_argument('--nowait', '-nw', action='store_true',
+                        help='Wait before scan ends and get results if set to True. If set to False - just start scan '
+                             'and exit')
 
     args = parser.parse_args()
 
@@ -76,18 +109,15 @@ def parse_args():
         parser.error('"--distribution_system file" requires "--file_path" argument to be set')
     elif args.distribution_system == 'hockeyapp' and (
             args.hockey_token is None or
-            (args.hockey_bundle_id is None or
-             args.hockey_public_id is None)):
-        parser.error('"--distribution_system hockeyapp" requires "--hockey_token" and "--hockey_app" arguments to be set')
-
+            (args.hockey_bundle_id is None or args.hockey_public_id is None)):
+        parser.error('"--distribution_system hockeyapp" requires "--hockey_token" and "--hockey_app" arguments to be '
+                     'set')
     elif args.distribution_system == 'appcenter' and (
-        args.appcenter_token is None or
-        args.appcenter_owner_name is None or
-        args.appcenter_app_name is None or (
-        args.appcenter_release_id is None and args.appcenter_app_version is None)):
-
+            args.appcenter_token is None or args.appcenter_owner_name is None or args.appcenter_app_name is None or (
+            args.appcenter_release_id is None and args.appcenter_app_version is None)):
         parser.error(
-            '"--distribution_system appcenter" requires "--appcenter_token", "--appcenter_owner_name",  "--appcenter_app_name" and '
+            '"--distribution_system appcenter" requires "--appcenter_token", "--appcenter_owner_name",  '
+            '"--appcenter_app_name" and '
             '"--appcenter_release_id" or "--appcenter_app_version" arguments to be set')
 
     elif args.distribution_system == 'nexus' and (
@@ -98,7 +128,8 @@ def parse_args():
             args.nexus_group_id is None or
             args.nexus_artifact_id is None or
             args.nexus_version is None):
-        parser.error('"--distribution_system nexus" requires "--nexus_url", "--nexus_login", "--nexus_password", "--nexus_repo_name" arguments to be set')
+        parser.error('"--distribution_system nexus" requires "--nexus_url", "--nexus_login", "--nexus_password",'
+                     ' "--nexus_repo_name" arguments to be set')
     return args
 
 
@@ -124,12 +155,14 @@ def main():
     app_file = ''
     if distribution_system == 'file':
         app_file = arguments.file_path
+        _, file_extension = os.path.splitext(arguments.file_path)
     elif distribution_system == 'hockeyapp':
         hockey_app = HockeyApp(arguments.hockey_token,
                                arguments.hockey_bundle_id,
                                arguments.hockey_public_id,
                                arguments.hockey_version)
         app_file = hockey_app.download_app()
+        _, file_extension = os.path.splitext(app_file)
     elif distribution_system == 'appcenter':
         appcenter = AppCenter(arguments.appcenter_token,
                               arguments.appcenter_app_name,
@@ -137,6 +170,7 @@ def main():
                               arguments.appcenter_app_version,
                               arguments.appcenter_release_id)
         app_file = appcenter.download_app()
+        _, file_extension = os.path.splitext(app_file)
     elif distribution_system == 'nexus':
         nexus_repository = NexusRepository(arguments.nexus_url,
                                            arguments.nexus_login,
@@ -146,18 +180,44 @@ def main():
                                            arguments.nexus_artifact_id,
                                            arguments.nexus_version)
         app_file = nexus_repository.download_app()
+        _, file_extension = os.path.splitext(app_file)
 
     mdast = mDast(url, token, company_id)
-    get_architecture = mdast.get_architectures()
-    if not get_architecture.status_code == 200:
+    get_architectures_resp = mdast.get_architectures()
+    if not get_architectures_resp.status_code == 200:
         Log.error(f'Error while getting architectures')
         sys.exit(1)
 
-    architectures = get_architecture.json()
-    architecture_type = next(arch for arch in architectures if arch.get('id', '') == architecture)
+    if testcase_id is not None:
+        get_testcase_resp = mdast.get_testcase(testcase_id)
+        try:
+            assert get_testcase_resp.status_code == 200, "wrong id"
+        except AssertionError:
+            print("Testcase with this id does not exist")
+            sys.exit(1)
+        architecture = get_testcase_resp.json()['architecture']['id']
+    elif architecture is not None:
+        pass
+    else:
+        if file_extension == ".apk":
+            architecture = Architectures.ANDROID_11
+        else:
+            architecture = Architectures.iOS_14
 
-    Log.info(f'Start automated scan with test case Id: '
-             f'{testcase_id}, profile Id: {profile_id} and file: {app_file}')
+    architectures = get_architectures_resp.json()
+    architecture_type = next(arch for arch in architectures if arch.get('id', '') == architecture)
+    try:
+        if architecture_type is None:
+            if file_extension == ".apk":
+                architecture = Architectures.ANDROID_8
+                architecture_type = next(arch for arch in architectures if arch.get('id', '') == architecture)
+                assert architecture_type is not None
+    except AssertionError:
+        Log.error(f'Error while getting architectures, no suitable architecture for this app')
+        sys.exit(1)
+
+    Log.info(f'Start scan with test case Id: '
+             f'{testcase_id}, profile Id: {profile_id} and file: {app_file}, architecture id is {architecture}')
 
     Log.info('Uploading application to server')
     upload_application_resp = mdast.upload_application(app_file, str(architecture_type['type']))
@@ -170,7 +230,6 @@ def main():
 
     Log.info(f"Create scan for application {application['id']}")
 
-    scan_type = None
     # TODO Remove this after autoscan for ios will be available
     if 'Android' in architecture_type.get('name', ''):
         if not testcase_id:
@@ -198,11 +257,14 @@ def main():
         sys.exit(1)
 
     dast = create_dast_resp.json()
-    Log.info(f"Scan created successfully. Scan id: {dast['id']}")
-
     if not 'id' in dast and dast.get('id', '') != '':
         Log.error(f'Something went wrong while creating scan: {dast}')
         sys.exit(1)
+
+    if scan_type == 'auto':
+        Log.info(f"Autoscan was created successfuly. Scan id: {dast['id']}")
+    else:
+        Log.info(f"Manual scan was created successfuly. Scan id: {dast['id']}")
 
     Log.info(f"Start scan with id {dast['id']}")
     start_dast_resp = mdast.start_scan(dast['id'])
@@ -243,7 +305,8 @@ def main():
 
     if not dast['state'] in (DastState.STARTED, DastState.STOPPING, DastState.ANALYZING, DastState.SUCCESS):
         Log.error(f"Error with scan id {dast['id']}. Current scan status: {dast['state']},"
-                  f" but expected to be {DastState.STARTED}, {DastState.ANALYZING}, {DastState.STOPPING} or {DastState.SUCCESS}")
+                  f" but expected to be {DastState.STARTED}, {DastState.ANALYZING}, {DastState.STOPPING} "
+                  f"or {DastState.SUCCESS}")
         sys.exit(1)
     Log.info(f"Scan with {dast['id']} finished and now analyzing. Wait until analyzing stage is finished.")
 
@@ -286,7 +349,15 @@ def main():
     dast = get_dast_info_resp.json()
 
     if not dast['state'] == DastState.SUCCESS:
-        Log.error(f"Expected state {DastStateDict.get(DastState.SUCCESS)}, but in real it was {dast['state']}. Exit with error status code.")
+        Log.error(
+            f"Expected state {DastStateDict.get(DastState.SUCCESS)}, but in real it was {dast['state']}. "
+            f"Exit with error status code.")
+        sys.exit(1)
+
+    if not dast['state'] == DastState.SUCCESS:
+        Log.error(
+            f"Expected state {DastStateDict.get(DastState.SUCCESS)},"
+            f" but in real it was {dast['state']}. Exit with error status code.")
         sys.exit(1)
 
     if pdf_report_file_name:
@@ -305,7 +376,8 @@ def main():
         Log.info(f"Report for scan {dast['id']} successfully created and available at path: {pdf_report_file_name}.")
 
     if json_summary_file_name:
-        Log.info(f"Create and download JSON summary report for scan with id {dast['id']} to file {json_summary_file_name}.")
+        Log.info(
+            f"Create and download JSON summary report for scan with id {dast['id']} to file {json_summary_file_name}.")
         json_summary_report = mdast.get_scan_info(dast['id'])
         if json_summary_report.status_code != 200:
             Log.error(f"JSON summary report creating failed with error {json_summary_report.text}. Exit...")
