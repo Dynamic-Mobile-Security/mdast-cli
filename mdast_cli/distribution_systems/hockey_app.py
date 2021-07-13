@@ -9,6 +9,7 @@ except ImportError:
     from mdast_cli.helpers.logging import Log
     from mdast_cli.distribution_systems.base import DistributionSystem
 
+
 class HockeyApp(DistributionSystem):
     """
     Downloading application from HockeyApp distribution system
