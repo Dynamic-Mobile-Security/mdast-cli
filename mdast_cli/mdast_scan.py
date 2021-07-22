@@ -195,6 +195,7 @@ def main():
         get_testcase_resp = mdast.get_testcase(testcase_id)
         try:
             assert get_testcase_resp.status_code == 200, "wrong id"
+            architecture = get_testcase_resp.json()['architecture']['id']
         except AssertionError:
             Log.warning("Testcase with this id does not exist or you use old version of system. Trying to use "
                         "architecture from command line params.")
@@ -203,7 +204,6 @@ def main():
             else:
                 Log.error("No architecture was specified")
                 sys.exit(1)
-        architecture = get_testcase_resp.json()['architecture']['id']
 
     elif architecture is not None:
         pass
