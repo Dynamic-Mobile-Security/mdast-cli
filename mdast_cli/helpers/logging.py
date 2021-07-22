@@ -11,6 +11,10 @@ class Log:
         cls._log('ERROR', message)
 
     @classmethod
+    def warning(cls, message):
+        cls._log('WARNING', message)
+
+    @classmethod
     def debug(cls, message):
         cls._log('DEBUG', message)
 

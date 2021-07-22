@@ -184,36 +184,33 @@ def main():
 
     mdast = mDast(url, token, company_id)
     get_architectures_resp = mdast.get_architectures()
+
     if not get_architectures_resp.status_code == 200:
         Log.error(f'Error while getting architectures')
         sys.exit(1)
+
+    architectures = get_architectures_resp.json()
 
     if testcase_id is not None:
         get_testcase_resp = mdast.get_testcase(testcase_id)
         try:
             assert get_testcase_resp.status_code == 200, "wrong id"
         except AssertionError:
-            print("Testcase with this id does not exist")
-            sys.exit(1)
+            Log.warning("Testcase with this id does not exist or you use old version of system. Trying to use "
+                        "architecture from command line params.")
+            if architecture is not None:
+                pass
+            else:
+                Log.error("No architecture was specified")
+                sys.exit(1)
         architecture = get_testcase_resp.json()['architecture']['id']
+
     elif architecture is not None:
         pass
-    else:
-        if file_extension == ".apk":
-            architecture = Architectures.ANDROID_11
-        else:
-            architecture = Architectures.iOS_14
 
-    architectures = get_architectures_resp.json()
     architecture_type = next(arch for arch in architectures if arch.get('id', '') == architecture)
-    try:
-        if architecture_type is None:
-            if file_extension == ".apk":
-                architecture = Architectures.ANDROID_8
-                architecture_type = next(arch for arch in architectures if arch.get('id', '') == architecture)
-                assert architecture_type is not None
-    except AssertionError:
-        Log.error(f'Error while getting architectures, no suitable architecture for this app')
+    if architecture_type is None:
+        Log.error(f'No suitable architecture find for this app')
         sys.exit(1)
 
     Log.info(f'Start scan with test case Id: '
