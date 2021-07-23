@@ -192,17 +192,17 @@ def main():
     architectures = get_architectures_resp.json()
 
     if testcase_id is not None:
-
         get_testcase_resp = mdast.get_testcase(testcase_id)
-        architecture = get_testcase_resp.json()['architecture']['id']
+        if get_testcase_resp.status_code == 200:
+            architecture = get_testcase_resp.json()['architecture']['id']
+        else:
+            Log.warning("Testcase with this id does not exist or you use old version of system. Trying to use "
+                        "architecture from command line params.")
         if architecture is not None:
             pass
         else:
             Log.error("No architecture was specified")
             sys.exit(1)
-
-    elif architecture is not None:
-        pass
 
     architecture_type = next(arch for arch in architectures if arch.get('id', '') == architecture)
     if architecture_type is None:
