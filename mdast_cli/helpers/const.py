@@ -29,11 +29,5 @@ DastStateDict = {
 }
 
 
-class Architectures:
-    ANDROID_8 = 1
-    ANDROID_11 = 2
-    iOS_14 = 3
-
-
 TRY_COUNT = 360
 SLEEP_TIMEOUT = 10

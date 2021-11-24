@@ -1,3 +1,4 @@
 requests > 2.20
 urllib3~=1.26.2
 setuptools==57.4.0
+mdast_cli_core>=2.4.2

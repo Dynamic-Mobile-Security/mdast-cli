@@ -1,11 +1,11 @@
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setup(
     name="mdast_cli",
-    version='2.4.3',
+    version='2.5',
     author="",
     description="Dynamic-Mobile-Security",
     long_description=long_description,
@@ -14,13 +14,13 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     install_requires=[
-         'requests > 2.20'
+        'requests > 2.20'
     ],
-    entry_points ={
-            'console_scripts': [
-                'mdast_cli=mdast_cli.mdast_scan:main'
-            ]
-        },
+    entry_points={
+        'console_scripts': [
+            'mdast_cli=mdast_cli.mdast_scan:main'
+        ]
+    },
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",

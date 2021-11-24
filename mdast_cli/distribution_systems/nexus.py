@@ -1,15 +1,16 @@
+import os
+import sys
 from base64 import b64encode
+
 import requests
 import urllib3
-import sys
-import os
 
 try:
     from ..helpers.logging import Log
     from .base import DistributionSystem
 except ImportError:
-    from mdast_cli.helpers.logging import Log
     from mdast_cli.distribution_systems.base import DistributionSystem
+    from mdast_cli.helpers.logging import Log
 
 urllib3.disable_warnings()
 
@@ -49,7 +50,8 @@ class NexusRepository(DistributionSystem):
 
     def search_component(self):
 
-        search_url = f"{self.nexus_url}/service/rest/v1/search?repository={self.repo_name}&name={self.artifact_id}&version={self.version}&group={self.group_id}"
+        search_url = f"{self.nexus_url}/service/rest/v1/search?repository={self.repo_name}&name={self.artifact_id}" \
+                     f"&version={self.version}&group={self.group_id}"
         json_response = self.session.get(search_url, verify=False)
         component_search_result = json_response.json().get('items', {})
         if component_search_result:
@@ -57,7 +59,8 @@ class NexusRepository(DistributionSystem):
             Log.info(f'NexusRepo: Successfully find component: {component_search_result}')
             return component_search_result[-1]
         else:
-            Log.info(f'NexusRepo: Unable to find component in repository - {self.repo_name}, name - {self.artifact_id}, version - {self.version}&group_id={self.group_id}')
+            Log.info(f'NexusRepo: Unable to find component in repository - {self.repo_name}, name - {self.artifact_id},'
+                     f' version - {self.version}&group_id={self.group_id}')
             return None
 
     def download_app(self):

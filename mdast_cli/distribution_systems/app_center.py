@@ -1,13 +1,14 @@
-import requests
-import sys
 import os
+import sys
+
+import requests
 
 try:
     from ..helpers.logging import Log
     from .base import DistributionSystem
 except ImportError:
-    from mdast_cli.helpers.logging import Log
     from mdast_cli.distribution_systems.base import DistributionSystem
+    from mdast_cli.helpers.logging import Log
 
 
 class AppCenter(DistributionSystem):
@@ -30,7 +31,8 @@ class AppCenter(DistributionSystem):
         response = requests.get(url, headers=self.auth_header)
         if response.status_code != 200:
             Log.error(
-                'AppCenter - Failed to get information about application release. Request return status code: {0}'.format(
+                'AppCenter - Failed to get information about application release. '
+                'Request return status code: {0}'.format(
                     response.status_code))
             sys.exit(4)
 
@@ -43,8 +45,8 @@ class AppCenter(DistributionSystem):
         response = requests.get(url, headers=self.auth_header)
         if response.status_code != 200:
             Log.error(
-                'AppCenter - Failed to get information about application releases. Request return status code: {0}'.format(
-                    response.status_code))
+                'AppCenter - Failed to get information about application releases.'
+                ' Request return status code: {0}'.format(response.status_code))
             sys.exit(4)
 
         versions_info = response.json()
@@ -65,7 +67,8 @@ class AppCenter(DistributionSystem):
             version_info = self.get_version_info_by_version()
 
         if not version_info:
-            Log.error('AppCenter - Failed to get app version information. Verify that you set up arguments correctly and try again')
+            Log.error('AppCenter - Failed to get app version information.'
+                      ' Verify that you set up arguments correctly and try again')
 
         Log.info('AppCenter - Start download application')
         download_url = version_info.get('download_url')
@@ -88,5 +91,3 @@ class AppCenter(DistributionSystem):
         Log.info('AppCenter - Download application successfully completed to {0}'.format(path_to_save))
 
         return path_to_save
-
-
