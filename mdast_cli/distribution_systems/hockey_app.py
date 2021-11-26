@@ -1,13 +1,14 @@
-import requests
-import sys
 import os
+import sys
+
+import requests
 
 try:
     from ..helpers.logging import Log
     from .base import DistributionSystem
 except ImportError:
-    from mdast_cli.helpers.logging import Log
     from mdast_cli.distribution_systems.base import DistributionSystem
+    from mdast_cli.helpers.logging import Log
 
 
 class HockeyApp(DistributionSystem):
@@ -52,7 +53,8 @@ class HockeyApp(DistributionSystem):
         versions_info_url = '{0}/{1}/{2}/{3}'.format(self.url, 'apps', self.app_identifier, 'app_versions')
         response = requests.get(versions_info_url, headers=self.auth_header)
         if response.status_code != 200:
-            Log.error('HockeyApp - Error while getting application versions info, status code: {0}'.format(response.status_code))
+            Log.error('HockeyApp - Error while getting application versions info, status code: {0}'
+                      .format(response.status_code))
             sys.exit(4)
 
         return response.json().get('app_versions', [None])
@@ -85,14 +87,16 @@ class HockeyApp(DistributionSystem):
             Log.error('HockeyApp - Error while getting specified application version, exit')
             sys.exit(4)
 
-        download_url = '{0}?format=apk'.format(application_for_download['download_url'].replace('/apps/', '/api/2/apps/'))
+        download_url = '{0}?format=apk'.format(application_for_download['download_url']
+                                               .replace('/apps/', '/api/2/apps/'))
         Log.info('HockeyApp - Start download application {0} with version {1}'.format(
             self.app_identifier,
             application_for_download['version']))
 
         response = requests.get(download_url, headers=self.auth_header, allow_redirects=True)
         if response.status_code != 200:
-            Log.error('HockeyApp - Failed to download application. Request return status code: {0}'.format(response.status_code))
+            Log.error('HockeyApp - Failed to download application. Request return status code: {0}'
+                      .format(response.status_code))
             sys.exit(4)
 
         file_name = '{0}-{1}.apk'.format(self.app_identifier, application_for_download['version'])

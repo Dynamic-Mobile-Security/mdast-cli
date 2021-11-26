@@ -1,7 +1,8 @@
-import requests
 import json
 import os
 from abc import abstractmethod
+
+import requests
 
 
 class mDastBase:
@@ -79,32 +80,29 @@ class mDastBase:
                             headers=self.headers,
                             verify=False)
 
-    def create_user(self, org_id, user_data, is_admin):
+    def create_user(self, org_id, user_data, role):
         data = {
             'username': user_data['username'],
             'password': user_data['password'],
-            'is_admin': is_admin
+            'role': role
         }
         return requests.post(f'{self.url}/organizations/{org_id}/users/',
                              headers=self.headers,
                              data=json.dumps(data),
                              verify=False)
 
-    def create_user_by_superadmin(self, user_id, username, org_id, is_admin, is_active, change_password,
+    def create_user_by_superadmin(self, user_id, username, org_id, role, is_active, change_password,
                                   accepted_eula, accepted_confidential):
         data = {
             'username': username,
-            'is_admin': is_admin,
+            'role': role,
             'is_active': is_active,
             'change_password': change_password,
             'org_id': org_id,
             'accepted_eula': accepted_eula,
             'accepted_confidential': accepted_confidential
         }
-        return requests.put(f'{self.url}/users/{user_id}/',
-                            headers=self.headers,
-                            data=json.dumps(data),
-                            verify=False)
+        return requests.put(f'{self.url}/users/{user_id}/', headers=self.headers, data=json.dumps(data), verify=False)
 
     def delete_user(self, user_id):
         return requests.delete(f'{self.url}/users/{user_id}/',
@@ -120,24 +118,21 @@ class mDastBase:
                               data=json.dumps(data),
                               verify=False)
 
-    def patch_user(self, user_id, username, is_admin, is_active, change_password, accepted_eula, accepted_confidential):
+    def patch_user(self, user_id, username, role, is_active, change_password, accepted_eula, accepted_confidential):
         data = {
             'username': username,
-            'is_admin': is_admin,
+            'role': role,
             'is_active': is_active,
             'change_password': change_password,
             'accepted_eula': accepted_eula,
             'accepted_confidential': accepted_confidential
         }
-        return requests.patch(f'{self.url}/users/{user_id}/',
-                              headers=self.headers,
-                              data=json.dumps(data),
-                              verify=False)
+        return requests.patch(f'{self.url}/users/{user_id}/', headers=self.headers, data=json.dumps(data), verify=False)
 
     def accept_agreements(self, accept_eula, accept_confidential):
         data = {
-          'accepted_eula': accept_eula,
-          'accepted_confidential': accept_confidential
+            'accepted_eula': accept_eula,
+            'accepted_confidential': accept_confidential
         }
         return requests.patch(f'{self.url}/currentuser/accept_agreements/',
                               headers=self.headers,
@@ -231,6 +226,11 @@ class mDastBase:
 
     def get_all_scans(self):
         return requests.get(f'{self.url}/organizations/{self.current_context["company"]}/dasts/',
+                            headers=self.headers,
+                            verify=False)
+
+    def get_all_scans_by_org_id(self, org_id):
+        return requests.get(f'{self.url}/organizations/{org_id}/dasts/',
                             headers=self.headers,
                             verify=False)
 
@@ -528,3 +528,27 @@ class mDastBase:
                               headers=self.headers,
                               verify=False)
         return report
+
+    def get_dast_logs(self, dast_id):
+        return requests.get(f'{self.url}/dasts/{dast_id}/log/',
+                            headers=self.headers,
+                            verify=False)
+
+    def download_dast_logs(self, dast_id):
+        logs = requests.get(f'{self.url}/dasts/{dast_id}/log/download/',
+                            allow_redirects=True,
+                            headers=self.headers,
+                            verify=False)
+        return logs
+
+    def get_testcase_logs(self, testcase_id):
+        return requests.get(f'{self.url}/testcases/{testcase_id}/log/',
+                            headers=self.headers,
+                            verify=False)
+
+    def download_testcase_logs(self, testcase_id):
+        logs = requests.get(f'{self.url}/testcases/{testcase_id}/log/download/',
+                            allow_redirects=True,
+                            headers=self.headers,
+                            verify=False)
+        return logs
