@@ -1,9 +1,10 @@
+import argparse
+import json
+import os
 import sys
 import time
-import json
+
 import urllib3
-import argparse
-import os
 
 try:
     from mdast_cli_core import mDastToken as mDast
@@ -16,17 +17,17 @@ except (ModuleNotFoundError, ImportError):
     from mdast_cli_core.token import mDastToken as mDast
 
 try:
-    from .helpers.const import *
-    from .helpers.logging import Log
-    from .distribution_systems.hockey_app import HockeyApp
     from .distribution_systems.app_center import AppCenter
+    from .distribution_systems.hockey_app import HockeyApp
     from .distribution_systems.nexus import NexusRepository
+    from .helpers.const import SLEEP_TIMEOUT, TRY_COUNT, DastState, DastStateDict
+    from .helpers.logging import Log
 except ImportError:
-    from mdast_cli.helpers.const import *
-    from mdast_cli.helpers.logging import Log
-    from mdast_cli.distribution_systems.hockey_app import HockeyApp
     from mdast_cli.distribution_systems.app_center import AppCenter
+    from mdast_cli.distribution_systems.hockey_app import HockeyApp
     from mdast_cli.distribution_systems.nexus import NexusRepository
+    from mdast_cli.helpers.const import SLEEP_TIMEOUT, TRY_COUNT, DastState, DastStateDict
+    from mdast_cli.helpers.logging import Log
 
 
 def parse_args():
@@ -186,7 +187,7 @@ def main():
     get_architectures_resp = mdast.get_architectures()
 
     if not get_architectures_resp.status_code == 200:
-        Log.error(f'Error while getting architectures')
+        Log.error("Error while getting architectures")
         sys.exit(1)
 
     architectures = get_architectures_resp.json()
@@ -206,7 +207,7 @@ def main():
 
     architecture_type = next(arch for arch in architectures if arch.get('id', '') == architecture)
     if architecture_type is None:
-        Log.error(f'No suitable architecture find for this app')
+        Log.error("No suitable architecture find for this app")
         sys.exit(1)
 
     Log.info(f'Start scan with test case Id: '
@@ -250,7 +251,7 @@ def main():
         sys.exit(1)
 
     dast = create_dast_resp.json()
-    if not 'id' in dast and dast.get('id', '') != '':
+    if 'id' not in dast and dast.get('id', '') != '':
         Log.error(f'Something went wrong while creating scan: {dast}')
         sys.exit(1)
 
@@ -269,7 +270,7 @@ def main():
         Log.info('Scan successfully started. Don`t wait for end, exit with zero code')
         sys.exit(0)
 
-    Log.info(f"Scan started successfully.")
+    Log.info("Scan started successfully.")
     Log.info(f"Check scan state with id {dast['id']}")
     get_dast_info_resp = mdast.get_scan_info(dast['id'])
     if not get_dast_info_resp.status_code == 200:
