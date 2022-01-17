@@ -122,6 +122,10 @@ def parse_args():
     parser.add_argument('--firebase_SAPISID_cookie', type=str,
                         help='SAPISID cookie for firebase authentication  via google sso.'
                              ' This argument required if distribution system set to "firebase"')
+    parser.add_argument('--firebase_file_extension', type=str,
+                        help='File extension(apk or ipa) for downloaded application.'
+                             ' This argument is required if distribution system set to "firebase"',
+                        choices=['ipa', 'apk'])
     parser.add_argument('--firebase_file_name', type=str,
                         help='File name for downloaded application.'
                              ' This argument is optional if distribution system set to "firebase"')
@@ -179,11 +183,12 @@ def parse_args():
             args.firebase_HSID_cookie is None or
             args.firebase_SSID_cookie is None or
             args.firebase_APISID_cookie is None or
-            args.firebase_SAPISID_cookie is None):
+            args.firebase_SAPISID_cookie is None or
+            args.firebase_file_extension is None):
         parser.error('"--distribution_system nexus" requires "--firebase_project_id", "--firebase_app_id", '
                      '"--firebase_app_code", "--firebase_api_key", "--firebase_api_key", "--firebase_SID_cookie", '
                      '"--firebase_HSID_cookie", "--firebase_SSID_cookie", "--firebase_APISID_cookie", '
-                     '"--firebase_SAPISID_cookie" arguments to be set')
+                     '"--firebase_SAPISID_cookie", "--firebase_file_extension" arguments to be set')
     return args
 
 
@@ -209,14 +214,12 @@ def main():
     app_file = ''
     if distribution_system == 'file':
         app_file = arguments.file_path
-        _, file_extension = os.path.splitext(arguments.file_path)
     elif distribution_system == 'hockeyapp':
         hockey_app = HockeyApp(arguments.hockey_token,
                                arguments.hockey_bundle_id,
                                arguments.hockey_public_id,
                                arguments.hockey_version)
         app_file = hockey_app.download_app()
-        _, file_extension = os.path.splitext(app_file)
     elif distribution_system == 'appcenter':
         appcenter = AppCenter(arguments.appcenter_token,
                               arguments.appcenter_app_name,
@@ -224,7 +227,6 @@ def main():
                               arguments.appcenter_app_version,
                               arguments.appcenter_release_id)
         app_file = appcenter.download_app()
-        _, file_extension = os.path.splitext(app_file)
     elif distribution_system == 'nexus':
         nexus_repository = NexusRepository(arguments.nexus_url,
                                            arguments.nexus_login,
@@ -234,7 +236,6 @@ def main():
                                            arguments.nexus_artifact_id,
                                            arguments.nexus_version)
         app_file = nexus_repository.download_app()
-        _, file_extension = os.path.splitext(app_file)
     elif distribution_system == 'firebase':
         firebase = Firebase(arguments.firebase_project_id,
                             arguments.firebase_app_id,
@@ -245,9 +246,9 @@ def main():
                             arguments.firebase_SSID_cookie,
                             arguments.firebase_APISID_cookie,
                             arguments.firebase_SAPISID_cookie,
+                            arguments.firebase_file_extension,
                             arguments.firebase_file_name)
         app_file = firebase.download_app()
-        _, file_extension = os.path.splitext(app_file)
 
     mdast = mDast(url, token, company_id)
     get_architectures_resp = mdast.get_architectures()

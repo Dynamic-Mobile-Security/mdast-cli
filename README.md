@@ -31,10 +31,11 @@ With this method of launching, you must additionally install the packages specif
 
 ## Launch options
 Currently, several launch options are supported:
- * Local apk file
+ * Local file
  * Applications from [HockeyApp](https://hockeyapp.net/)
  * Applications from [AppCenter](https://appcenter.ms)
  * Applications from [Nexus Repository 3.x](https://help.sonatype.com/repomanager3) from maven repo.
+ * Applications from [Firebase](https://firebase.google.com/)
 
 ## Launch parameters
 The launch options depend on the location of the apk file sent for analysis. Also, there are required parameters that must be specified for any type of launch:
@@ -88,32 +89,35 @@ Also, you need to select the `distribution_system nexus` and specify the followi
 
 
 ### Firebase
-To download application from firebase platform you need to know some cookies for Google SSO authentication and project_id, app_id, app_code, api_key parameters from firebase project.  
+To download application from firebase platform you need to know some cookies for Google SSO authentication and project_id, app_id, app_code, api_key and file_extension parameters from firebase project.  
 
 You should go from Firebase home page to project with apk, then click `Release & Monitor -> App Distribution`, select your app and click `Download` release that you need.  
 
 
 Request url will match this pattern, you should extract 4 parameters from url.
-`/v1/projects/{project_id}}/apps/{app_id}}/releases/{app_code}:getLatestBinary?alt=json&key={api_key}`  
+`/v1/projects/{project_id}/apps/{app_id}/releases/{app_code}:getLatestBinary?alt=json&key={api_key}`  
 
 Also, you need to select the `--distribution_system firebase` and specify mandatory parameters.  
 
+More detailed instructions below in Firebase integration manual.
 
- * `firebase_project_id` - project id of your Firebase project
- * `firebase_app_id` - application id
- * `firebase_app_code` - application code
- * `firebase_api_key` - your api key
+
+ * `firebase_project_id` - project id of your Firebase project, details in Firebase integration manual
+ * `firebase_app_id` - application id, details in Firebase integration manual
+ * `firebase_app_code` - application code, details in Firebase integration manual
+ * `firebase_api_key` - your api key, details in Firebase integration manual
+ * `firebase_app_extension` - your app extension, it can be `apk` for android and `ipa` for iOS
 
 And some cookies, that you can grab from your browser local storage, when you are logged in [Firebase]((https://console.firebase.google.com)). Their lifetime is 2 years. All of them are mandatory. More detailed instructions below in Firebase integration manual.
- * `firebase_SID_cookie` 
- * `firebase_HSID_cookie`  
- * `firebase_SSID_cookie`  
- * `firebase_APISID_cookie` 
- * `firebase_SAPISID_cookie` 
+ * `firebase_SID_cookie` - details in Firebase integration manual
+ * `firebase_HSID_cookie` - details in Firebase integration manual
+ * `firebase_SSID_cookie`  - details in Firebase integration manual
+ * `firebase_APISID_cookie` - details in Firebase integration manual
+ * `firebase_SAPISID_cookie` - details in Firebase integration manual
 
 You can specify apk file name with optional parameter
 
- * `firebase_file_name` 
+ * `firebase_file_name` - file name for app to be saved with
 
 ## Launch examples
 
@@ -218,10 +222,38 @@ As a result, in the owner workspace (user or organization `test_org_or_user`) wi
 
 
 ### Firebase launch example
-#### TODO
+To start the manual scan analysis of the application, that was downloaded from Firebase, you need to run the following command:
 ```
-python mdast_cli/mdast_scan.py --profile_id 468 --architecture_id 2 --distribution_system firebase --firebase_project_id 2834204**** --firebase_app_id 1:283***3642:android:8b0a0***56ac40c1a43 --firebase_app_code 2b***sltr0 --firebase_api_key AIzaSyDov*****qKdbj-geRWyzMTrg --firebase_SID_cookie FgiA*****ZiQakQ-_C-5ZaEHvbDMFGkrgriAByQ9P9fv7LfRrYJ5suXgrCwIQBoOjA. --firebase_HSID_cookie AsiL****OjPI --firebase_SSID_cookie A****dwcZk1Z-1pE --firebase_APISID_cookie Z-FmS1aPB****djK/AjmG0h2Hc-GG9g2Ac --firebase_SAPISID_cookie XYR2tnf****0zOt/AEvVZ8JVEuCnE6pxm --url "https://stingray.dev.swordfishsecurity.com/" --company_id 1 --token 2fac9652a2fbe4****9f44af59c3381772f --firebase_file_name your_app_file_name
+python mdast_cli/mdast_scan.py --profile_id 468 --architecture_id 2 --distribution_system firebase --firebase_project_id 2834204**** --firebase_app_id 1:283***3642:android:8b0a0***56ac40c1a43 --firebase_app_code 2b***sltr0 --firebase_api_key AIzaSyDov*****qKdbj-geRWyzMTrg --firebase_SID_cookie FgiA*****ZiQakQ-_C-5ZaEHvbDMFGkrgriAByQ9P9fv7LfRrYJ5suXgrCwIQBoOjA. --firebase_HSID_cookie AsiL****OjPI --firebase_SSID_cookie A****dwcZk1Z-1pE --firebase_APISID_cookie Z-FmS1aPB****djK/AjmG0h2Hc-GG9g2Ac --firebase_SAPISID_cookie XYR2tnf****0zOt/AEvVZ8JVEuCnE6pxm --url "https://stingray.dev.swordfishsecurity.com/" --company_id 1 --token 2fac9652a2fbe4****9f44af59c3381772f --firebase_file_name your_app_file_name  --firebase_file_extension apk
 ```
+As a result in the `downloaded_apps` repository will be application with name `your_app_file_name.apk` and manual scan will be started.
 
-### Firebase getting parameters manual
-#### TODO
+### Firebase integration manual
+First to get all mandatory parameters for Firebase integration you need to specify whether you app is for  
+iOS - `firebase_file_extention ipa`
+or for android - `firebase_file_extention apk`  
+
+After that you should log in via Google SSO to [Firebase](https://console.firebase.google.com/u/0/) and get necessary cookies from your Chrome session local storage(F12 -> Application -> Cookies)  
+And copy SID, SSID, APISID, SAPISID, HSID to your launch command. Lifetime of them are 2 years, so you don't have to use it often :)  
+
+####screenshot of cookie storage:
+![cookie_storage](https://user-images.githubusercontent.com/46852358/149788352-d453dd78-547f-4989-8132-b94a6f020a81.png)
+
+Now you need only project_id, app_id, app_code, api_key to complete parameters for scan. To get them go to:
+
+App Project home page, url looks like `https://console.firebase.google.com/u/0/project/{project_name}}/overview` ->
+![app_project](https://user-images.githubusercontent.com/46852358/149789837-2787cb52-355d-4ef0-9440-89053764db78.png)
+
+to `Release & Monitor -> App Distribution` ->
+![distr_page](https://user-images.githubusercontent.com/46852358/149791304-2658f1be-9ee0-422e-94ce-59f1ba1858df.png)  
+
+Open network console(F12 -> Network -> Clear) and click `Download`
+
+You will get this request in DevTools:
+![download_req](https://user-images.githubusercontent.com/46852358/149792212-512d33ab-2323-45b6-a25c-6a8d817cde1f.png)  
+
+And url will be like:  
+
+`https://firebaseappdistribution-pa.clients6.google.com/v1/projects/{project_id}}/apps/{app_id}/releases/{app_code}:getLatestBinary?alt=json&key={}`  
+
+So, you just extract missing parameters from this request and your launch command for CI/CD mobile applications' security analysis is ready!
