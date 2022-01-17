@@ -20,6 +20,7 @@ venv/
 
 # Maven
 target/
+/downloaded_apps
 
 build/
 
