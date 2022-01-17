@@ -74,7 +74,7 @@ class NexusRepository(DistributionSystem):
                                                                    -1] != '' else f'{self.group_id}-{self.version}.apk'
                 break
         if not download_url:
-            Log.error(f'NexusRepo: Unuble to find download URL: {len(component_search_result)}')
+            Log.error(f'NexusRepo: Unable to find download URL: {len(component_search_result)}')
         response = self.session.get(download_url, allow_redirects=True)
         if response.status_code != 200:
             Log.error('NexusRepo: Failed to download application. Request return status code: {0}'.format(

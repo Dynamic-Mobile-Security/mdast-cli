@@ -6,6 +6,7 @@ import time
 
 import urllib3
 
+
 try:
     from mdast_cli_core import mDastToken as mDast
 except (ModuleNotFoundError, ImportError):
@@ -17,13 +18,15 @@ except (ModuleNotFoundError, ImportError):
     from mdast_cli_core.token import mDastToken as mDast
 
 try:
-    from .distribution_systems.app_center import AppCenter
-    from .distribution_systems.hockey_app import HockeyApp
-    from .distribution_systems.nexus import NexusRepository
-    from .helpers.const import SLEEP_TIMEOUT, TRY_COUNT, DastState, DastStateDict
-    from .helpers.logging import Log
+    from distribution_systems.app_center import AppCenter
+    from distribution_systems.firebase import Firebase
+    from distribution_systems.hockey_app import HockeyApp
+    from distribution_systems.nexus import NexusRepository
+    from helpers.const import SLEEP_TIMEOUT, TRY_COUNT, DastState, DastStateDict
+    from helpers.logging import Log
 except ImportError:
     from mdast_cli.distribution_systems.app_center import AppCenter
+    from mdast_cli.distribution_systems.firebase import Firebase
     from mdast_cli.distribution_systems.hockey_app import HockeyApp
     from mdast_cli.distribution_systems.nexus import NexusRepository
     from mdast_cli.helpers.const import SLEEP_TIMEOUT, TRY_COUNT, DastState, DastStateDict
@@ -32,8 +35,9 @@ except ImportError:
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Start scan and get scan results.')
-    parser.add_argument('--distribution_system', type=str, help='Select how to get apk file',
-                        choices=['file', 'hockeyapp', 'appcenter', 'nexus'], required=True)
+    parser.add_argument('--distribution_system', type=str, help='Select how to get apk file: '
+                                                                'file/hockeyapp/appcenter/nexus/firebase',
+                        choices=['file', 'hockeyapp', 'appcenter', 'nexus', 'firebase'], required=True)
 
     # Arguments used for distribution_system = file
     parser.add_argument('--file_path', type=str, help='Path to local apk file for analyze. This argument required if '
@@ -67,7 +71,7 @@ def parse_args():
                                                                   '"--appcenter_release_id" required if distribution '
                                                                   'system set to "appcenter"')
 
-    # Agruments for Nexus
+    # Arguments for Nexus
     parser.add_argument('--nexus_url', type=str,
                         help='Http url for Nexus server where mobile application is located.'
                              ' This argument required if distribution system set to "appcenter"')
@@ -89,6 +93,38 @@ def parse_args():
     parser.add_argument('--nexus_version', type=str,
                         help='Version to download from Nexus. '
                              'This argument required if distribution system set to "appcenter"')
+
+    # Arguments for Firebase
+    parser.add_argument('--firebase_project_id', type=str,
+                        help='Project id for firebase where mobile application is located.'
+                             ' This argument required if distribution system set to "firebase"')
+    parser.add_argument('--firebase_app_id', type=str,
+                        help='Application id for firebase where mobile application is located.'
+                             ' This argument required if distribution system set to "firebase"')
+    parser.add_argument('--firebase_app_code', type=str,
+                        help='Application code for firebase where mobile application is located.'
+                             ' This argument required if distribution system set to "firebase"')
+    parser.add_argument('--firebase_api_key', type=str,
+                        help='Api code for firebase where mobile application is located.'
+                             ' This argument required if distribution system set to "firebase"')
+    parser.add_argument('--firebase_SID_cookie', type=str,
+                        help='SID cookie for firebase authentication  via google sso.'
+                             ' This argument required if distribution system set to "firebase"')
+    parser.add_argument('--firebase_HSID_cookie', type=str,
+                        help='HSID cookie for firebase authentication  via google sso.'
+                             ' This argument required if distribution system set to "firebase"')
+    parser.add_argument('--firebase_SSID_cookie', type=str,
+                        help='SSID cookie for firebase authentication  via google sso.'
+                             ' This argument required if distribution system set to "firebase"')
+    parser.add_argument('--firebase_APISID_cookie', type=str,
+                        help='APISID cookie for firebase authentication  via google sso.'
+                             ' This argument required if distribution system set to "firebase"')
+    parser.add_argument('--firebase_SAPISID_cookie', type=str,
+                        help='SAPISID cookie for firebase authentication  via google sso.'
+                             ' This argument required if distribution system set to "firebase"')
+    parser.add_argument('--firebase_file_name', type=str,
+                        help='File name for downloaded application.'
+                             ' This argument is optional if distribution system set to "firebase"')
 
     # Main arguments
     parser.add_argument('--url', type=str, help='System url', required=True)
@@ -114,8 +150,10 @@ def parse_args():
         parser.error('"--distribution_system hockeyapp" requires "--hockey_token" and "--hockey_app" arguments to be '
                      'set')
     elif args.distribution_system == 'appcenter' and (
-            args.appcenter_token is None or args.appcenter_owner_name is None or args.appcenter_app_name is None or (
-            args.appcenter_release_id is None and args.appcenter_app_version is None)):
+            args.appcenter_token is None or
+            args.appcenter_owner_name is None or
+            args.appcenter_app_name is None or
+            (args.appcenter_release_id is None and args.appcenter_app_version is None)):
         parser.error(
             '"--distribution_system appcenter" requires "--appcenter_token", "--appcenter_owner_name",  '
             '"--appcenter_app_name" and '
@@ -131,6 +169,21 @@ def parse_args():
             args.nexus_version is None):
         parser.error('"--distribution_system nexus" requires "--nexus_url", "--nexus_login", "--nexus_password",'
                      ' "--nexus_repo_name" arguments to be set')
+
+    elif args.distribution_system == 'firebase' and (
+            args.firebase_project_id is None or
+            args.firebase_app_id is None or
+            args.firebase_app_code is None or
+            args.firebase_api_key is None or
+            args.firebase_SID_cookie is None or
+            args.firebase_HSID_cookie is None or
+            args.firebase_SSID_cookie is None or
+            args.firebase_APISID_cookie is None or
+            args.firebase_SAPISID_cookie is None):
+        parser.error('"--distribution_system nexus" requires "--firebase_project_id", "--firebase_app_id", '
+                     '"--firebase_app_code", "--firebase_api_key", "--firebase_api_key", "--firebase_SID_cookie", '
+                     '"--firebase_HSID_cookie", "--firebase_SSID_cookie", "--firebase_APISID_cookie", '
+                     '"--firebase_SAPISID_cookie" arguments to be set')
     return args
 
 
@@ -181,6 +234,19 @@ def main():
                                            arguments.nexus_artifact_id,
                                            arguments.nexus_version)
         app_file = nexus_repository.download_app()
+        _, file_extension = os.path.splitext(app_file)
+    elif distribution_system == 'firebase':
+        firebase = Firebase(arguments.firebase_project_id,
+                            arguments.firebase_app_id,
+                            arguments.firebase_app_code,
+                            arguments.firebase_api_key,
+                            arguments.firebase_SID_cookie,
+                            arguments.firebase_HSID_cookie,
+                            arguments.firebase_SSID_cookie,
+                            arguments.firebase_APISID_cookie,
+                            arguments.firebase_SAPISID_cookie,
+                            arguments.firebase_file_name)
+        app_file = firebase.download_app()
         _, file_extension = os.path.splitext(app_file)
 
     mdast = mDast(url, token, company_id)
@@ -256,9 +322,9 @@ def main():
         sys.exit(1)
 
     if scan_type == 'auto':
-        Log.info(f"Autoscan was created successfuly. Scan id: {dast['id']}")
+        Log.info(f"Autoscan was created successfully. Scan id: {dast['id']}")
     else:
-        Log.info(f"Manual scan was created successfuly. Scan id: {dast['id']}")
+        Log.info(f"Manual scan was created successfully. Scan id: {dast['id']}")
 
     Log.info(f"Start scan with id {dast['id']}")
     start_dast_resp = mdast.start_scan(dast['id'])
