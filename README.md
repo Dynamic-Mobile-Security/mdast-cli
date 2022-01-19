@@ -106,7 +106,7 @@ Screenshot of cookie storage:
 
 Now you need project_id, app_id, app_code, api_key to complete parameters for scan. To get them go to:
 
-App Project home page, url looks like `https://console.firebase.google.com/u/0/project/{project_name}}/overview` ->
+App Project home page, url looks like `https://console.firebase.google.com/u/0/project/{project_name}/overview` ->
 ![app_project](https://user-images.githubusercontent.com/46852358/149789837-2787cb52-355d-4ef0-9440-89053764db78.png)
 
 to `Release & Monitor -> App Distribution` ->
@@ -119,7 +119,7 @@ You will get this request in DevTools:
 
 And url will be like:  
 
-`https://firebaseappdistribution-pa.clients6.google.com/v1/projects/{project_id}}/apps/{app_id}/releases/{app_code}:getLatestBinary?alt=json&key={}`  
+`https://firebaseappdistribution-pa.clients6.google.com/v1/projects/{project_id}/apps/{app_id}/releases/{app_code}:getLatestBinary?alt=json&key={api_key}`  
 
 So, you just extract missing parameters from this request and your launch command for CI/CD mobile applications' security analysis is ready!
 Request url will match this pattern, you should extract 4 parameters from url.
