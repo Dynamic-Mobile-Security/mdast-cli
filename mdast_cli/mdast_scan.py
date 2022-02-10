@@ -6,7 +6,6 @@ import time
 
 import urllib3
 
-
 try:
     from mdast_cli_core import mDastToken as mDast
 except (ModuleNotFoundError, ImportError):
@@ -19,6 +18,7 @@ except (ModuleNotFoundError, ImportError):
 
 try:
     from distribution_systems.app_center import AppCenter
+    from distribution_systems.appstore import AppStore
     from distribution_systems.firebase import Firebase
     from distribution_systems.hockey_app import HockeyApp
     from distribution_systems.nexus import NexusRepository
@@ -26,6 +26,7 @@ try:
     from helpers.logging import Log
 except ImportError:
     from mdast_cli.distribution_systems.app_center import AppCenter
+    from mdast_cli.distribution_systems.appstore import AppStore
     from mdast_cli.distribution_systems.firebase import Firebase
     from mdast_cli.distribution_systems.hockey_app import HockeyApp
     from mdast_cli.distribution_systems.nexus import NexusRepository
@@ -36,8 +37,8 @@ except ImportError:
 def parse_args():
     parser = argparse.ArgumentParser(description='Start scan and get scan results.')
     parser.add_argument('--distribution_system', type=str, help='Select how to get apk file: '
-                                                                'file/hockeyapp/appcenter/nexus/firebase',
-                        choices=['file', 'hockeyapp', 'appcenter', 'nexus', 'firebase'], required=True)
+                                                                'file/hockeyapp/appcenter/nexus/firebase/appstore',
+                        choices=['file', 'hockeyapp', 'appcenter', 'nexus', 'firebase', 'appstore'], required=True)
 
     # Arguments used for distribution_system = file
     parser.add_argument('--file_path', type=str, help='Path to local apk file for analyze. This argument required if '
@@ -130,6 +131,20 @@ def parse_args():
                         help='File name for downloaded application.'
                              ' This argument is optional if distribution system set to "firebase"')
 
+    # Arguments for AppStore
+    parser.add_argument('--appstore_app_id', type=str,
+                        help='Application id from AppStore, you can get it on app page from url, format: .../id{APP_ID}'
+                             'This argument is required if distribution system set to "appstore"')
+    parser.add_argument('--appstore_apple_id', type=str,
+                        help='Your email for iTunes login. This argument is required '
+                             'if distribution system set to "appstore"')
+    parser.add_argument('--appstore_password2FA', type=str,
+                        help='Your password and 2FA code for iTunes login, format: password2FA_code (password1337)'
+                             'This argument is required if distribution system set to "appstore"')
+    parser.add_argument('--appstore_file_name', type=str,
+                        help='File name for downloaded application.'
+                             ' This argument is optional if distribution system set to "appstore"')
+
     # Main arguments
     parser.add_argument('--url', type=str, help='System url', required=True)
     parser.add_argument('--company_id', type=int, help='Company id for starting scan', required=True)
@@ -189,6 +204,13 @@ def parse_args():
                      '"--firebase_app_code", "--firebase_api_key", "--firebase_api_key", "--firebase_SID_cookie", '
                      '"--firebase_HSID_cookie", "--firebase_SSID_cookie", "--firebase_APISID_cookie", '
                      '"--firebase_SAPISID_cookie", "--firebase_file_extension" arguments to be set')
+
+    elif args.distribution_system == 'appstore' and (
+            args.appstore_app_id is None or
+            args.appstore_apple_id is None or
+            args.appstore_password2FA is None):
+        parser.error('"--distribution_system appstore" requires "--appstore_app_id", "--appstore_apple_id",'
+                     ' "--appstore_password2FA" arguments to be set')
     return args
 
 
@@ -249,6 +271,12 @@ def main():
                             arguments.firebase_file_extension,
                             arguments.firebase_file_name)
         app_file = firebase.download_app()
+    elif distribution_system == 'appstore':
+        appstore = AppStore(arguments.appstore_app_id,
+                            arguments.appstore_apple_id,
+                            arguments.appstore_password2FA,
+                            arguments.appstore_file_name)
+        app_file = appstore.download_app()
 
     mdast = mDast(url, token, company_id)
     get_architectures_resp = mdast.get_architectures()

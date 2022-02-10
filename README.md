@@ -36,6 +36,7 @@ Currently, several launch options are supported:
  * Applications from [AppCenter](https://appcenter.ms)
  * Applications from [Nexus Repository 3.x](https://help.sonatype.com/repomanager3) from maven repo.
  * Applications from [Firebase](https://firebase.google.com/)
+ * Applications from [Appstore](https://www.apple.com/app-store/)
 
 ## Launch parameters
 The launch options depend on the location of the apk file sent for analysis. Also, there are required parameters that must be specified for any type of launch:
@@ -135,6 +136,21 @@ You can specify downloaded app file name with optional parameter
 
  * `firebase_file_name` - file name for app to be saved with
 
+### AppStore
+To download application from AppStore you need to know application_id and have **iTunes account with installed application** and credentials for it: email and password with 2FA code.
+
+Also, you need to select the `distribution_system appstore` and specify the following mandatory parameters:
+ * `appstore_app_id` - Application id from AppStore, you can get it on app page from url,   
+format: apps.apple.com/app/id{appstore_app_id}
+ * `appstore_apple_id` - Your email for iTunes login.
+ * `appstore_password2FA` - Your password and 2FA code for iTunes login, format: password2FA_code 
+
+You can specify downloaded app file name with optional parameter
+
+ * `appstore_file_name` - file name for app to be saved with
+
+When you try to login first time just enter password without 2FA, then you will get 2FA code on your device. Then you should retry login with password and 2FA, formatting it like `password2FA`, for example password is `P@ssword` and 2FA is `1337`, so your parameter `--appstore_password2FA P@ssword1337`.
+
 ## Launch examples
 
 ### Scan type
@@ -230,7 +246,7 @@ As a result, the latest available release of the application will be downloaded.
 ### AppCenter by application version
 To start the analysis of the application by the known name, owner and version (`version_code` in` Android Manifest`), you need to run the following command:
 
-```
+``` 
 mdast_cli --distribution_system appcenter --appcenter_token 18bc81146d374ba4b1182ed65e0b3aaa --appcenter_owner_name "test_org_or_user" --appcenter_app_name "demo_app" --appcenter_app_version 31337 --url "https://saas.mobile.appsec.world" --profile_id 2 --testcase_id 3 --company_id 1 --architecture_id 1 --token "eyJ0eXA4OiJKA1QiLbJhcGciO5JIU4I1NiJ1.eyJzdaJqZWNcX2lkIj53LCJle5AiOjf1OTM5OTU3MjB1.hfI6c4VN_U2mo5VfRoENPvJCvpxhLzjHqI0gxqgr2Bs"
 ```
 
@@ -243,3 +259,10 @@ To start the manual scan analysis of the application, that was downloaded from F
 python mdast_cli/mdast_scan.py --profile_id 468 --architecture_id 2 --distribution_system firebase --firebase_project_id 2834204**** --firebase_app_id 1:283***3642:android:8b0a0***56ac40c1a43 --firebase_app_code 2b***sltr0 --firebase_api_key AIzaSyDov*****qKdbj-geRWyzMTrg --firebase_SID_cookie FgiA*****ZiQakQ-_C-5ZaEHvbDMFGkrgriAByQ9P9fv7LfRrYJ5suXgrCwIQBoOjA. --firebase_HSID_cookie AsiL****OjPI --firebase_SSID_cookie A****dwcZk1Z-1pE --firebase_APISID_cookie Z-FmS1aPB****djK/AjmG0h2Hc-GG9g2Ac --firebase_SAPISID_cookie XYR2tnf****0zOt/AEvVZ8JVEuCnE6pxm --url "https://stingray.dev.swordfishsecurity.com/" --company_id 1 --token 2fac9652a2fbe4****9f44af59c3381772f --firebase_file_name your_app_file_name  --firebase_file_extension apk
 ```
 As a result in the `downloaded_apps` repository will be application with name `your_app_file_name.apk` and manual scan will be started.
+
+### AppStore launch example
+To start the manual scan analysis of the application, that was downloaded from AppStore, you need to run the following command:
+```
+ python mdast_cli/mdast_scan.py --architecture_id 3 --profile_id 1246 --distribution_system appstore --appstore_app_id 564177498 --appstore_apple_id ubet******@icloud.com --appstore_password2FA pass*******31******454  --url "https://stingray.dev.swordfishsecurity.com/" --company_id 2 --token 5d5f6****************2d9f --appstore_file_name my_b3st_4pp
+```
+As a result in the `downloaded_apps` repository will be application with name `my_b3st_4pp.ipa` and manual scan will be started.
