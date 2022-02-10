@@ -36,12 +36,12 @@ except ImportError:
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Start scan and get scan results.')
-    parser.add_argument('--distribution_system', type=str, help='Select how to get apk file: '
+    parser.add_argument('--distribution_system', type=str, help='Select how to download file: '
                                                                 'file/hockeyapp/appcenter/nexus/firebase/appstore',
                         choices=['file', 'hockeyapp', 'appcenter', 'nexus', 'firebase', 'appstore'], required=True)
 
     # Arguments used for distribution_system = file
-    parser.add_argument('--file_path', type=str, help='Path to local apk file for analyze. This argument required if '
+    parser.add_argument('--file_path', type=str, help='Path to local file for analyze. This argument required if '
                                                       'distribution system set to "file"')
 
     # Arguments used for distribution_system hockeyapp
