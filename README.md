@@ -139,6 +139,14 @@ You can specify downloaded app file name with optional parameter
 ### AppStore
 To download application from AppStore you need to know application_id and have **iTunes account with installed application** and credentials for it: email and password with 2FA code.
 
+When you try to login first time just enter password without 2FA, then you will get 2FA code on your device.  
+![2fa_example](https://user-images.githubusercontent.com/46852358/153638449-6488cf6d-214f-44cb-8265-fe8b79b2614f.png)
+Then you should retry login with password and 2FA, formatting it like `password2FA`, for example password is `P@ssword` and 2FA is `742877`, so your parameter `--appstore_password2FA P@ssword742877`.  
+
+You can simply get your app_id from AppStore application page in browser
+![app_id_example](https://user-images.githubusercontent.com/46852358/153639003-f121273a-41ac-415d-aad7-6b2789f77cee.png)  
+app_id is 398129933 in this example. 
+
 Also, you need to select the `distribution_system appstore` and specify the following mandatory parameters:
  * `appstore_app_id` - Application id from AppStore, you can get it on app page from url,   
 format: apps.apple.com/app/id{appstore_app_id}
@@ -148,9 +156,7 @@ format: apps.apple.com/app/id{appstore_app_id}
 You can specify downloaded app file name with optional parameter
 
  * `appstore_file_name` - file name for app to be saved with
-
-When you try to login first time just enter password without 2FA, then you will get 2FA code on your device. Then you should retry login with password and 2FA, formatting it like `password2FA`, for example password is `P@ssword` and 2FA is `1337`, so your parameter `--appstore_password2FA P@ssword1337`.
-
+ 
 ## Launch examples
 
 ### Scan type
@@ -266,3 +272,5 @@ To start the manual scan analysis of the application, that was downloaded from A
  python mdast_cli/mdast_scan.py --architecture_id 3 --profile_id 1246 --distribution_system appstore --appstore_app_id 564177498 --appstore_apple_id ubet******@icloud.com --appstore_password2FA pass*******31******454  --url "https://stingray.dev.swordfishsecurity.com/" --company_id 2 --token 5d5f6****************2d9f --appstore_file_name my_b3st_4pp
 ```
 As a result in the `downloaded_apps` repository will be application with name `my_b3st_4pp.ipa` and manual scan will be started.
+
+While creating AppStore integration [ipatool](https://github.com/majd/ipatool) helped a lot, huge thanks for everyone who contributed to this nice open-source tool.
