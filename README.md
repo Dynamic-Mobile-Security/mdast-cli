@@ -1,8 +1,11 @@
 # Mobile DAST CI/CD Python script
-*Automate the security analysis of mobile applications.*
+[![Docker Hub](https://img.shields.io/docker/v/mobilesecurity/mdast_cli?label=docker%20hub)](https://hub.docker.com/repository/docker/mobilesecurity/mdast_cli)
+[![PyPi](https://img.shields.io/pypi/v/mdast_cli?color=3)](https://pypi.org/project/mdast-cli/)
+
+**Automate the security analysis of mobile applications.**
 
 This script is designed to integrate mobile applications' security analysis in the continuous development process (CI / CD).  
-During the execution of the script, the application is sent to the dynamic analysis. The output is a json/pdf file with detailed results.
+During the execution of the script, the application is sent to the dynamic analysis. The output is a json/pdf file with detailed results. You can use the local file or download the application from one of the distribution systems. If you download the app, you should have write permissions.
 
 ## Install options
 
@@ -16,7 +19,7 @@ It is possible to install a package using pip:
 
 `pip install mdast_cli`
 
-With this method, it is possible to start scanning without specifying the `python` interpreter using the` mdast_cli` command, example:
+With this method, it is possible to start scanning without specifying the `python` interpreter using the` mdast_cli` command, for example:
 
 `mdast_cli -h`
 
@@ -47,7 +50,7 @@ The launch options depend on the location of the apk file sent for analysis. Als
  * `distribution_system` - distribution method for the application; possible values: `file`, `hockeyapp` or `appcenter`. For detailed information refer to the respective sections below.
  * `company_id` - identifier of the company within which the scan will be performed
  * `architecture_id` - identifier of the operating system architecture on which the scan will be performed
- * `nowait` - an optional parameter specifying whether to wait for the scan to complete. If this flag is set, the script will not wait for the scan to complete, but will exit immediately after starting. If the flag is not selected, the script will wait for the completion of the analysis process and generate a report.
+ * `nowait` - an optional parameter specifying whether to wait for the scan to complete. If this flag is set, the script will not wait for the scan to complete but will exit immediately after starting. If the flag is not selected, the script will wait for the completion of the analysis process and generate a report.
  * `summary_report_json_file_name` - an optional parameter defining the name of the json file into which the scanning information in json format is uploaded. If the parameter is absent, the information will not be saved.
  * `pdf_report_file_name` - an optional parameter that specifies the name of the pdf file into which information on scanning in pdf format is uploaded. If the parameter is absent, the report will not be saved.
 
@@ -64,25 +67,25 @@ Also, you need to specify the following mandatory parameters:
  * `hockey_version` (optional parameter) - this parameter downloads the specific version of the application in accordance with its version ID (the `version` field in the [API](https://support.hockeyapp.net/kb/api/api-versions)).   
  If this parameter is not set, the latest available version of the application ("latest") will be downloaded.
  * `hockey_bundle_id` or `hockey_public_id` (mandatory parameter)
-    * `hockey_bundle_id` - ID of Android application or, alternatively, the package name (`com.app.example`). This option launches search among all HockeyApp applications and thereafter picks an application with the corresponding ID. API field - [bundle_identifier](https://support.hockeyapp.net/kb/api/api-apps).
+    * `hockey_bundle_id` - ID of Android application or, alternatively, the package name (`com.app.example`). This option launches a search among all HockeyApp applications and thereafter picks an application with the corresponding ID. API field - [bundle_identifier](https://support.hockeyapp.net/kb/api/api-apps).
     * `hockey_public_id` - ID of an application inside the HockeyApp system. This parameter downloads an application with the corresponding ID. API field - [public_identifier](https://support.hockeyapp.net/kb/api/api-apps)
 
 ### AppCenter
-To download application from AppCenter distribution system you need to select the `distribution_system appcenter` parameter. Also, you need to specify the following mandatory parameters:
+To download the application from AppCenter distribution system you need to select the `distribution_system appcenter` parameter. Also, you need to specify the following mandatory parameters:
  * `appcenter_token` - API access token. Look in official documentation to [learn how to retrieve it]((https://docs.microsoft.com/en-us/appcenter/api-docs/)).
  * `appcenter_owner_name` - owner of the application. Look in official documentation to learn how to retrieve the [owner name](https://docs.microsoft.com/en-us/appcenter/api-docs/#find-your-app-center-app-name-and-owner-name).
  * `appcenter_app_name` - the name of the application in the AppCenter system. Look in official documentation to [learn how to retrieve it](https://docs.microsoft.com/en-us/appcenter/api-docs/#find-your-app-center-app-name-and-owner-name)
  * `appcenter_release_id` or `appcenter_app_version`
     * `appcenter_release_id` - ID of the specific release of the application to be downloaded from AppCenter. There is a possibility to select the "latest" value - the [latest available version](https://openapi.appcenter.ms/#/distribute/releases_getLatestByUser) of the application will be downloaded.
-    * `appcenter_app_version` - this parameter finds and downloads the specific version of the application in accordance with its version ID (shown in Android Manifest) (the "version" field in the [AppCenter Documentation](https://openapi.appcenter.ms/#/distribute/releases_list))
+    * `appcenter_app_version` - this parameter finds and downloads the specific version of the application by its version ID (shown in Android Manifest) (the "version" field in the [AppCenter Documentation](https://openapi.appcenter.ms/#/distribute/releases_list))
 
 ### Nexus
-To download application from maven repository you need to know repository where mobile application is stored and its group_id, artifact_id and version. To upload mobile application to Nexus you can use [this snippet](https://gist.github.com/Dynamic-Mobile-Security/9730e8eaa1b5d5f7f21e28beb63561a8) for android apk and [this one](https://gist.github.com/Dynamic-Mobile-Security/66daaf526e0109636d8bcdc21fd10779) for iOS ipa.  
+To download the application from maven repository you need to know the repository where the mobile application is stored and its group_id, artifact_id and version. To upload mobile application to Nexus you can use [this snippet](https://gist.github.com/Dynamic-Mobile-Security/9730e8eaa1b5d5f7f21e28beb63561a8) for android apk and [this one](https://gist.github.com/Dynamic-Mobile-Security/66daaf526e0109636d8bcdc21fd10779) for iOS ipa.  
 
 Also, you need to select the `distribution_system nexus` and specify the following mandatory parameters:
- * `nexus_url` - Http(s) url for Nexus server where mobile application is located.
- * `nexus_login` - username for Nexus server with permissions to repository where mobile application located.
- * `nexus_password` - password for the Nexus server with permissions to repository where mobile application located.
+ * `nexus_url` - http(s) url for Nexus server where the mobile application is located.
+ * `nexus_login` - username for Nexus server with permissions to the repository where mobile application is located.
+ * `nexus_password` - password for the Nexus server with permissions to the repository where mobile application is located.
  * `nexus_repo_name` - repository name in Nexus where mobile application is located.
  * `nexus_group_id` - group_id of the uploaded mobile application from maven data.
  * `nexus_artifact_id` - artifact_id of the uploaded mobile application from maven data.
@@ -90,11 +93,11 @@ Also, you need to select the `distribution_system nexus` and specify the followi
 
 
 ### Firebase
-To download application from firebase platform you need to know some cookies for Google SSO authentication and project_id, app_id, app_code, api_key and file_extension parameters from firebase project.  
+To download the application from firebase platform you need to know some cookies for Google SSO authentication and project_id, app_id, app_code, api_key and file_extension parameters from firebase project.  
 You need to select the `--distribution_system firebase` and specify mandatory parameters.  
 
-First you should log in via Google SSO to [Firebase](https://console.firebase.google.com/u/0/) and get necessary cookies from your Chrome session local storage(F12 -> Application -> Cookies)  
-And copy SID, SSID, APISID, SAPISID, HSID to your launch command. Lifetime of them are 2 years, so you don't have to do it often :)  
+First, you should log in via Google SSO to [Firebase](https://console.firebase.google.com/u/0/) and get necessary cookies from your Chrome session local storage(F12 -> Application -> Cookies)  
+And copy SID, SSID, APISID, SAPISID, HSID to your launch command. The lifetime of them are 2 years, so you don't have to do it often :)  
 
 Screenshot of cookie storage:
 ![cookie_storage](https://user-images.githubusercontent.com/46852358/149788352-d453dd78-547f-4989-8132-b94a6f020a81.png)
@@ -105,9 +108,9 @@ Screenshot of cookie storage:
  * `firebase_APISID_cookie` - APISID
  * `firebase_SAPISID_cookie` - SAPISID
 
-Now you need project_id, app_id, app_code, api_key to complete parameters for scan. To get them go to:
+Now you need project_id, app_id, app_code, api_key to complete parameters for the scan. To get them go to:
 
-App Project home page, url looks like `https://console.firebase.google.com/u/0/project/{project_name}/overview` ->
+App Project home page, url looks like this `https://console.firebase.google.com/u/0/project/{project_name}/overview` ->
 ![app_project](https://user-images.githubusercontent.com/46852358/149789837-2787cb52-355d-4ef0-9440-89053764db78.png)
 
 to `Release & Monitor -> App Distribution` ->
@@ -132,20 +135,30 @@ Request url will match this pattern, you should extract 4 parameters from url.
  * `firebase_api_key` - your api key
  * `firebase_app_extension` - your app extension, it can be `apk` for android and `ipa` for iOS
 
-You can specify downloaded app file name with optional parameter
+You can specify the downloaded app file name with an optional parameter
 
  * `firebase_file_name` - file name for app to be saved with
 
 ### AppStore
 To download application from AppStore you need to know application_id and have **iTunes account with installed application** and credentials for it: email and password with 2FA code.
 
-When you try to login first time just enter password without 2FA, then you will get 2FA code on your device.  
-![2fa_example](https://user-images.githubusercontent.com/46852358/153638449-6488cf6d-214f-44cb-8265-fe8b79b2614f.png)
-Then you should retry login with password and 2FA, formatting it like `password2FA`, for example password is `P@ssword` and 2FA is `742877`, so your parameter `--appstore_password2FA P@ssword742877`.  
+This script will not work if the app has not been purchased in your AppStore account. It is the status of the app that is important, it must be confirmed with a fingerprint or password even if it is free. You can check this by making sure your app is in 'My apps' in your AppStore account settings.
 
-You can simply get your app_id from AppStore application page in browser
+To successfully sign in to iTunes, you will need to **obtain and save** the 2fa code for later use.  
+When you run the script for the first time, use your email and password, you will get a login error in the console and at this point a two-factor authentication code will come to your device  
+
+
+<img src="https://user-images.githubusercontent.com/46852358/153638449-6488cf6d-214f-44cb-8265-fe8b79b2614f.png" alt="drawing" width="300"/>  
+
+
+For the subsequent work of the script without repeating the step with the manual receipt of 2fa code you need to remember the received code, the session with it will be active for 6 months. After that, try to repeat the login with  password and 2FA, formatting it like `password2FA`. You do not need to get new 2fa codes later, this parameter will work for 6 months.   
+
+For example, password is `P@ssword` and 2FA is `742877`, so your parameter `--appstore_password2FA P@ssword742877`.
+
+To get the app_id, go to the app page in the AppStore in your browser, you can extract the required parameter from the url:
 ![app_id_example](https://user-images.githubusercontent.com/46852358/153639003-f121273a-41ac-415d-aad7-6b2789f77cee.png)  
-app_id is 398129933 in this example. 
+
+`appstore_app_id 398129933` in this example. 
 
 Also, you need to select the `distribution_system appstore` and specify the following mandatory parameters:
  * `appstore_app_id` - Application id from AppStore, you can get it on app page from url,   
@@ -153,10 +166,11 @@ format: apps.apple.com/app/id{appstore_app_id}
  * `appstore_apple_id` - Your email for iTunes login.
  * `appstore_password2FA` - Your password and 2FA code for iTunes login, format: password2FA_code 
 
-You can specify downloaded app file name with optional parameter
+You can specify downloaded app file name with an optional parameter
 
  * `appstore_file_name` - file name for app to be saved with
- 
+
+If you lost the 2fa code and the login has already been made, the session will be active for 1 day without using 2fa, only apple_id + password. You also will not be able to end your session via this script, so for the script to work correctly you need to login again after 24 hours and save the two-factor authentication code in your notes
 ## Launch examples
 
 ### Scan type
@@ -198,21 +212,21 @@ To run analysis of a local file:
 mdast_cli --distribution_system file --file_path "/files/demo/apk/demo.apk" --url "https://saas.mobile.appsec.world" --profile_id 1 --testcase_id 4 --company_id 1 - architecture_id 1 --token "eyJ0eXA4OiJKA1QiLbJhcGciO5JIU4I1NiJ1.eyJzdaJqZWNcX2lkIj53LCJle5AiOjf1OTM5OTU3MjB1.hrI6c4VN_U2mo5VjHvRoENPv2"
 ```
 
-As a result, an automated analysis of the `demo.apk` application with a profile with` id` 1 will be launched and a test case with `id` 4 will be launched.
+As a result, automated analysis of the `demo.apk` application with a profile with` id` 1 will be launched and a test case with `id` 4 will be launched.
 
 #### Start without waiting for the scan to complete
 
 ```
 mdast_cli --distribution_system file --file_path "/files/demo/apk/demo.apk" --url "https://saas.mobile.appsec.world" --profile_id 1 --testcase_id 4 --company_id 1 - architecture_id 1 --token "eyJ0eXA4OiJKA1QiLbJhcGciO5JIU4I1NiJ1.eyJzdaJqZWNcX2lkIj53LCJle5AiOjf1OTM5OTU3MjB1.hrI6c4VN_U2mo5VjHvRoENPv2"
 ```
-As a result, an automated analysis of the `demo.apk` application with a profile with` id` 1 will be launched and a test case with `id` 4 will be launched and the script will finish immediately after starting the scan and will not wait for the end and generate a report.
+As a result, automated analysis of the `demo.apk` application with a profile with` id` 1 will be launched and a test case with `id` 4 will be launched and the script will finish immediately after starting the scan and will not wait for the end and generate a report.
 
 #### Generating a Summary report in JSON format
 
 ```
 mdast_cli --distribution_system file --file_path "/files/demo/apk/demo.apk" --url "https://saas.mobile.appsec.world" --profile_id 1 --testcase_id 4 --company_id 1 - architecture_id 1 --token "eyJ0eXA4OiJKA1QiLbJhcGciO5JIU4I1NiJ1.eyJzdaJqZWNcX2lkIj53LCJle5AiOjf1OTM5OTU3MjB1.hfI6c4VN_U2mo5VfCvRoENPvLvlPvN_U2mo5VfCvRoENhPlv" --summary_report_json_file_name json-scan-report.json
 ```
-As a result, an automated analysis of the `demo.apk` application with a profile with` id` 1 will be launched and a test case with `id` 4 will be launched, and upon completion of scanning, a JSON report with the total number of defects and brief statistics will be saved.
+As a result, automated analysis of the `demo.apk` application with a profile with` id` 1 will be launched and a test case with `id` 4 will be launched, and upon completion of scanning, a JSON report with the total number of defects and brief statistics will be saved.
 
 ### HockeyApp by bundle_identifier and version
 To run application analysis from a HockeyApp system:
