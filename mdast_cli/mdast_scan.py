@@ -20,6 +20,7 @@ try:
     from distribution_systems.app_center import AppCenter
     from distribution_systems.appstore import AppStore
     from distribution_systems.firebase import Firebase
+    from distribution_systems.google_play import google_play_download
     from distribution_systems.hockey_app import HockeyApp
     from distribution_systems.nexus import NexusRepository
     from helpers.const import SLEEP_TIMEOUT, TRY_COUNT, DastState, DastStateDict
@@ -28,6 +29,7 @@ except ImportError:
     from mdast_cli.distribution_systems.app_center import AppCenter
     from mdast_cli.distribution_systems.appstore import AppStore
     from mdast_cli.distribution_systems.firebase import Firebase
+    from mdast_cli.distribution_systems.google_play import google_play_download
     from mdast_cli.distribution_systems.hockey_app import HockeyApp
     from mdast_cli.distribution_systems.nexus import NexusRepository
     from mdast_cli.helpers.const import SLEEP_TIMEOUT, TRY_COUNT, DastState, DastStateDict
@@ -38,7 +40,8 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Start scan and get scan results.')
     parser.add_argument('--distribution_system', type=str, help='Select how to download file: '
                                                                 'file/hockeyapp/appcenter/nexus/firebase/appstore',
-                        choices=['file', 'hockeyapp', 'appcenter', 'nexus', 'firebase', 'appstore'], required=True)
+                        choices=['file', 'hockeyapp', 'appcenter', 'nexus', 'firebase', 'appstore', 'google_play'],
+                        required=True)
 
     # Arguments used for distribution_system = file
     parser.add_argument('--file_path', type=str, help='Path to local file for analyze. This argument required if '
@@ -145,6 +148,20 @@ def parse_args():
                         help='File name for downloaded application.'
                              ' This argument is optional if distribution system set to "appstore"')
 
+    # Arguments for GooglePlay
+    parser.add_argument('--google_play_package_name', type=str,
+                        help='Application package name from Google Play. This argument required if '
+                             'distribution system set to "google_play"')
+    parser.add_argument('--google_play_email', type=str,
+                        help='Your email for Google Play login. This argument required if '
+                             'distribution system set to "google_play"')
+    parser.add_argument('--google_play_password', type=str,
+                        help='Your password and 2FA code for iTunes login, format: password2FA_code (password1337)'
+                             'This argument is required if distribution system set to "appstore"')
+    parser.add_argument('--google_play_file_name', type=str,
+                        help='File name for downloaded application.'
+                             ' This argument is optional if distribution system set to "google_play"')
+
     # Main arguments
     parser.add_argument('--url', type=str, help='System url', required=True)
     parser.add_argument('--company_id', type=int, help='Company id for starting scan', required=True)
@@ -211,6 +228,13 @@ def parse_args():
             args.appstore_password2FA is None):
         parser.error('"--distribution_system appstore" requires "--appstore_app_id", "--appstore_apple_id",'
                      ' "--appstore_password2FA" arguments to be set')
+
+    elif args.distribution_system == 'google_play' and (
+            args.google_play_package_name is None or
+            args.google_play_email is None or
+            args.google_play_password is None):
+        parser.error('"--distribution_system google_play" requires "--google_play_package_name", "--google_play_email",'
+                     ' "--google_play_password" arguments to be set')
     return args
 
 
@@ -277,6 +301,11 @@ def main():
                             arguments.appstore_password2FA,
                             arguments.appstore_file_name)
         app_file = appstore.download_app()
+    elif distribution_system == 'google_play':
+        app_file = google_play_download(arguments.google_play_package_name,
+                                        arguments.google_play_email,
+                                        arguments.google_play_password,
+                                        arguments.google_play_file_name)
 
     mdast = mDast(url, token, company_id)
     get_architectures_resp = mdast.get_architectures()

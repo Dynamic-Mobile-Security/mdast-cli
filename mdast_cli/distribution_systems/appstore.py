@@ -1,6 +1,8 @@
 import os
+import plistlib
 import sys
 import time
+import zipfile
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -107,10 +109,30 @@ class AppStore(DistributionSystem):
             Log.info(f'Downloading ipa to {file_path}')
             download_file(downloaded_app_info.URL, self.download_path, file_path)
 
+            with zipfile.ZipFile(file_path, 'a') as ipa_file:
+                Log.info(f'Writing out iTunesMetadata.plist...')
+                metadata = downloaded_app_info.metadata.as_dict()
+                metadata["apple-id"] = self.apple_id
+                metadata["userName"] = self.apple_id
+                ipa_file.writestr(zipfile.ZipInfo("iTunesMetadata.plist", get_zipinfo_datetime()),
+                                  plistlib.dumps(metadata))
+
+                appContentDir = [c for c in ipa_file.namelist() if
+                                 c.startswith('Payload/') and len(c.strip('/').split('/')) == 2][0]
+                appContentDir = appContentDir.rstrip('/')
+
+                scManifestData = ipa_file.read(appContentDir + '/SC_Info/Manifest.plist')
+                scManifest = plistlib.loads(scManifestData)
+
+                sinfs = {c.id: c.sinf for c in downloaded_app_info.sinfs}
+                for i, sinfPath in enumerate(scManifest['SinfPaths']):
+                    ipa_file.writestr(appContentDir + '/' + sinfPath, sinfs[i])
+
         except StoreException as e:
             Log.error("Store %s failed! Message: %s%s" % (
                 e.req, e.err_msg, " (errorType %s)" % e.err_type if e.err_type else ''))
-            Log.info('Failed to download application. Seems like your app_id does not exist.')
+            Log.info('Failed to download application. Seems like your app_id does not exist or you did not purchase '
+                     'this app from apple account before.')
             sys.exit(4)
 
         return file_path
