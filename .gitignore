@@ -45,6 +45,7 @@ Thumbs.db
 *.app
 *.exe
 *.war
+*.apk
 
 # Large media files
 *.mp4
@@ -55,6 +56,5 @@ Thumbs.db
 *.wmv
 
 downloaded_apps/
-!/downloaded_apps/telega-8.5.1/
 
 venv

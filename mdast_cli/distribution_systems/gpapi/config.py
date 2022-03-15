@@ -8,7 +8,6 @@ DFE_TARGETS = "CAEScFfqlIEG6gUYogFWrAISK1WDAg+hAZoCDgIU1gYEOIACFkLMAeQBnASLATlAS
 GOOGLE_PUBKEY = "AAAAgMom/1a/v0lblO2Ubrt60J2gcuXSljGFQXgcyZWveWLEwo6prwgi3iJIZdodyhKZQrNWp5nKJ3srRXcUW+F1BD3baEVGcmEgqaLZUNBjm057pKRI16kB0YppeGx5qIQ5QjKzsR8ETQbKLNWgRY0QRNVz34kMJR3P/LgHax/6rmf5AAAAAwEAAQ=="
 ACCOUNT = "HOSTED_OR_GOOGLE"
 
-# https://github.com/yeriomin/play-store-api/tree/master/src/main/resources
 filepath = path.join(path.dirname(path.realpath(__file__)), 'device.properties')
 
 config = configparser.ConfigParser()

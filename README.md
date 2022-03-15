@@ -174,6 +174,10 @@ If you lost the 2fa code and the login has already been made, the session will b
 
 If there is an error associated with the wrong Apple ID when you start scanning:
 
+![wrong_apple_id](https://user-images.githubusercontent.com/46852358/158440208-45868069-d772-4476-a1bf-6508c2bac1eb.jpg)   
+
+or error in logs:
+
 "Logging in to the App Store. To open app, log in with the Apple ID with which you made the purchase."
 
 Then contact the support team to agree on an Apple ID, which will be used for AppStore integration, you will be offered a solution to this problem.
