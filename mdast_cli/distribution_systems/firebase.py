@@ -66,12 +66,12 @@ class Firebase(DistributionSystem):
         if req.status_code == 200:
             Log.info('Firebase - Start downloading application')
         elif req.status_code == 401:
-            Log.info('Firebase -  Failed to download application. Seems like you are not authorized.'
-                     'Request return status code: {0}'.format(req.status_code))
+            Log.info(f'Firebase -  Failed to download application. '
+                     f'Seems like you are not authorized. Request return status code: {req.status_code}')
             sys.exit(4)
         elif req.status_code == 403:
-            Log.info('Firebase -  Failed to download application. Seems like you dont have permissions for downloading.'
-                     'Please contact your administrator. Request return status code: {0}'.format(req.status_code))
+            Log.info(f'Firebase -  Failed to download application. Seems like you dont have permissions for downloading.'
+                     f' Please contact your administrator. Request return status code: {req.status_code}')
             sys.exit(4)
 
         file_url = req.json().get('fileUrl', '')
@@ -85,7 +85,7 @@ class Firebase(DistributionSystem):
         if self.file_name is None:
             self.file_name = self.app_code
 
-        path_to_file = '{0}/{1}.{2}'.format(self.download_path, self.file_name, self.file_extension)
+        path_to_file = f'{self.download_path}/{self.file_name}.{self.file_extension}'
 
         if not os.path.exists(self.download_path):
             os.mkdir(self.download_path)

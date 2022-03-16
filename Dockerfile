@@ -1,4 +1,4 @@
-FROM frolvlad/alpine-python3
+FROM python:3.9-slim
 
 WORKDIR /mdast_cli
 

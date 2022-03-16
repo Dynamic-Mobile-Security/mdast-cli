@@ -40,6 +40,7 @@ Currently, several launch options are supported:
  * Applications from [Nexus Repository 3.x](https://help.sonatype.com/repomanager3) from maven repo.
  * Applications from [Firebase](https://firebase.google.com/)
  * Applications from [Appstore](https://www.apple.com/app-store/)
+ * Applications from [Google Play](https://play.google.com/store/apps)
 
 ## Launch parameters
 The launch options depend on the location of the apk file sent for analysis. Also, there are required parameters that must be specified for any type of launch:
@@ -140,7 +141,10 @@ You can specify the downloaded app file name with an optional parameter
  * `firebase_file_name` - file name for app to be saved with
 
 ### AppStore
-To download application from AppStore you need to know application_id and have **iTunes account with installed application** and credentials for it: email and password with 2FA code.
+To download application from AppStore you need to know application_id and have **iTunes account with installed application** and credentials for it: email and password with 2FA code.  
+
+
+You need to select the `--distribution_system appstore` and specify mandatory parameters.
 
 This script will not work if the app has not been purchased in your AppStore account. It is the status of the app that is important, it must be confirmed with a fingerprint or password even if it is free. You can check this by making sure your app is in 'My apps' in your AppStore account settings.
 
@@ -149,6 +153,7 @@ When you run the script for the first time, use your email and password, you wil
 
 
 <img src="https://user-images.githubusercontent.com/46852358/153638449-6488cf6d-214f-44cb-8265-fe8b79b2614f.png" alt="drawing" width="300"/>  
+
 
 
 For the subsequent work of the script without repeating the step with the manual receipt of 2fa code you need to remember the received code, the session with it will be active for 6 months. After that, try to repeat the login with  password and 2FA, formatting it like `password2FA`. You do not need to get new 2fa codes later, this parameter will work for 6 months.   
@@ -170,7 +175,34 @@ You can specify downloaded app file name with an optional parameter
 
  * `appstore_file_name` - file name for app to be saved with
 
-If you lost the 2fa code and the login has already been made, the session will be active for 1 day without using 2fa, only apple_id + password. You also will not be able to end your session via this script, so for the script to work correctly you need to login again after 24 hours and save the two-factor authentication code in your notes
+If you lost the 2fa code and the login has already been made, the session will be active for a few time without using 2fa, only apple_id + password. You also will not be able to end your session via this script, so for the script to work correctly you need to login again after session expires and save the two-factor authentication code in your notes.  
+
+If there is an error associated with the wrong Apple ID when you start scanning:
+
+![wrong_apple_id](https://user-images.githubusercontent.com/46852358/158440208-45868069-d772-4476-a1bf-6508c2bac1eb.jpg)   
+
+or error in logs:
+
+"Logging in to the App Store. To open app, log in with the Apple ID with which you made the purchase."
+
+Then contact the support team to agree on an Apple ID, which will be used for AppStore integration, you will be offered a solution to this problem.
+
+### Google play
+To download application from Google Play Store you need to have temporary account with 2fa authentication disabled.  
+
+You need to know the package name of the application you want to download, you can get it directly from the Google Play app page or any other way.
+
+
+Also, you need to select the `distribution_system google_play` and specify the following mandatory parameters:
+ * `google_play_package_name` - package name of application you want to download
+ * `google_play_email` - email of your Google account for login
+ * `google_play_password` - password of your Google account for login
+
+You can specify downloaded app file name with an optional parameter
+
+ * `google_play_file_name` - file name for app to be saved with
+
+
 ## Launch examples
 
 ### Scan type
@@ -286,5 +318,12 @@ To start the manual scan analysis of the application, that was downloaded from A
  python mdast_cli/mdast_scan.py --architecture_id 3 --profile_id 1246 --distribution_system appstore --appstore_app_id 564177498 --appstore_apple_id ubet******@icloud.com --appstore_password2FA pass*******31******454  --url "https://saas.mobile.appsec.world" --company_id 2 --token 5d5f6****************2d9f --appstore_file_name my_b3st_4pp
 ```
 As a result in the `downloaded_apps` repository will be application with name `my_b3st_4pp.ipa` and manual scan will be started.
+
+### Google Play launch example
+To start the manual scan analysis of the application, that was downloaded from Google Play, you need to run the following command:
+```
+ python mdast_cli/mdast_scan.py --profile_id 1337 --architecture_id 1 --distribution_system google_play --url "https://saas.mobile.appsec.world" --company_id 1 --token 5d5f6c98*********487a68ee20d4562d9f --google_play_package_name com.instagram.android --google_play_email download*******ly@gmail.com --google_play_password Paaswoord --google_play_file_name best_apk_d0wnl04d3r
+```
+As a result in the `downloaded_apps` repository will be application with name `best_apk_d0wnl04d3r.apk` and manual scan will be started.
 
 While creating AppStore integration [ipatool](https://github.com/majd/ipatool) helped a lot, huge thanks for everyone who contributed to this nice open-source tool.
