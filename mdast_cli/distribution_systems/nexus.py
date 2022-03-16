@@ -77,8 +77,7 @@ class NexusRepository(DistributionSystem):
             Log.error(f'NexusRepo: Unable to find download URL: {len(component_search_result)}')
         response = self.session.get(download_url, allow_redirects=True)
         if response.status_code != 200:
-            Log.error('NexusRepo: Failed to download application. Request return status code: {0}'.format(
-                response.status_code))
+            Log.error(f'NexusRepo: Failed to download application. Request return status code: {response.status_code}')
             sys.exit(4)
 
         path_to_save = os.path.join(self.download_path, file_name)

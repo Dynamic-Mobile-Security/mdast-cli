@@ -27,26 +27,24 @@ class AppCenter(DistributionSystem):
 
     def get_version_info_by_id(self):
         Log.info('AppCenter - Get information about application')
-        url = '{0}/apps/{1}/{2}/releases/{3}'.format(self.url, self.owner_name, self.app_identifier, self.id)
+        url = f'{self.url}/apps/{self.owner_name}/{self.app_identifier}/releases/{self.id}'
         response = requests.get(url, headers=self.auth_header)
         if response.status_code != 200:
             Log.error(
-                'AppCenter - Failed to get information about application release. '
-                'Request return status code: {0}'.format(
-                    response.status_code))
+                f'AppCenter - Failed to get information about application release.'
+                f' Request return status code: {response.status_code}')
             sys.exit(4)
 
         version_info = response.json()
         return version_info
 
     def get_version_info_by_version(self):
-        url = '{0}/apps/{1}/{2}/releases?scope=tester'.format(self.url, self.owner_name, self.app_identifier)
-
+        url = f'{self.url}/apps/{self.owner_name}/{self.app_identifier}/releases?scope=tester'
         response = requests.get(url, headers=self.auth_header)
         if response.status_code != 200:
             Log.error(
-                'AppCenter - Failed to get information about application releases.'
-                ' Request return status code: {0}'.format(response.status_code))
+                f'AppCenter - Failed to get information about application releases.'
+                f' Request return status code: {response.status_code}')
             sys.exit(4)
 
         versions_info = response.json()
@@ -75,8 +73,8 @@ class AppCenter(DistributionSystem):
 
         response = requests.get(download_url, headers=self.auth_header, allow_redirects=True)
         if response.status_code != 200:
-            Log.error('AppCenter - Failed to download application. Request return status code: {0}'.format(
-                response.status_code))
+            Log.error(f'AppCenter - Failed to download application. '
+                      f'Request return status code: {response.status_code}')
             sys.exit(4)
 
         file_name = '{0}-{1}.apk'.format(self.app_identifier, version_info['version'])
@@ -88,6 +86,6 @@ class AppCenter(DistributionSystem):
         with open(path_to_save, 'wb') as file:
             file.write(response.content)
 
-        Log.info('AppCenter - Download application successfully completed to {0}'.format(path_to_save))
+        Log.info(f'AppCenter - Download application successfully completed to {path_to_save}')
 
         return path_to_save

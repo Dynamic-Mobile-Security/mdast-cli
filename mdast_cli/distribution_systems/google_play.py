@@ -21,7 +21,7 @@ def google_play_download(package_name, email, password, file_name=None):
 
         if file_name is None:
             file_name = package_name
-        path_to_file = '{0}/{1}.{2}'.format(download_path, file_name, 'apk')
+        path_to_file = f'{download_path}/{file_name}.apk'
         Log.info(f'Google Play - Downloading {package_name} apk to {path_to_file}')
 
         if not os.path.exists(download_path):

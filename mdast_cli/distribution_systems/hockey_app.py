@@ -30,9 +30,9 @@ class HockeyApp(DistributionSystem):
         :return: list of all applications (dict)
         """
         Log.info('HockeyApp - Get list of available applications')
-        response = requests.get('{0}/{1}'.format(self.url, 'apps'), headers=self.auth_header)
+        response = requests.get(f'{self.url}/apps', headers=self.auth_header)
         if response.status_code != 200:
-            Log.error('HockeyApp - Error while getting application list, status code: {0}'.format(response.status_code))
+            Log.error(f'HockeyApp - Error while getting application list, status code: {response.status_code}')
             sys.exit(4)
 
         app_list = response.json()
@@ -50,11 +50,10 @@ class HockeyApp(DistributionSystem):
                     continue
                 self.app_identifier = application['public_identifier']
 
-        versions_info_url = '{0}/{1}/{2}/{3}'.format(self.url, 'apps', self.app_identifier, 'app_versions')
+        versions_info_url = f'{self.url}/apps/{self.app_identifier}/app_versions'
         response = requests.get(versions_info_url, headers=self.auth_header)
         if response.status_code != 200:
-            Log.error('HockeyApp - Error while getting application versions info, status code: {0}'
-                      .format(response.status_code))
+            Log.error(f'HockeyApp - Error while getting application versions info, status code: {response.status_code}')
             sys.exit(4)
 
         return response.json().get('app_versions', [None])
@@ -95,8 +94,7 @@ class HockeyApp(DistributionSystem):
 
         response = requests.get(download_url, headers=self.auth_header, allow_redirects=True)
         if response.status_code != 200:
-            Log.error('HockeyApp - Failed to download application. Request return status code: {0}'
-                      .format(response.status_code))
+            Log.error(f'HockeyApp - Failed to download application. Request return status code: {response.status_code}')
             sys.exit(4)
 
         file_name = '{0}-{1}.apk'.format(self.app_identifier, application_for_download['version'])
@@ -108,6 +106,6 @@ class HockeyApp(DistributionSystem):
         with open(path_to_save, 'wb') as file:
             file.write(response.content)
 
-        Log.info('HockeyApp - Download application successfully completed to {0}'.format(path_to_save))
+        Log.info(f'HockeyApp - Download application successfully completed to {path_to_save}')
 
         return path_to_save

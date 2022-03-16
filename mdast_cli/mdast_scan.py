@@ -156,8 +156,8 @@ def parse_args():
                         help='Your email for Google Play login. This argument required if '
                              'distribution system set to "google_play"')
     parser.add_argument('--google_play_password', type=str,
-                        help='Your password and 2FA code for iTunes login, format: password2FA_code (password1337)'
-                             'This argument is required if distribution system set to "appstore"')
+                        help='Your password for Google Play login. This argument required if '
+                             'distribution system set to "google_play"')
     parser.add_argument('--google_play_file_name', type=str,
                         help='File name for downloaded application.'
                              ' This argument is optional if distribution system set to "google_play"')

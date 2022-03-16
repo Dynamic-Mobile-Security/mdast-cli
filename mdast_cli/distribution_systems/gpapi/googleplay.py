@@ -150,7 +150,7 @@ class GooglePlayAPI(object):
             return result
 
     def details(self, packageName):
-        path = DETAILS_URL + "?doc={}".format(requests.utils.quote(packageName))
+        path = DETAILS_URL + f'?doc={requests.utils.quote(packageName)}'
         data = self.executeRequestApi2(path)
         return utils.parseProtobufObj(data.payload.detailsResponse.docV2)
 
