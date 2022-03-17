@@ -19,16 +19,19 @@ def google_play_download(package_name, email, password, file_name=None):
 
         download_path = 'downloaded_apps'
 
+        downloaded_file, app_details = gp_api.download(package_name)
+
         if file_name is None:
             file_name = package_name
-        path_to_file = f'{download_path}/{file_name}.apk'
+
+        app_version = app_details.get('versionString')
+        path_to_file = f'{download_path}/{file_name}-v{app_version}.apk'
         Log.info(f'Google Play - Downloading {package_name} apk to {path_to_file}')
 
         if not os.path.exists(download_path):
             os.mkdir(download_path)
             Log.info(f'Google Play - Creating directory {self.download_path} for downloading app from Google Play Store')
 
-        downloaded_file = gp_api.download(package_name)
         with open(path_to_file, 'wb') as file:
             for chunk in downloaded_file.get('file').get('data'):
                 file.write(chunk)
