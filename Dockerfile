@@ -6,4 +6,4 @@ COPY ./ /mdast_cli
 
 RUN pip install -r requirements.txt
 
-ENTRYPOINT ["python", "./mdast_cli/mdast_scan.py"]
+ENTRYPOINT ["python3", "./mdast_cli/mdast_scan.py"]

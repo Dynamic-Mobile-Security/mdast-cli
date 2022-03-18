@@ -147,7 +147,7 @@ class GooglePlayAPI(object):
             for split in response.payload.deliveryResponse.appDeliveryData.split:
                 a = {'name': split.name, 'file': self._deliver_data(split.downloadUrl, None)}
                 result['splits'].append(a)
-            return result
+            return result, appDetails
 
     def details(self, packageName):
         path = DETAILS_URL + f'?doc={requests.utils.quote(packageName)}'
