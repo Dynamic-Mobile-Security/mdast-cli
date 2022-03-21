@@ -30,7 +30,7 @@ def google_play_download(package_name, email, password, file_name=None):
 
         if not os.path.exists(download_path):
             os.mkdir(download_path)
-            Log.info(f'Google Play - Creating directory {self.download_path} for downloading app from Google Play Store')
+            Log.info(f'Google Play - Creating directory {download_path} for downloading app from Google Play Store')
 
         with open(path_to_file, 'wb') as file:
             for chunk in downloaded_file.get('file').get('data'):
