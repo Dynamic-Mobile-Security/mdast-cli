@@ -200,7 +200,16 @@ Also, you need to select the `distribution_system google_play` and specify the f
 
 You can specify downloaded app file name with an optional parameter
 
- * `google_play_file_name` - file name for app to be saved with
+ * `google_play_file_name` - file name for app to be saved with  
+
+When running a scan through the integration of Google Play at the first login from a new ip address is possible situation when you will need to confirm your account through the browser, to do this, go to the  [google account verification link](https://accounts.google.com/b/0/DisplayUnlockCaptcha) , log into the opening page and click on 'Proceed'.  
+  
+![google_unlock_image](https://user-images.githubusercontent.com/46852358/161290143-05d0d847-2037-4c4f-8187-53d3ffed83ec.png)
+
+After this login will be successful through the script mdast_cli, provided that the ip address of the connection will not change. It is also possible that this problem occurs when there are no connections from the device for a long time. You can get a link to solve the problem from the logs of the script.  
+
+If the problem can not be solved please contact your support. 
+
 
 
 ## Launch examples
