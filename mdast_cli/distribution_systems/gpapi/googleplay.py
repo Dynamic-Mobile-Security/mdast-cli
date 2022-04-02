@@ -76,7 +76,9 @@ class GooglePlayAPI(object):
         headers['app'] = 'com.google.android.gsm'
         auth_resp = requests.post(AUTH_URL, data=params)
         if auth_resp.status_code != 200:
-            Log.error('Google Play - Login failed, probably you provided invalid credentials.')
+            Log.error('Google Play - Either you provided the wrong credentials or you need to go through an '
+                      'additional login confirmation in your browser by following the link '
+                      'https://accounts.google.com/b/0/DisplayUnlockCaptcha')
             sys.exit(4)
         data = auth_resp.text.split()
         params = {}
@@ -87,14 +89,9 @@ class GooglePlayAPI(object):
             params[k.strip().lower()] = v.strip()
         if "auth" in params:
             ac2dmToken = params["auth"]
-        elif "error" in params:
-            if "NeedsBrowser" in params["error"]:
-                Log.error('Google Play - Security check is needed, '
-                         'try to visit https://accounts.google.com/b/0/DisplayUnlockCaptcha to unlock.')
-                Log.error(f'Google Play - server says: " + {params["error"]}"')
-                sys.exit(4)
         else:
-            Log.error('Google Play - Auth token not found.')
+            Log.error('Google Play - Auth token not found. Either the server is unavailable or you provided the wrong '
+                      'credentials, please try again')
             sys.exit(4)
 
         self.gsfId = self.checkin(email, ac2dmToken)
