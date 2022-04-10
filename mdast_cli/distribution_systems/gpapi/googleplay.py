@@ -65,38 +65,44 @@ class GooglePlayAPI(object):
         self.deviceBuilder.setLocale(locale)
         self.deviceBuilder.setTimezone(timezone)
 
-    def login(self, email, password):
-        encrypted_password = encrypt_password(email, password).decode('utf-8')
-        # AC2DM token
-        params = self.deviceBuilder.getLoginParams(email, encrypted_password)
-        params['service'] = 'ac2dm'
-        params['add_account'] = '1'
-        params['callerPkg'] = 'com.google.android.gms'
-        headers = self.deviceBuilder.getAuthHeaders(self.gsfId)
-        headers['app'] = 'com.google.android.gsm'
-        auth_resp = requests.post(AUTH_URL, data=params)
-        if auth_resp.status_code != 200:
-            Log.error('Google Play - Either you provided the wrong credentials or you need to go through an '
-                      'additional login confirmation in your browser by following the link '
-                      'https://accounts.google.com/b/0/DisplayUnlockCaptcha')
-            sys.exit(4)
-        data = auth_resp.text.split()
-        params = {}
-        for d in data:
-            if "=" not in d:
-                continue
-            k, v = d.split("=", 1)
-            params[k.strip().lower()] = v.strip()
-        if "auth" in params:
-            ac2dmToken = params["auth"]
-        else:
-            Log.error('Google Play - Auth token not found. Either the server is unavailable or you provided the wrong '
-                      'credentials, please try again')
-            sys.exit(4)
+    def login(self, email, password, gsfId, authSubToken):
+        if email is not None and password is not None:
+            encryptedPass = encrypt_password(email, password).decode('utf-8')
+            params = self.deviceBuilder.getLoginParams(email, encryptedPass)
+            params['service'] = 'ac2dm'
+            params['add_account'] = '1'
+            params['callerPkg'] = 'com.google.android.gms'
+            headers = self.deviceBuilder.getAuthHeaders(self.gsfId)
+            headers['app'] = 'com.google.android.gsm'
+            response = requests.post(AUTH_URL, data=params)
+            data = response.text.split()
+            params = {}
+            for d in data:
+                if "=" not in d:
+                    continue
+                k, v = d.split("=", 1)
+                params[k.strip().lower()] = v.strip()
+            if "auth" in params:
+                ac2dmToken = params["auth"]
+            elif "error" in params:
+                if "NeedsBrowser" in params["error"]:
+                    Log.error('Google Play - Security check is needed, '
+                              'try to visit https://accounts.google.com/b/0/DisplayUnlockCaptcha to unlock.')
+                    Log.error(f'Google Play - server says: "{params["error"]}"')
+                    sys.exit(4)
 
-        self.gsfId = self.checkin(email, ac2dmToken)
-        self.getAuthSubToken(email, encrypted_password)
-        self.uploadDeviceConfig()
+            self.gsfId = self.checkin(email, ac2dmToken)
+            self.getAuthSubToken(email, encryptedPass)
+            self.uploadDeviceConfig()
+            Log.info(f'gsfId: {self.gsfId}, authSubToken: {self.authSubToken}')
+            Log.info(f'You should copy these parameters and use them for next scans: "--google_play_gsfid {self.gsfId} '
+                     f'--google_play_auth_token {self.authSubToken}"')
+        elif gsfId is not None and authSubToken is not None:
+            self.gsfId = gsfId
+            self.setAuthSubToken(authSubToken)
+        else:
+            Log.error('Google Play - Login failed.')
+            sys.exit(4)
 
     def download(self, packageName, versionCode=None, offerType=1, downloadToken=None):
         if self.authSubToken is None:
@@ -145,6 +151,9 @@ class GooglePlayAPI(object):
                 a = {'name': split.name, 'file': self._deliver_data(split.downloadUrl, None)}
                 result['splits'].append(a)
             return result, appDetails
+
+    def setAuthSubToken(self, authSubToken):
+        self.authSubToken = authSubToken
 
     def details(self, packageName):
         path = DETAILS_URL + f'?doc={requests.utils.quote(packageName)}'

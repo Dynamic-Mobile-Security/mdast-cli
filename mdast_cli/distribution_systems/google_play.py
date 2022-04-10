@@ -10,12 +10,12 @@ except ImportError:
     from mdast_cli.helpers.logging import Log
 
 
-def google_play_download(package_name, email, password, file_name=None):
+def google_play_download(package_name, email=None, password=None, gsfId=None, authSubToken=None, file_name=None):
     try:
         gp_api = GooglePlayAPI()
 
         Log.info('Google Play - Logging in Google Play with mail + password')
-        gp_api.login(email, password)
+        gp_api.login(email, password, gsfId, authSubToken)
 
         download_path = 'downloaded_apps'
 
