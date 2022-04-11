@@ -8,10 +8,9 @@ from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives.asymmetric.utils import encode_dss_signature
 from cryptography.hazmat.primitives.serialization import load_der_public_key
 
-from . import config, googleplay_pb2, utils
-
 from mdast_cli.helpers.logging import Log
 
+from . import config, googleplay_pb2, utils
 
 BASE = "https://android.clients.google.com/"
 FDFE = BASE + "fdfe/"
@@ -67,6 +66,7 @@ class GooglePlayAPI(object):
 
     def login(self, email, password, gsfId, authSubToken):
         if email is not None and password is not None:
+            Log.info('Google Play - Logging in with email and password, you should copy token after')
             encryptedPass = encrypt_password(email, password).decode('utf-8')
             params = self.deviceBuilder.getLoginParams(email, encryptedPass)
             params['service'] = 'ac2dm'
@@ -94,19 +94,21 @@ class GooglePlayAPI(object):
             self.gsfId = self.checkin(email, ac2dmToken)
             self.getAuthSubToken(email, encryptedPass)
             self.uploadDeviceConfig()
-            Log.info(f'gsfId: {self.gsfId}, authSubToken: {self.authSubToken}')
-            Log.info(f'You should copy these parameters and use them for next scans: "--google_play_gsfid {self.gsfId} '
+            Log.info(f'Google Play - gsfId: {self.gsfId}, authSubToken: {self.authSubToken}')
+            Log.info(f'Google Play - You should copy these parameters and use them for next scans instead '
+                     f'of email and password: "--google_play_gsfid {self.gsfId} '
                      f'--google_play_auth_token {self.authSubToken}"')
         elif gsfId is not None and authSubToken is not None:
             self.gsfId = gsfId
             self.setAuthSubToken(authSubToken)
+            Log.info('Google Play - Logging in with gsfid and auth token')
         else:
             Log.error('Google Play - Login failed.')
             sys.exit(4)
 
-    def download(self, packageName, versionCode=None, offerType=1, downloadToken=None):
+    def download(self, packageName, versionCode=None, offerType=1):
         if self.authSubToken is None:
-            Log.error(f'Google Play - You need to login before executing any request')
+            Log.error('Google Play - You need to login before executing any request')
             sys.exit(4)
 
         if versionCode is None:
@@ -126,7 +128,7 @@ class GooglePlayAPI(object):
             Log.error(f'Google Play - {response.commands.displayErrorMessage}')
             sys.exit(4)
         else:
-            dlToken = response.payload.buyResponse.downloadToken
+            downloadToken = response.payload.buyResponse.downloadToken
 
         if downloadToken is not None:
             params['dtok'] = downloadToken
@@ -136,7 +138,7 @@ class GooglePlayAPI(object):
             Log.error(f'Google Play - {response.commands.displayErrorMessage}')
             sys.exit(4)
         elif response.payload.deliveryResponse.appDeliveryData.downloadUrl == "":
-            Log.error(f'Google Play - App not purchased')
+            Log.error('Google Play - App not purchased')
             sys.exit(4)
         else:
             result = {'docId': packageName, 'additionalData': [], 'splits': []}
@@ -190,7 +192,6 @@ class GooglePlayAPI(object):
         response.ParseFromString(res.content)
         self.deviceCheckinConsistencyToken = response.deviceCheckinConsistencyToken
 
-        # checkin again to upload gfsid
         request.id = response.androidId
         request.securityToken = response.securityToken
         request.accountCookie.append("[" + email + "]")
@@ -242,7 +243,7 @@ class GooglePlayAPI(object):
             Log.error(f'Google Play - server says: " + {params["error"]}')
             sys.exit(4)
         else:
-            Log.error(f'Google Play - auth token not found')
+            Log.error('Google Play - auth token not found')
             sys.exit(4)
 
     def getSecondRoundToken(self, first_token, params):
@@ -277,12 +278,13 @@ class GooglePlayAPI(object):
             Log.error(f'Google Play - server says: " + {params["error"]}')
             sys.exit(4)
         else:
-            Log.error(f'Google Play - auth token not found')
+            Log.error('Google Play - auth token not found')
             sys.exit(4)
 
     def executeRequestApi2(self, path, post_data=None, content_type=CONTENT_TYPE_URLENC, params=None):
         if self.authSubToken is None:
-            raise LoginError("You need to login before executing any request")
+            Log.error('You need to login before executing any request')
+            sys.exit(4)
         headers = self.getHeaders()
         headers["Content-Type"] = content_type
 
@@ -312,4 +314,3 @@ class GooglePlayAPI(object):
         return {'data': response.iter_content(chunk_size=chunk_size),
                 'total_size': total_size,
                 'chunk_size': chunk_size}
-

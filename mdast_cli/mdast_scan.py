@@ -64,7 +64,8 @@ def parse_args():
     parser.add_argument('--appcenter_token', type=str, help='Auth token for AppCenter. This argument is required if '
                                                             'distribution system set to "appcenter"')
     parser.add_argument('--appcenter_owner_name', type=str, help='Application owner name in AppCenter. This argument '
-                                                                 'is required if distribution system set to "appcenter"')
+                                                                 'is required if distribution system set'
+                                                                 ' to "appcenter"')
     parser.add_argument('--appcenter_app_name', type=str,
                         help='Application name in AppCenter. This argument is required '
                              'if distribution system set to "appcenter"')
@@ -149,7 +150,7 @@ def parse_args():
                         help='File name for downloaded application.'
                              ' This argument is optional if distribution system set to "appstore"')
 
-    # Arguments for GooglePlay
+    # Arguments for Google Play
     parser.add_argument('--google_play_package_name', type=str,
                         help='Application package name from Google Play. This argument is required for first login if '
                              'distribution system set to "google_play"')
@@ -161,8 +162,8 @@ def parse_args():
                              'distribution system set to "google_play"')
     parser.add_argument('--google_play_gsfid', type=int,
                         help='The Google Services Framework Identifier (GSF ID) is a unique 16 character hexadecimal '
-                             'number of your fake device. You should get it from console logs during first login attempt'
-                             ' with email and password.This argument required if '
+                             'number of your fake device. You should get it from console logs during '
+                             'first login attempt with email and password.This argument required if '
                              'distribution system set to "google_play"')
     parser.add_argument('--google_play_auth_token', type=str,
                         help='Google auth token for access to Google Play API. '
@@ -171,6 +172,9 @@ def parse_args():
     parser.add_argument('--google_play_file_name', type=str,
                         help='File name for downloaded application.'
                              ' This argument is optional if distribution system set to "google_play"')
+    parser.add_argument('--google_play_download_with_creds', action='store_true',
+                        help='Download the application at the first login with email + password. '
+                             'This argument is optional if distribution system set to "google_play"')
 
     # Main arguments
     parser.add_argument('--url', type=str, help='System url', required=True)
@@ -318,13 +322,14 @@ def main():
                                         arguments.google_play_password,
                                         arguments.google_play_gsfid,
                                         arguments.google_play_auth_token,
-                                        arguments.google_play_file_name)
+                                        arguments.google_play_file_name,
+                                        arguments.google_play_download_with_creds)
 
     mdast = mDast(url, token, company_id)
     get_architectures_resp = mdast.get_architectures()
 
     if not get_architectures_resp.status_code == 200:
-        Log.error(f'Error while getting architectures.')
+        Log.error('Error while getting architectures.')
         Log.error(f'Server response: {get_architectures_resp.text}')
         sys.exit(1)
 
@@ -348,8 +353,12 @@ def main():
         Log.error("No suitable architecture find for this app")
         sys.exit(1)
 
-    Log.info(f'Start scan with test case Id: '
-             f'{testcase_id}, profile Id: {profile_id} and file: {app_file}, architecture id is {architecture}')
+    if testcase_id is None:
+        Log.info(f'Start manual scan with profile Id: {profile_id} and file: {app_file},'
+                 f' architecture id is {architecture}')
+    else:
+        Log.info(f'Start auto scan with test case Id: '
+                 f'{testcase_id}, profile Id: {profile_id} and file: {app_file}, architecture id is {architecture}')
 
     Log.info('Uploading application to server')
     upload_application_resp = mdast.upload_application(app_file, str(architecture_type['type']))
