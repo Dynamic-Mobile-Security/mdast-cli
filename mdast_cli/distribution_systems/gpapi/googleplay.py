@@ -96,8 +96,8 @@ class GooglePlayAPI(object):
             self.uploadDeviceConfig()
             Log.info(f'Google Play - gsfId: {self.gsfId}, authSubToken: {self.authSubToken}')
             Log.info(f'Google Play - You should copy these parameters and use them for next scans instead '
-                     f'of email and password: "--google_play_gsfid {self.gsfId} '
-                     f'--google_play_auth_token {self.authSubToken}"')
+                     f'of email and password:')
+            Log.info(f'Google Play - "--google_play_gsfid {self.gsfId} --google_play_auth_token {self.authSubToken}"')
         elif gsfId is not None and authSubToken is not None:
             self.gsfId = gsfId
             self.setAuthSubToken(authSubToken)
