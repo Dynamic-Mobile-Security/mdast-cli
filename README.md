@@ -226,6 +226,7 @@ You can also specify downloaded app file name with an optional parameter
 
  * `google_play_file_name` - file name for app to be saved with  
 
+You should use either email + pass ("--google_play_email" + "--google_play_password") or gsfid + token ("--google_play_gsfid" + "google_play_auth_token") arguments for mdast_cli script.  
 
 If the problem can not be solved please contact your support. 
 
@@ -348,10 +349,16 @@ To start the manual scan analysis of the application, that was downloaded from A
 As a result in the `downloaded_apps` repository will be application with name `my_b3st_4pp.ipa` and manual scan will be started.
 
 ### Google Play launch example
+To start the initial login for Google Play, you need to run the following command:
+```
+ python mdast_cli/mdast_scan.py --profile_id 1337 --architecture_id 1 --distribution_system google_play --url "https://saas.mobile.appsec.world" --company_id 1 --token 5d5f6c98*********487a68ee20d4562d9f --google_play_package_name com.instagram.android --google_play_email download*******ly@gmail.com --google_play_password Paaswoord
+```
 To start the manual scan analysis of the application, that was downloaded from Google Play, you need to run the following command:
+
 ```
- python mdast_cli/mdast_scan.py --profile_id 1337 --architecture_id 1 --distribution_system google_play --url "https://saas.mobile.appsec.world" --company_id 1 --token 5d5f6c98*********487a68ee20d4562d9f --google_play_package_name com.instagram.android --google_play_email download*******ly@gmail.com --google_play_password Paaswoord --google_play_file_name best_apk_d0wnl04d3r
+ python mdast_cli/mdast_scan.py --profile_id 1337 --architecture_id 1 --distribution_system google_play --url "https://saas.mobile.appsec.world" --company_id 1 --token 5d5f6c98*********487a68ee20d4562d9f --google_play_package_name com.instagram.android --google_play_gsfid 432******************43 --google_play_auth_token JAgw_2h*************************************8KRaYQ. --google_play_file_name best_apk_d0wnl04d3r
 ```
+
 As a result in the `downloaded_apps` repository will be application with name `best_apk_d0wnl04d3r.apk` and manual scan will be started.
 
 While creating AppStore integration [ipatool](https://github.com/majd/ipatool) helped a lot, huge thanks for everyone who contributed to this nice open-source tool.
