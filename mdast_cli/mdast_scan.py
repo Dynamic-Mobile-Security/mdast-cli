@@ -44,85 +44,87 @@ def parse_args():
                         required=True)
 
     # Arguments used for distribution_system = file
-    parser.add_argument('--file_path', type=str, help='Path to local file for analyze. This argument required if '
+    parser.add_argument('--file_path', type=str, help='Path to local file for analyze. This argument is required if '
                                                       'distribution system set to "file"')
 
     # Arguments used for distribution_system hockeyapp
-    parser.add_argument('--hockey_token', type=str, help='Auth token for HockeyApp. This argument required if '
+    parser.add_argument('--hockey_token', type=str, help='Auth token for HockeyApp. This argument is required if '
                                                          'distribution system set to "hockeyapp"')
     parser.add_argument('--hockey_bundle_id', type=str, help='Application bundle in HockeyApp. This argument or '
-                                                             '"--hockey_public_id" required if distribution system '
+                                                             '"--hockey_public_id" is required if distribution system '
                                                              'set to "hockeyapp"')
     parser.add_argument('--hockey_public_id', type=str, help='Application identifier in HockeyApp. This argument or '
-                                                             '"--hockey_bundle_id" required if distribution system '
+                                                             '"--hockey_bundle_id" is required if distribution system '
                                                              'set to "hockeyapp"')
     parser.add_argument('--hockey_version', type=str, help='Application version in HockeyApp. If not set - the latest '
-                                                           'version will be downloaded. This argument required if '
+                                                           'version will be downloaded. This argument is required if '
                                                            'distribution system set to "hockeyapp"', default='latest')
 
     # Arguments used for distribution_system appcenter
-    parser.add_argument('--appcenter_token', type=str, help='Auth token for AppCenter. This argument required if '
+    parser.add_argument('--appcenter_token', type=str, help='Auth token for AppCenter. This argument is required if '
                                                             'distribution system set to "appcenter"')
     parser.add_argument('--appcenter_owner_name', type=str, help='Application owner name in AppCenter. This argument '
-                                                                 'required if distribution system set to "appcenter"')
-    parser.add_argument('--appcenter_app_name', type=str, help='Application name in AppCenter. This argument required '
-                                                               'if distribution system set to "appcenter"')
+                                                                 'is required if distribution system set'
+                                                                 ' to "appcenter"')
+    parser.add_argument('--appcenter_app_name', type=str,
+                        help='Application name in AppCenter. This argument is required '
+                             'if distribution system set to "appcenter"')
     parser.add_argument('--appcenter_release_id', type=str, help='Release id in AppCenter. If not set - the latest '
                                                                  'release will be downloaded. This argument or '
-                                                                 '"--ac_app_version" required if distribution system '
-                                                                 'set to "appcenter"')
-    parser.add_argument('--appcenter_app_version', type=str, help='Application version in AppCenter. This argument  or '
-                                                                  '"--appcenter_release_id" required if distribution '
-                                                                  'system set to "appcenter"')
+                                                                 '"--ac_app_version" is required if distribution system'
+                                                                 ' set to "appcenter"')
+    parser.add_argument('--appcenter_app_version', type=str, help='Application version in AppCenter. This argument or '
+                                                                  '"--appcenter_release_id" is required if distribution'
+                                                                  ' system set to "appcenter"')
 
     # Arguments for Nexus
     parser.add_argument('--nexus_url', type=str,
                         help='Http url for Nexus server where mobile application is located.'
-                             ' This argument required if distribution system set to "appcenter"')
+                             ' This argument is required if distribution system set to "appcenter"')
     parser.add_argument('--nexus_login', type=str,
                         help='Login for Nexus server where mobile application is located.'
-                             ' This argument required if distribution system set to "appcenter"')
+                             ' This argument is required if distribution system set to "appcenter"')
     parser.add_argument('--nexus_password', type=str,
                         help='Password for Nexus server where mobile application is located.'
-                             'This argument required if distribution system set to "appcenter"')
+                             'This argument is required if distribution system set to "appcenter"')
     parser.add_argument('--nexus_repo_name', type=str,
                         help='Repository name in Nexus where mobile application is located. '
-                             'This argument required if distribution system set to "appcenter"')
+                             'This argument is required if distribution system set to "appcenter"')
     parser.add_argument('--nexus_group_id', type=str,
                         help='Group_id for mobile application. '
-                             'This argument required if distribution system set to "appcenter"')
+                             'This argument is required if distribution system set to "appcenter"')
     parser.add_argument('--nexus_artifact_id', type=str,
                         help='Artifact id for mobile application. '
-                             'This argument required if distribution system set to "appcenter"')
+                             'This argument is required if distribution system set to "appcenter"')
     parser.add_argument('--nexus_version', type=str,
                         help='Version to download from Nexus. '
-                             'This argument required if distribution system set to "appcenter"')
+                             'This argument is required if distribution system set to "appcenter"')
 
     # Arguments for Firebase
     parser.add_argument('--firebase_project_id', type=str,
                         help='Project id for firebase where mobile application is located.'
-                             ' This argument required if distribution system set to "firebase"')
+                             ' This argument is required if distribution system set to "firebase"')
     parser.add_argument('--firebase_app_id', type=str,
                         help='Application id for firebase where mobile application is located.'
-                             ' This argument required if distribution system set to "firebase"')
+                             ' This argument is required if distribution system set to "firebase"')
     parser.add_argument('--firebase_app_code', type=str,
                         help='Application code for firebase where mobile application is located.'
-                             ' This argument required if distribution system set to "firebase"')
+                             ' This argument is required if distribution system set to "firebase"')
     parser.add_argument('--firebase_api_key', type=str,
                         help='Api code for firebase where mobile application is located.'
-                             ' This argument required if distribution system set to "firebase"')
+                             ' This argument is required if distribution system set to "firebase"')
     parser.add_argument('--firebase_SID_cookie', type=str,
                         help='SID cookie for firebase authentication  via google sso.'
-                             ' This argument required if distribution system set to "firebase"')
+                             ' This argument is required if distribution system set to "firebase"')
     parser.add_argument('--firebase_HSID_cookie', type=str,
                         help='HSID cookie for firebase authentication  via google sso.'
-                             ' This argument required if distribution system set to "firebase"')
+                             ' This argument is required if distribution system set to "firebase"')
     parser.add_argument('--firebase_SSID_cookie', type=str,
                         help='SSID cookie for firebase authentication  via google sso.'
-                             ' This argument required if distribution system set to "firebase"')
+                             ' This argument is required if distribution system set to "firebase"')
     parser.add_argument('--firebase_APISID_cookie', type=str,
                         help='APISID cookie for firebase authentication  via google sso.'
-                             ' This argument required if distribution system set to "firebase"')
+                             ' This argument is required if distribution system set to "firebase"')
     parser.add_argument('--firebase_SAPISID_cookie', type=str,
                         help='SAPISID cookie for firebase authentication  via google sso.'
                              ' This argument required if distribution system set to "firebase"')
@@ -148,19 +150,31 @@ def parse_args():
                         help='File name for downloaded application.'
                              ' This argument is optional if distribution system set to "appstore"')
 
-    # Arguments for GooglePlay
+    # Arguments for Google Play
     parser.add_argument('--google_play_package_name', type=str,
-                        help='Application package name from Google Play. This argument required if '
+                        help='Application package name from Google Play. This argument is required for first login if '
                              'distribution system set to "google_play"')
     parser.add_argument('--google_play_email', type=str,
-                        help='Your email for Google Play login. This argument required if '
+                        help='Your email for Google Play login. This argument is required for first login if '
                              'distribution system set to "google_play"')
     parser.add_argument('--google_play_password', type=str,
-                        help='Your password for Google Play login. This argument required if '
+                        help='Your password for Google Play login. This argument is required for first login if'
                              'distribution system set to "google_play"')
+    parser.add_argument('--google_play_gsfid', type=int,
+                        help='The Google Services Framework Identifier (GSF ID) is a unique 16 character hexadecimal '
+                             'number of your fake device. You should get it from console logs during '
+                             'first login attempt with email and password.This argument required if '
+                             'distribution system set to "google_play"')
+    parser.add_argument('--google_play_auth_token', type=str,
+                        help='Google auth token for access to Google Play API. '
+                             'You should get it from console logs during first login attempt with email and password.'
+                             ' This argument required if distribution system set to "google_play"')
     parser.add_argument('--google_play_file_name', type=str,
                         help='File name for downloaded application.'
                              ' This argument is optional if distribution system set to "google_play"')
+    parser.add_argument('--google_play_download_with_creds', action='store_true',
+                        help='Download the application at the first login with email + password. '
+                             'This argument is optional if distribution system set to "google_play"')
 
     # Main arguments
     parser.add_argument('--url', type=str, help='System url', required=True)
@@ -231,10 +245,11 @@ def parse_args():
 
     elif args.distribution_system == 'google_play' and (
             args.google_play_package_name is None or
-            args.google_play_email is None or
-            args.google_play_password is None):
-        parser.error('"--distribution_system google_play" requires "--google_play_package_name", "--google_play_email",'
-                     ' "--google_play_password" arguments to be set')
+            ((args.google_play_email is None or args.google_play_password is None) and
+             (args.google_play_gsfid is None or args.google_play_auth_token is None))):
+        parser.error('"--distribution_system google_play" requires "--google_play_package_name" and either'
+                     ' email + pass ("--google_play_email" + "--google_play_password") or '
+                     'gsfid + token ("--google_play_gsfid" + "google_play_auth_token") arguments to be set')
     return args
 
 
@@ -305,13 +320,16 @@ def main():
         app_file = google_play_download(arguments.google_play_package_name,
                                         arguments.google_play_email,
                                         arguments.google_play_password,
-                                        arguments.google_play_file_name)
+                                        arguments.google_play_gsfid,
+                                        arguments.google_play_auth_token,
+                                        arguments.google_play_file_name,
+                                        arguments.google_play_download_with_creds)
 
     mdast = mDast(url, token, company_id)
     get_architectures_resp = mdast.get_architectures()
 
     if not get_architectures_resp.status_code == 200:
-        Log.error(f'Error while getting architectures.')
+        Log.error('Error while getting architectures.')
         Log.error(f'Server response: {get_architectures_resp.text}')
         sys.exit(1)
 
@@ -335,8 +353,12 @@ def main():
         Log.error("No suitable architecture find for this app")
         sys.exit(1)
 
-    Log.info(f'Start scan with test case Id: '
-             f'{testcase_id}, profile Id: {profile_id} and file: {app_file}, architecture id is {architecture}')
+    if testcase_id is None:
+        Log.info(f'Start manual scan with profile Id: {profile_id} and file: {app_file},'
+                 f' architecture id is {architecture}')
+    else:
+        Log.info(f'Start auto scan with test case Id: '
+                 f'{testcase_id}, profile Id: {profile_id} and file: {app_file}, architecture id is {architecture}')
 
     Log.info('Uploading application to server')
     upload_application_resp = mdast.upload_application(app_file, str(architecture_type['type']))

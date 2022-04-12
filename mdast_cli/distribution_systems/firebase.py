@@ -70,7 +70,7 @@ class Firebase(DistributionSystem):
                      f'Seems like you are not authorized. Request return status code: {req.status_code}')
             sys.exit(4)
         elif req.status_code == 403:
-            Log.info(f'Firebase -  Failed to download application. Seems like you dont have permissions for downloading.'
+            Log.info(f'Firebase - Failed to download application. Seems like you dont have permissions for downloading.'
                      f' Please contact your administrator. Request return status code: {req.status_code}')
             sys.exit(4)
 

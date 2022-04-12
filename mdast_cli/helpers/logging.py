@@ -21,5 +21,5 @@ class Log:
     @staticmethod
     def _log(level, message):
         current_date = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-        message = '{time} - {level} {message}'.format(time=current_date, level=level, message=message)
+        message = f'{current_date} - {level} {message}'
         print(message)

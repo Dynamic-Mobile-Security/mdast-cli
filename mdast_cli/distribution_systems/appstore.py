@@ -110,7 +110,7 @@ class AppStore(DistributionSystem):
             download_file(downloaded_app_info.URL, self.download_path, file_path)
 
             with zipfile.ZipFile(file_path, 'a') as ipa_file:
-                Log.info(f'Writing out iTunesMetadata.plist...')
+                Log.info('Writing out iTunesMetadata.plist...')
                 metadata = downloaded_app_info.metadata.as_dict()
                 metadata["apple-id"] = self.apple_id
                 metadata["userName"] = self.apple_id
