@@ -188,14 +188,14 @@ or error in logs:
 Then contact the support team to agree on an Apple ID, which will be used for AppStore integration, you will be offered a solution to this problem.
 
 ### Google play
-To download application from Google Play Store you need to have **temporary account with 2fa authentication disabled**.  
+To download application from Google Play Store you need **temporary account with 2fa authentication disabled**.  
 
 You should specify the package name of the application you want to download, you can get it directly from the Google Play app page or any other way.
 
 
 Also, you need to select the `distribution_system google_play`.  
 
-During the initial launch of the script you need to specify the mandatory parameters: email + password, after that the application will not be downloaded and the scan will not run, but you will receive gsfid and token for google authentication, which you will need later on for the successful operation of Google Play integration.  
+During the initial launch of the script you should specify the mandatory parameters: email + password, after that the application will not be downloaded and the scan will not run, but you will **receive gsfid and token** for google authentication, which you should use later on for the successful Google Play application scan.  
 
  * `google_play_package_name` - package name of application you want to download
  * `google_play_email` - email of your Google account for first login only
@@ -216,7 +216,7 @@ At the initial run of the script you will get the gsfId and auth token in the sc
 
 ![gsfid_token_logs](https://user-images.githubusercontent.com/46852358/162791052-fbce7121-1430-49ca-a9b9-68997391abd6.png)  
 
-Using these parameters you will have all parameters for successful downloading apks from Google Play Store:
+Using these parameters you will have all parameters for successful downloading applications from Google Play Store:
 
  * `google_play_package_name` - package name of application you want to download
  * `google_play_gsfid` - The Google Services Framework Identifier (GSF ID)
@@ -226,10 +226,7 @@ You can also specify downloaded app file name with an optional parameter
 
  * `google_play_file_name` - file name for app to be saved with  
 
-You should use either email + pass ("--google_play_email" + "--google_play_password") or gsfid + token ("--google_play_gsfid" + "google_play_auth_token") arguments for mdast_cli script.  
-
-If the problem can not be solved please contact your support. 
-
+You should use either email + pass ("--google_play_email" + "--google_play_password") or gsfid + token ("--google_play_gsfid" + "google_play_auth_token") arguments for mdast_cli script. For the continuous process you need only gsfid and token.
 
 
 ## Launch examples
