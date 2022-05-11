@@ -23,7 +23,7 @@ try:
     from distribution_systems.google_play import google_play_download
     from distribution_systems.hockey_app import HockeyApp
     from distribution_systems.nexus import NexusRepository
-    from helpers.const import SLEEP_TIMEOUT, TRY_COUNT, DastState, DastStateDict
+    from helpers.const import SLEEP_TIMEOUT, TRY_COUNT, END_SCAN_TIMEOUT, DastState, DastStateDict
     from helpers.logging import Log
 except ImportError:
     from mdast_cli.distribution_systems.app_center import AppCenter
@@ -472,8 +472,8 @@ def main():
 
     while dast_status in (DastState.STARTED, DastState.STOPPING, DastState.ANALYZING) and count < TRY_COUNT:
         if count == 0 and scan_type == 'manual':
-            Log.info(f"This is manual scan, lets wait for 30 seconds and stop it.")
-            time.sleep(30)
+            Log.info(f"This is manual scan, lets wait for {END_SCAN_TIMEOUT} seconds and stop it.")
+            time.sleep(END_SCAN_TIMEOUT)
             stop_manual_dast_resp = mdast.stop_scan(dast['id'])
             if not stop_manual_dast_resp.status_code == 200:
                 Log.error(f"Error while stopping scan with id {dast['id']}: {get_dast_info_resp.text}")
