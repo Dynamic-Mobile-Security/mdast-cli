@@ -112,10 +112,8 @@ class AppStore(DistributionSystem):
             with zipfile.ZipFile(file_path, 'a') as ipa_file:
                 Log.info('Writing out iTunesMetadata.plist...')
                 metadata = downloaded_app_info.metadata.as_dict()
-                # metadata["apple-id"] = self.apple_id
-                # metadata["userName"] = self.apple_id
-                metadata["apple-id"] = 'sting.ios.apple@gmail.com'
-                metadata["userName"] = 'sting.ios.apple@gmail.com'
+                metadata["apple-id"] = self.apple_id
+                metadata["userName"] = self.apple_id
                 ipa_file.writestr(zipfile.ZipInfo("iTunesMetadata.plist", get_zipinfo_datetime()),
                                   plistlib.dumps(metadata))
 
