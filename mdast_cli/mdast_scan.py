@@ -458,16 +458,12 @@ def main():
                   f" but expected to be {DastState.STARTED}, {DastState.ANALYZING}, {DastState.STOPPING} "
                   f"or {DastState.SUCCESS}")
         sys.exit(1)
-    Log.info(f"Scan with {dast['id']} finished and now analyzing. Wait until analyzing stage is finished.")
+    Log.info(f"Scan with {dast['id']} is started now. Waiting until analyzing stage is finished.")
 
-    Log.info(f"Waiting until scan with id {dast['id']} finished.")
     get_dast_info_resp = mdast.get_scan_info(dast['id'])
     if not get_dast_info_resp.status_code == 200:
         Log.error(f"Error while getting scan info with id {dast['id']}: {get_dast_info_resp.text}")
         sys.exit(1)
-    dast = get_dast_info_resp.json()
-    dast_status = dast['state']
-    Log.info(f"Current scan status: {DastStateDict.get(dast_status)}")
     count = 0
 
     while dast_status in (DastState.STARTED, DastState.STOPPING, DastState.ANALYZING) and count < TRY_COUNT:
