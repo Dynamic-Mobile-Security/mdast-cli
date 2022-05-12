@@ -23,7 +23,7 @@ try:
     from distribution_systems.google_play import google_play_download
     from distribution_systems.hockey_app import HockeyApp
     from distribution_systems.nexus import NexusRepository
-    from helpers.const import SLEEP_TIMEOUT, TRY_COUNT, DastState, DastStateDict
+    from helpers.const import SLEEP_TIMEOUT, TRY_COUNT, END_SCAN_TIMEOUT, DastState, DastStateDict
     from helpers.logging import Log
 except ImportError:
     from mdast_cli.distribution_systems.app_center import AppCenter
@@ -38,8 +38,12 @@ except ImportError:
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Start scan and get scan results.')
-    parser.add_argument('--distribution_system', type=str, help='Select how to download file: '
-                                                                'file/hockeyapp/appcenter/nexus/firebase/appstore',
+    parser.add_argument('--download_only', '-d', action='store_true', help='Use it for downloading application '
+                                                                           'without scan.'
+                                                                           ' This argument is optional')
+    parser.add_argument('--distribution_system', '-ds', type=str, help='Select how to download file: '
+                                                                       'file/hockeyapp/appcenter/nexus'
+                                                                       '/firebase/appstore/google_play',
                         choices=['file', 'hockeyapp', 'appcenter', 'nexus', 'firebase', 'appstore', 'google_play'],
                         required=True)
 
@@ -177,11 +181,11 @@ def parse_args():
                              'This argument is optional if distribution system set to "google_play"')
 
     # Main arguments
-    parser.add_argument('--url', type=str, help='System url', required=True)
-    parser.add_argument('--company_id', type=int, help='Company id for starting scan', required=True)
-    parser.add_argument('--architecture_id', type=int, help='Architecture id to perform scan')
-    parser.add_argument('--token', type=str, help='CI/CD Token for start scan and get results', required=True)
-    parser.add_argument('--profile_id', type=int, help='Project id for scan', required=True)
+    parser.add_argument('--url', type=str, help='System url', required=('-d'==False))
+    parser.add_argument('--company_id', type=int, help='Company id for starting scan', required=('-d'==False))
+    parser.add_argument('--architecture_id', type=int, help='Architecture id to perform scan', required=('-d'==False))
+    parser.add_argument('--token', type=str, help='CI/CD Token for start scan and get results', required=('-d'==False))
+    parser.add_argument('--profile_id', type=int, help='Project id for scan', required=('-d'==False))
     parser.add_argument('--testcase_id', type=int, help='Testcase Id')
     parser.add_argument('--summary_report_json_file_name', type=str,
                         help='Name for the json file with summary results in structured format')
@@ -258,19 +262,21 @@ def main():
 
     arguments = parse_args()
 
-    url = arguments.url
-    company_id = arguments.company_id
-    architecture = arguments.architecture_id
-    token = arguments.token
-    profile_id = arguments.profile_id
-    testcase_id = arguments.testcase_id
-    json_summary_file_name = arguments.summary_report_json_file_name
-    pdf_report_file_name = arguments.pdf_report_file_name
     distribution_system = arguments.distribution_system
-    not_wait_scan_end = arguments.nowait
 
-    url = url if url.endswith('/') else f'{url}/'
-    url = url if url.endswith('rest/') else f'{url}rest'
+    if arguments.download_only is False:
+        url = arguments.url
+        company_id = arguments.company_id
+        architecture = arguments.architecture_id
+        token = arguments.token
+        profile_id = arguments.profile_id
+        testcase_id = arguments.testcase_id
+        json_summary_file_name = arguments.summary_report_json_file_name
+        pdf_report_file_name = arguments.pdf_report_file_name
+        not_wait_scan_end = arguments.nowait
+
+        url = url if url.endswith('/') else f'{url}/'
+        url = url if url.endswith('rest/') else f'{url}rest'
 
     app_file = ''
     if distribution_system == 'file':
@@ -325,6 +331,10 @@ def main():
                                         arguments.google_play_file_name,
                                         arguments.google_play_download_with_creds)
 
+    if arguments.download_only is True:
+        Log.info('Your application was downloaded!')
+        sys.exit(0)
+
     mdast = mDast(url, token, company_id)
     get_architectures_resp = mdast.get_architectures()
 
@@ -371,7 +381,6 @@ def main():
 
     Log.info(f"Create scan for application {application['id']}")
 
-    # TODO Remove this after autoscan for ios will be available
     if 'Android' in architecture_type.get('name', ''):
         if not testcase_id:
             create_dast_resp = mdast.create_manual_scan(profile_id=profile_id,
@@ -388,7 +397,7 @@ def main():
         create_dast_resp = mdast.create_manual_scan(profile_id=profile_id,
                                                     app_id=application['id'],
                                                     arch_id=architecture)
-        scan_type = 'auto'
+        scan_type = 'manual'
     else:
         Log.error("Cannot create scan - unknown architecture")
         sys.exit(1)
@@ -463,8 +472,8 @@ def main():
 
     while dast_status in (DastState.STARTED, DastState.STOPPING, DastState.ANALYZING) and count < TRY_COUNT:
         if count == 0 and scan_type == 'manual':
-            Log.info(f"This is manual scan, lets wait for {SLEEP_TIMEOUT} seconds and stop it.")
-            time.sleep(SLEEP_TIMEOUT)
+            Log.info(f"This is manual scan, lets wait for {END_SCAN_TIMEOUT} seconds and stop it.")
+            time.sleep(END_SCAN_TIMEOUT)
             stop_manual_dast_resp = mdast.stop_scan(dast['id'])
             if not stop_manual_dast_resp.status_code == 200:
                 Log.error(f"Error while stopping scan with id {dast['id']}: {get_dast_info_resp.text}")

@@ -197,27 +197,46 @@ or error in logs:
 Then contact the support team to agree on an Apple ID, which will be used for AppStore integration, you will be offered a solution to this problem.
 
 ### Google play
-To download application from Google Play Store you need to have temporary account with 2fa authentication disabled.  
+To download application from Google Play Store you need **temporary account with 2fa authentication disabled**.  
 
-You need to know the package name of the application you want to download, you can get it directly from the Google Play app page or any other way.
+You should specify the package name of the application you want to download, you can get it directly from the Google Play app page or any other way.
 
 
-Also, you need to select the `distribution_system google_play` and specify the following mandatory parameters:
+Also, you need to select the `distribution_system google_play`.  
+
+During the initial launch of the script you should specify the mandatory parameters: email + password, after that the application will not be downloaded and the scan will not run, but you will **receive gsfid and token** for google authentication, which you should use later on for the successful Google Play application scan.  
+
  * `google_play_package_name` - package name of application you want to download
- * `google_play_email` - email of your Google account for login
- * `google_play_password` - password of your Google account for login
+ * `google_play_email` - email of your Google account for first login only
+ * `google_play_password` - password of your Google account for login only
 
-You can specify downloaded app file name with an optional parameter
+You can download app while logging in by email and password with an optional parameter:
+
+ * `google_play_download_with_creds` - app will be downloaded during initial login  
+
+When running the integration of Google Play at the first login from a new ip address it is possible that you will need to confirm your account through the browser, to do this, go to the  [google account verification link](https://accounts.google.com/b/0/DisplayUnlockCaptcha) , login to your temporary account and click on 'Proceed'.  
+  
+![google_unlock_image](https://user-images.githubusercontent.com/46852358/161290143-05d0d847-2037-4c4f-8187-53d3ffed83ec.png)
+
+After this login will be successful through the script mdast_cli. You can also get a link to solve the problem from the logs of the script.  
+
+
+At the initial run of the script you will get the gsfId and auth token in the script logs, copy and save them. You will need them for a stable and successful execution of the script afterwards  
+
+![gsfid_token_logs](https://user-images.githubusercontent.com/46852358/162791052-fbce7121-1430-49ca-a9b9-68997391abd6.png)  
+
+Using these parameters you will have all parameters for successful downloading applications from Google Play Store:
+
+ * `google_play_package_name` - package name of application you want to download
+ * `google_play_gsfid` - The Google Services Framework Identifier (GSF ID)
+ * `google_play_auth_token` - Google auth token for access to Google Play API
+
+You can also specify downloaded app file name with an optional parameter
 
  * `google_play_file_name` - file name for app to be saved with  
 
-When running a scan through the integration of Google Play at the first login from a new ip address is possible situation when you will need to confirm your account through the browser, to do this, go to the  [google account verification link](https://accounts.google.com/b/0/DisplayUnlockCaptcha) , log into the opening page and click on 'Proceed'.  
+You should use either email + pass ("--google_play_email" + "--google_play_password") or gsfid + token ("--google_play_gsfid" + "google_play_auth_token") arguments for mdast_cli script. For the continuous process you need only gsfid and token.
 
-<img src="https://user-images.githubusercontent.com/46852358/161290143-05d0d847-2037-4c4f-8187-53d3ffed83ec.png" width="1000">
-
-After this login will be successful through the script mdast_cli, provided that the ip address of the connection will not change. It is also possible that this problem occurs when there are no connections from the device for a long time. You can get a link to solve the problem from the logs of the script.  
-
-If the problem can not be solved please contact your support. 
 
 
 

@@ -54,7 +54,7 @@ def encrypt_password(login, password):
 
 
 class GooglePlayAPI(object):
-    def __init__(self, locale="en_US", timezone="UTC", device_codename="bacon"):
+    def __init__(self, locale="en_US", timezone="UTC", device_codename="angler"):
         self.authSubToken = None
         self.gsfId = None
         self.device_config_token = None

@@ -30,4 +30,5 @@ DastStateDict = {
 
 
 TRY_COUNT = 360
+END_SCAN_TIMEOUT = 30
 SLEEP_TIMEOUT = 10

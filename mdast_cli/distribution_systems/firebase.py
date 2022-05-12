@@ -66,7 +66,7 @@ class Firebase(DistributionSystem):
         if req.status_code == 200:
             Log.info('Firebase - Start downloading application')
         elif req.status_code == 401:
-            Log.info(f'Firebase -  Failed to download application. '
+            Log.info(f'Firebase - Failed to download application. '
                      f'Seems like you are not authorized. Request return status code: {req.status_code}')
             sys.exit(4)
         elif req.status_code == 403:
