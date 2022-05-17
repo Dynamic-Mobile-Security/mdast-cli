@@ -23,7 +23,7 @@ try:
     from distribution_systems.google_play import google_play_download
     from distribution_systems.hockey_app import HockeyApp
     from distribution_systems.nexus import NexusRepository
-    from helpers.const import SLEEP_TIMEOUT, TRY_COUNT, END_SCAN_TIMEOUT, DastState, DastStateDict
+    from helpers.const import END_SCAN_TIMEOUT, SLEEP_TIMEOUT, TRY_COUNT, DastState, DastStateDict
     from helpers.logging import Log
 except ImportError:
     from mdast_cli.distribution_systems.app_center import AppCenter
@@ -32,7 +32,7 @@ except ImportError:
     from mdast_cli.distribution_systems.google_play import google_play_download
     from mdast_cli.distribution_systems.hockey_app import HockeyApp
     from mdast_cli.distribution_systems.nexus import NexusRepository
-    from mdast_cli.helpers.const import SLEEP_TIMEOUT, TRY_COUNT, DastState, DastStateDict
+    from mdast_cli.helpers.const import END_SCAN_TIMEOUT, SLEEP_TIMEOUT, TRY_COUNT, DastState, DastStateDict
     from mdast_cli.helpers.logging import Log
 
 
