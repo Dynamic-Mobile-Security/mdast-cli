@@ -1,4 +1,6 @@
 from reprlib import repr as limitedRepr
+
+
 from typing import List
 
 
@@ -187,7 +189,7 @@ class StoreDownloadResp:
 
             def _set_default(self, value):
                 if not isinstance(
-                        value, StoreDownloadResp._songList._artwork_urls._default
+                    value, StoreDownloadResp._songList._artwork_urls._default
                 ):
                     raise TypeError(
                         "default must be StoreDownloadResp._songList._artwork_urls._default"
@@ -447,7 +449,7 @@ class StoreDownloadResp:
                 }
 
                 def __init__(
-                        self, arm64: bool = None, gamekit: bool = None, metal: bool = None
+                    self, arm64: bool = None, gamekit: bool = None, metal: bool = None
                 ):
                     pass
                     self.__arm64 = arm64
@@ -574,7 +576,7 @@ class StoreDownloadResp:
                 }
 
                 def __init__(
-                        self, arm64: bool = None, gamekit: bool = None, metal: bool = None
+                    self, arm64: bool = None, gamekit: bool = None, metal: bool = None
                 ):
                     pass
                     self.__arm64 = arm64
@@ -795,11 +797,11 @@ class StoreDownloadResp:
                 }
 
                 def __init__(
-                        self,
-                        content: str = None,
-                        label: str = None,
-                        rank: int = None,
-                        system: str = None,
+                    self,
+                    content: str = None,
+                    label: str = None,
+                    rank: int = None,
+                    system: str = None,
                 ):
                     pass
                     self.__content = content
@@ -1085,42 +1087,42 @@ class StoreDownloadResp:
             }
 
             def __init__(
-                    self,
-                    MacUIRequiredDeviceCapabilities: _MacUIRequiredDeviceCapabilities = None,
-                    UIRequiredDeviceCapabilities: _UIRequiredDeviceCapabilities = None,
-                    artistId: int = None,
-                    artistName: str = None,
-                    bundleDisplayName: str = None,
-                    bundleShortVersionString: str = None,
-                    bundleVersion: str = None,
-                    copyright: str = None,
-                    fileExtension: str = None,
-                    gameCenterEnabled: bool = None,
-                    gameCenterEverEnabled: bool = None,
-                    genre: str = None,
-                    genreId: int = None,
-                    itemId: int = None,
-                    itemName: str = None,
-                    kind: str = None,
-                    playlistName: str = None,
-                    product_type: str = None,
-                    rating: _rating = None,
-                    releaseDate: str = None,
-                    requiresRosetta: bool = None,
-                    runsOnAppleSilicon: bool = None,
-                    runsOnIntel: bool = None,
-                    s: int = None,
-                    software_platform: str = None,
-                    softwareIcon57x57URL: str = None,
-                    softwareIconNeedsShine: bool = None,
-                    softwareSupportedDeviceIds: List[int] = None,
-                    softwareVersionBundleId: str = None,
-                    softwareVersionExternalIdentifier: int = None,
-                    softwareVersionExternalIdentifiers: List[int] = None,
-                    subgenres: List[_subgenres] = None,
-                    vendorId: int = None,
-                    drmVersionNumber: int = None,
-                    versionRestrictions: int = None,
+                self,
+                MacUIRequiredDeviceCapabilities: _MacUIRequiredDeviceCapabilities = None,
+                UIRequiredDeviceCapabilities: _UIRequiredDeviceCapabilities = None,
+                artistId: int = None,
+                artistName: str = None,
+                bundleDisplayName: str = None,
+                bundleShortVersionString: str = None,
+                bundleVersion: str = None,
+                copyright: str = None,
+                fileExtension: str = None,
+                gameCenterEnabled: bool = None,
+                gameCenterEverEnabled: bool = None,
+                genre: str = None,
+                genreId: int = None,
+                itemId: int = None,
+                itemName: str = None,
+                kind: str = None,
+                playlistName: str = None,
+                product_type: str = None,
+                rating: _rating = None,
+                releaseDate: str = None,
+                requiresRosetta: bool = None,
+                runsOnAppleSilicon: bool = None,
+                runsOnIntel: bool = None,
+                s: int = None,
+                software_platform: str = None,
+                softwareIcon57x57URL: str = None,
+                softwareIconNeedsShine: bool = None,
+                softwareSupportedDeviceIds: List[int] = None,
+                softwareVersionBundleId: str = None,
+                softwareVersionExternalIdentifier: int = None,
+                softwareVersionExternalIdentifiers: List[int] = None,
+                subgenres: List[_subgenres] = None,
+                vendorId: int = None,
+                drmVersionNumber: int = None,
+                versionRestrictions: int = None,
             ):
                 pass
                 self.__MacUIRequiredDeviceCapabilities = MacUIRequiredDeviceCapabilities
@@ -1168,12 +1170,11 @@ class StoreDownloadResp:
 
             def _set_MacUIRequiredDeviceCapabilities(self, value):
                 if not isinstance(
-                        value,
-                        StoreDownloadResp._songList._metadata._MacUIRequiredDeviceCapabilities,
+                    value,
+                    StoreDownloadResp._songList._metadata._MacUIRequiredDeviceCapabilities,
                 ):
                     raise TypeError(
-                        "MacUIRequiredDeviceCapabilities must be"
-                        " StoreDownloadResp._songList._metadata._MacUIRequiredDeviceCapabilities"
+                        "MacUIRequiredDeviceCapabilities must be StoreDownloadResp._songList._metadata._MacUIRequiredDeviceCapabilities"
                     )
 
                 self.__MacUIRequiredDeviceCapabilities = value
@@ -1188,12 +1189,11 @@ class StoreDownloadResp:
 
             def _set_UIRequiredDeviceCapabilities(self, value):
                 if not isinstance(
-                        value,
-                        StoreDownloadResp._songList._metadata._UIRequiredDeviceCapabilities,
+                    value,
+                    StoreDownloadResp._songList._metadata._UIRequiredDeviceCapabilities,
                 ):
                     raise TypeError(
-                        "UIRequiredDeviceCapabilities must be"
-                        " StoreDownloadResp._songList._metadata._UIRequiredDeviceCapabilities"
+                        "UIRequiredDeviceCapabilities must be StoreDownloadResp._songList._metadata._UIRequiredDeviceCapabilities"
                     )
 
                 self.__UIRequiredDeviceCapabilities = value
@@ -1558,8 +1558,8 @@ class StoreDownloadResp:
                 if not isinstance(value, list):
                     raise TypeError("subgenres must be list")
                 if not all(
-                        isinstance(i, StoreDownloadResp._songList._metadata._subgenres)
-                        for i in value
+                    isinstance(i, StoreDownloadResp._songList._metadata._subgenres)
+                    for i in value
                 ):
                     raise TypeError(
                         "subgenres list values must be StoreDownloadResp._songList._metadata._subgenres"
@@ -2286,22 +2286,22 @@ class StoreDownloadResp:
         }
 
         def __init__(
-                self,
-                songId: int = None,
-                URL: str = None,
-                downloadKey: str = None,
-                artworkURL: str = None,
-                artwork_urls: _artwork_urls = None,
-                md5: str = None,
-                chunks: _chunks = None,
-                isStreamable: bool = None,
-                uncompressedSize: str = None,
-                sinfs: List[_sinfs] = None,
-                purchaseDate: str = None,
-                download_id: str = None,
-                is_in_queue: bool = None,
-                asset_info: _asset_info = None,
-                metadata: _metadata = None,
+            self,
+            songId: int = None,
+            URL: str = None,
+            downloadKey: str = None,
+            artworkURL: str = None,
+            artwork_urls: _artwork_urls = None,
+            md5: str = None,
+            chunks: _chunks = None,
+            isStreamable: bool = None,
+            uncompressedSize: str = None,
+            sinfs: List[_sinfs] = None,
+            purchaseDate: str = None,
+            download_id: str = None,
+            is_in_queue: bool = None,
+            asset_info: _asset_info = None,
+            metadata: _metadata = None,
         ):
             pass
             self.__songId = songId
@@ -2428,7 +2428,7 @@ class StoreDownloadResp:
             if not isinstance(value, list):
                 raise TypeError("sinfs must be list")
             if not all(
-                    isinstance(i, StoreDownloadResp._songList._sinfs) for i in value
+                isinstance(i, StoreDownloadResp._songList._sinfs) for i in value
             ):
                 raise TypeError(
                     "sinfs list values must be StoreDownloadResp._songList._sinfs"
@@ -2779,10 +2779,10 @@ class StoreDownloadResp:
         }
 
         def __init__(
-                self,
-                itemIds: List[int] = None,
-                currency: str = None,
-                exchangeRateToUSD: float = None,
+            self,
+            itemIds: List[int] = None,
+            currency: str = None,
+            exchangeRateToUSD: float = None,
         ):
             pass
             self.__itemIds = itemIds
@@ -3001,11 +3001,11 @@ class StoreDownloadResp:
             }
 
             def __init__(
-                    self,
-                    type: str = None,
-                    latestTerms: int = None,
-                    agreedToTerms: int = None,
-                    source: str = None,
+                self,
+                type: str = None,
+                latestTerms: int = None,
+                agreedToTerms: int = None,
+                source: str = None,
             ):
                 pass
                 self.__type = type
@@ -3214,10 +3214,10 @@ class StoreDownloadResp:
         }
 
         def __init__(
-                self,
-                terms: List[_terms] = None,
-                account: _account = None,
-                family: _family = None,
+            self,
+            terms: List[_terms] = None,
+            account: _account = None,
+            family: _family = None,
         ):
             pass
             self.__terms = terms
@@ -3231,8 +3231,8 @@ class StoreDownloadResp:
             if not isinstance(value, list):
                 raise TypeError("terms must be list")
             if not all(
-                    isinstance(i, StoreDownloadResp._subscriptionStatus._terms)
-                    for i in value
+                isinstance(i, StoreDownloadResp._subscriptionStatus._terms)
+                for i in value
             ):
                 raise TypeError(
                     "terms list values must be StoreDownloadResp._subscriptionStatus._terms"
@@ -3410,23 +3410,23 @@ class StoreDownloadResp:
     }
 
     def __init__(
-            self,
-            pings: List[float] = None,
-            cancel_purchase_batch: bool = None,
-            customerMessage: str = None,
-            failureType: str = None,
-            jingleDocType: str = None,
-            jingleAction: str = None,
-            status: int = None,
-            dsPersonId: str = None,
-            creditDisplay: str = None,
-            creditBalance: str = None,
-            freeSongBalance: str = None,
-            authorized: bool = None,
-            download_queue_item_count: int = None,
-            songList: List[_songList] = None,
-            metrics: _metrics = None,
-            subscriptionStatus: _subscriptionStatus = None,
+        self,
+        pings: List[float] = None,
+        cancel_purchase_batch: bool = None,
+        customerMessage: str = None,
+        failureType: str = None,
+        jingleDocType: str = None,
+        jingleAction: str = None,
+        status: int = None,
+        dsPersonId: str = None,
+        creditDisplay: str = None,
+        creditBalance: str = None,
+        freeSongBalance: str = None,
+        authorized: bool = None,
+        download_queue_item_count: int = None,
+        songList: List[_songList] = None,
+        metrics: _metrics = None,
+        subscriptionStatus: _subscriptionStatus = None,
     ):
         pass
         self.__pings = pings

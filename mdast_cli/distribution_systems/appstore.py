@@ -85,7 +85,13 @@ class AppStore(DistributionSystem):
             sys.exit(4)
 
         try:
-            Log.info(f'Retrieving download info for app_id: {self.app_id}')
+            Log.info(f'Trying to purchase app with id {self.app_id}')
+            purchase_resp = Store.purchase(self.app_id)
+            if purchase_resp.status_code == 200:
+                Log.info(f'App was successfully purchased for {self.apple_id} account')
+            elif purchase_resp.status_code == 500:
+                Log.info(f'This app was purchased before for {self.apple_id} account')
+            Log.info(f'Retrieving download info for app with id: {self.app_id}')
             download_resp = Store.download(self.app_id)
             if not download_resp.songList:
                 Log.error('Failed to get app download info! Check your parameters')
@@ -98,7 +104,7 @@ class AppStore(DistributionSystem):
             app_version = downloaded_app_info.metadata.bundleShortVersionString
 
             Log.info(
-                f'Downloading app {app_name} ({app_bundle_id}) with app_id {app_id} and version {app_version}')
+                f'Downloading app is {app_name} ({app_bundle_id}) with app_id {app_id} and version {app_version}')
 
             if self.appstore_file_name is None:
                 file_name = '%s-%s.ipa' % (app_name, app_version)
@@ -110,7 +116,7 @@ class AppStore(DistributionSystem):
             download_file(downloaded_app_info.URL, self.download_path, file_path)
 
             with zipfile.ZipFile(file_path, 'a') as ipa_file:
-                Log.info('Writing out iTunesMetadata.plist...')
+                Log.info('Creating iTunesMetadata.plist with metadata info')
                 metadata = downloaded_app_info.metadata.as_dict()
                 metadata["apple-id"] = self.apple_id
                 metadata["userName"] = self.apple_id

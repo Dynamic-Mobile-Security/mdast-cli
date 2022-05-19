@@ -6,6 +6,9 @@ from .schemas.store_authenticate_req import StoreAuthenticateReq
 from .schemas.store_authenticate_resp import StoreAuthenticateResp
 from .schemas.store_download_req import StoreDownloadReq
 from .schemas.store_download_resp import StoreDownloadResp
+from .schemas.store_buyproduct_req import StoreBuyproductReq
+from .schemas.store_buyproduct_resp import StoreBuyproductResp
+from mdast_cli.helpers.logging import Log
 
 
 class StoreException(Exception):
@@ -36,8 +39,8 @@ class StoreClient(object):
                                headers={
                                    "Accept": "*/*",
                                    "Content-Type": "application/x-www-form-urlencoded",
-                                   "User-Agent": "Configurator/2.0 (Macintosh; OS X 10.12.6; 16G29)"
-                                                 " AppleWebKit/2603.3.8",
+                                   "User-Agent":
+                                       "Configurator/2.0 (Macintosh; OS X 10.12.6; 16G29) AppleWebKit/2603.3.8",
                                }, data=plistlib.dumps(req.as_dict()), allow_redirects=False)
             if r.status_code == 302:
                 url = r.headers['Location']
@@ -46,10 +49,37 @@ class StoreClient(object):
         resp = StoreAuthenticateResp.from_dict(plistlib.loads(r.content))
         if not resp.m_allowed:
             raise StoreException("authenticate", resp.customerMessage, resp.failureType)
-        self.dsid = str(resp.download_queue_info.dsid)
-        self.store_front = r.headers.get('x-set-apple-store-front')
+
+        self.sess.headers['X-Dsid'] = self.sess.headers['iCloud-Dsid'] = str(resp.download_queue_info.dsid)
+        self.sess.headers['X-Apple-Store-Front'] = r.headers.get('x-set-apple-store-front')
+        self.sess.headers['X-Token'] = resp.passwordToken
+
         self.account_name = resp.accountInfo.address.firstName + " " + resp.accountInfo.address.lastName
         return resp
+
+    def purchase(self, appId, productType='C'):
+        url = "https://buy.itunes.apple.com/WebObjects/MZBuy.woa/wa/buyProduct"
+        req = StoreBuyproductReq(
+            guid=self.guid,
+            salableAdamId=str(appId),
+            appExtVrsId='0',
+
+            price='0',
+            productType=productType,
+            pricingParameters='STDQ',
+
+            hasAskedToFulfillPreorder='true',
+            buyWithoutAuthorization='true',
+            hasDoneAgeCheck='true',
+        )
+        payload = req.as_dict()
+
+        return self.sess.post(url,
+                              headers={
+                                  "Content-Type": "application/x-apple-plist",
+                                  "User-Agent": "Configurator/2.15 (Macintosh; OS X 11.0.0; 16G29) AppleWebKit/2603.3.8",
+                              },
+                              data=plistlib.dumps(payload))
 
     def download(self, app_id, app_ver_id=""):
         req = StoreDownloadReq(creditDisplay="", guid=self.guid, salableAdamId=app_id, appExtVrsId=app_ver_id)
@@ -58,13 +88,12 @@ class StoreClient(object):
                                "guid": self.guid
                            },
                            headers={
-                               "iCloud-DSID": self.dsid,
                                "Content-Type": "application/x-www-form-urlencoded",
                                "User-Agent": "Configurator/2.0 (Macintosh; OS X 10.12.6; 16G29) AppleWebKit/2603.3.8",
-                               "X-Dsid": self.dsid,
                            }, data=plistlib.dumps(req.as_dict()))
 
         resp = StoreDownloadResp.from_dict(plistlib.loads(r.content))
         if resp.cancel_purchase_batch:
-            raise StoreException("download", resp.customerMessage, resp.failureType)
+            raise StoreException("volumeStoreDownloadProduct", resp, resp.customerMessage,
+                                 resp.failureType + '-' + resp.metrics.dialogId)
         return resp

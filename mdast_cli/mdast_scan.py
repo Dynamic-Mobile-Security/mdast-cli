@@ -181,11 +181,12 @@ def parse_args():
                              'This argument is optional if distribution system set to "google_play"')
 
     # Main arguments
-    parser.add_argument('--url', type=str, help='System url', required=('-d'==False))
-    parser.add_argument('--company_id', type=int, help='Company id for starting scan', required=('-d'==False))
-    parser.add_argument('--architecture_id', type=int, help='Architecture id to perform scan', required=('-d'==False))
-    parser.add_argument('--token', type=str, help='CI/CD Token for start scan and get results', required=('-d'==False))
-    parser.add_argument('--profile_id', type=int, help='Project id for scan', required=('-d'==False))
+    parser.add_argument('--url', type=str, help='System url', required=('-d' == False))
+    parser.add_argument('--company_id', type=int, help='Company id for starting scan', required=('-d' == False))
+    parser.add_argument('--architecture_id', type=int, help='Architecture id to perform scan', required=('-d' == False))
+    parser.add_argument('--token', type=str, help='CI/CD Token for start scan and get results',
+                        required=('-d' == False))
+    parser.add_argument('--profile_id', type=int, help='Project id for scan', required=('-d' == False))
     parser.add_argument('--testcase_id', type=int, help='Testcase Id')
     parser.add_argument('--summary_report_json_file_name', type=str,
                         help='Name for the json file with summary results in structured format')
@@ -364,7 +365,7 @@ def main():
         sys.exit(1)
 
     if testcase_id is None:
-        Log.info(f'Start manual scan with profile Id: {profile_id} and file: {app_file},'
+        Log.info(f'Start manual scan with profile id: {profile_id} and file located in {app_file},'
                  f' architecture id is {architecture}')
     else:
         Log.info(f'Start auto scan with test case Id: '
@@ -379,7 +380,7 @@ def main():
     application = upload_application_resp.json()
     Log.info(f"Application uploaded successfully. Application id: {application['id']}")
 
-    Log.info(f"Create scan for application {application['id']}")
+    Log.info(f"Creating scan for application {application['id']}")
 
     if 'Android' in architecture_type.get('name', ''):
         if not testcase_id:
@@ -427,7 +428,7 @@ def main():
         sys.exit(0)
 
     Log.info("Scan started successfully.")
-    Log.info(f"Check scan state with id {dast['id']}")
+    Log.info(f"Checking scan state with id {dast['id']}")
     get_dast_info_resp = mdast.get_scan_info(dast['id'])
     if not get_dast_info_resp.status_code == 200:
         Log.error(f"Error while getting scan info with id {dast['id']}: {get_dast_info_resp.text}")
@@ -438,7 +439,6 @@ def main():
     Log.info(f"Current scan status: {DastStateDict.get(dast_status)}")
     count = 0
 
-    Log.info(f"Waiting until scan with id {dast['id']} started.")
     while dast_status in (DastState.CREATED, DastState.INITIALIZING, DastState.STARTING) and count < TRY_COUNT:
         Log.info(f"Try to get scan status for scan id {dast['id']}. Count number {count}")
         get_dast_info_resp = mdast.get_scan_info(dast['id'])
@@ -450,15 +450,16 @@ def main():
         dast_status = dast['state']
         Log.info(f"Current scan status: {DastStateDict.get(dast_status)}")
         count += 1
-        Log.info(f"Wait {SLEEP_TIMEOUT} seconds and try again")
-        time.sleep(SLEEP_TIMEOUT)
+        if dast_status not in (DastState.STARTED, DastState.SUCCESS) :
+            Log.info(f"Wait {SLEEP_TIMEOUT} seconds and try again")
+            time.sleep(SLEEP_TIMEOUT)
 
     if not dast['state'] in (DastState.STARTED, DastState.STOPPING, DastState.ANALYZING, DastState.SUCCESS):
         Log.error(f"Error with scan id {dast['id']}. Current scan status: {dast['state']},"
                   f" but expected to be {DastState.STARTED}, {DastState.ANALYZING}, {DastState.STOPPING} "
                   f"or {DastState.SUCCESS}")
         sys.exit(1)
-    Log.info(f"Scan with {dast['id']} is started now. Waiting until analyzing stage is finished.")
+    Log.info(f"Scan {dast['id']} is started now. Let's wait until the scan is finished")
 
     get_dast_info_resp = mdast.get_scan_info(dast['id'])
     if not get_dast_info_resp.status_code == 200:
@@ -468,12 +469,19 @@ def main():
 
     while dast_status in (DastState.STARTED, DastState.STOPPING, DastState.ANALYZING) and count < TRY_COUNT:
         if count == 0 and scan_type == 'manual':
-            Log.info(f"This is manual scan, lets wait for {END_SCAN_TIMEOUT} seconds and stop it.")
-            time.sleep(END_SCAN_TIMEOUT)
-            stop_manual_dast_resp = mdast.stop_scan(dast['id'])
-            if not stop_manual_dast_resp.status_code == 200:
-                Log.error(f"Error while stopping scan with id {dast['id']}: {get_dast_info_resp.text}")
-                sys.exit(1)
+            if dast_status not in (DastState.ANALYZING, DastState.SUCCESS):
+                Log.info(f"This is manual scan with dynamic modules,"
+                         f" lets wait for {END_SCAN_TIMEOUT} seconds and stop it.")
+                time.sleep(END_SCAN_TIMEOUT)
+                stop_manual_dast_resp = mdast.stop_scan(dast['id'])
+                if stop_manual_dast_resp.status_code == 200:
+                    Log.info(f'Scan {dast["id"]} was successfully stopped')
+                else:
+                    Log.error(f'Error while stopping scan with id {dast["id"]}: {stop_manual_dast_resp.text}')
+                    sys.exit(1)
+            else:
+                Log.info(f"This is manual scan with profile without dynamic modules,"
+                         f" only SAST, lets wait till the end")
 
         Log.info(f"Try to get scan status for scan id {dast['id']}. Count number {count}")
         get_dast_info_resp = mdast.get_scan_info(dast['id'])
@@ -484,10 +492,11 @@ def main():
         dast_status = dast['state']
         Log.info(f"Current scan status: {DastStateDict.get(dast_status)}")
         count += 1
-        Log.info(f"Wait {SLEEP_TIMEOUT} seconds and try again")
-        time.sleep(SLEEP_TIMEOUT)
+        if dast_status is not DastState.SUCCESS:
+            Log.info(f"Wait {SLEEP_TIMEOUT} seconds and try again")
+            time.sleep(SLEEP_TIMEOUT)
 
-    Log.info(f"Check is scan with id {dast['id']} finished correctly.")
+    Log.info(f"Check if scan with id {dast['id']} was finished correctly.")
     get_dast_info_resp = mdast.get_scan_info(dast['id'])
     if not get_dast_info_resp.status_code == 200:
         Log.error(f"Error while getting scan info with id {dast['id']}: {get_dast_info_resp.text}")
@@ -537,7 +546,7 @@ def main():
 
         Log.info(f"JSON report for scan {dast['id']} successfully created and available at path: {mdast_json_file}.")
 
-    Log.info('Job completed successfully')
+    Log.info('Job completed successfully!')
 
 
 if __name__ == '__main__':

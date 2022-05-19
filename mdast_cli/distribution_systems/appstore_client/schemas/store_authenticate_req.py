@@ -2,6 +2,7 @@ from reprlib import repr as limitedRepr
 
 
 class StoreAuthenticateReq:
+
     _types_map = {
         "appleId": {"type": str, "subtype": None},
         "attempt": {"type": str, "subtype": None},
@@ -37,14 +38,14 @@ class StoreAuthenticateReq:
     }
 
     def __init__(
-            self,
-            appleId: str = None,
-            attempt: str = None,
-            createSession: str = None,
-            guid: str = None,
-            password: str = None,
-            rmp: str = None,
-            why: str = None,
+        self,
+        appleId: str = None,
+        attempt: str = None,
+        createSession: str = None,
+        guid: str = None,
+        password: str = None,
+        rmp: str = None,
+        why: str = None,
     ):
         pass
         self.__appleId = appleId
