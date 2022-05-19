@@ -339,7 +339,7 @@ def main():
     mdast = mDast(url, token, company_id)
     get_architectures_resp = mdast.get_architectures()
 
-    if not get_architectures_resp.status_code == 200:
+    if get_architectures_resp.status_code != 200:
         Log.error('Error while getting architectures.')
         Log.error(f'Server response: {get_architectures_resp.text}')
         sys.exit(1)
@@ -373,7 +373,7 @@ def main():
 
     Log.info('Uploading application to server')
     upload_application_resp = mdast.upload_application(app_file, str(architecture_type['type']))
-    if not upload_application_resp.status_code == 201:
+    if upload_application_resp.status_code != 201:
         Log.error(f'Error while uploading application to server: {upload_application_resp.text}')
         sys.exit(1)
 
@@ -403,7 +403,7 @@ def main():
         Log.error("Cannot create scan - unknown architecture")
         sys.exit(1)
 
-    if not create_dast_resp.status_code == 201:
+    if create_dast_resp.status_code != 201:
         Log.error(f'Error while creating scan: {create_dast_resp.text}')
         sys.exit(1)
 
@@ -419,7 +419,7 @@ def main():
 
     Log.info(f"Start scan with id {dast['id']}")
     start_dast_resp = mdast.start_scan(dast['id'])
-    if not start_dast_resp.status_code == 200:
+    if start_dast_resp.status_code != 200:
         Log.error(f"Error while starting scan with id {dast['id']}: {start_dast_resp.text}")
         sys.exit(1)
 
@@ -430,7 +430,7 @@ def main():
     Log.info("Scan started successfully.")
     Log.info(f"Checking scan state with id {dast['id']}")
     get_dast_info_resp = mdast.get_scan_info(dast['id'])
-    if not get_dast_info_resp.status_code == 200:
+    if get_dast_info_resp.status_code != 200:
         Log.error(f"Error while getting scan info with id {dast['id']}: {get_dast_info_resp.text}")
         sys.exit(1)
 
@@ -442,7 +442,7 @@ def main():
     while dast_status in (DastState.CREATED, DastState.INITIALIZING, DastState.STARTING) and count < TRY_COUNT:
         Log.info(f"Try to get scan status for scan id {dast['id']}. Count number {count}")
         get_dast_info_resp = mdast.get_scan_info(dast['id'])
-        if not get_dast_info_resp.status_code == 200:
+        if get_dast_info_resp.status_code != 200:
             Log.error(f"Error while getting scan info with id {dast['id']}: {get_dast_info_resp.text}")
             sys.exit(1)
 
@@ -450,11 +450,11 @@ def main():
         dast_status = dast['state']
         Log.info(f"Current scan status: {DastStateDict.get(dast_status)}")
         count += 1
-        if dast_status not in (DastState.STARTED, DastState.SUCCESS) :
+        if dast_status not in (DastState.STARTED, DastState.SUCCESS):
             Log.info(f"Wait {SLEEP_TIMEOUT} seconds and try again")
             time.sleep(SLEEP_TIMEOUT)
 
-    if not dast['state'] in (DastState.STARTED, DastState.STOPPING, DastState.ANALYZING, DastState.SUCCESS):
+    if dast['state'] not in (DastState.STARTED, DastState.STOPPING, DastState.ANALYZING, DastState.SUCCESS):
         Log.error(f"Error with scan id {dast['id']}. Current scan status: {dast['state']},"
                   f" but expected to be {DastState.STARTED}, {DastState.ANALYZING}, {DastState.STOPPING} "
                   f"or {DastState.SUCCESS}")
@@ -462,7 +462,7 @@ def main():
     Log.info(f"Scan {dast['id']} is started now. Let's wait until the scan is finished")
 
     get_dast_info_resp = mdast.get_scan_info(dast['id'])
-    if not get_dast_info_resp.status_code == 200:
+    if get_dast_info_resp.status_code != 200:
         Log.error(f"Error while getting scan info with id {dast['id']}: {get_dast_info_resp.text}")
         sys.exit(1)
     count = 0
@@ -485,7 +485,7 @@ def main():
 
         Log.info(f"Try to get scan status for scan id {dast['id']}. Count number {count}")
         get_dast_info_resp = mdast.get_scan_info(dast['id'])
-        if not get_dast_info_resp.status_code == 200:
+        if get_dast_info_resp.status_code != 200:
             Log.error(f"Error while getting scan info with id {dast['id']}: {get_dast_info_resp.text}")
             sys.exit(1)
         dast = get_dast_info_resp.json()
@@ -498,18 +498,18 @@ def main():
 
     Log.info(f"Check if scan with id {dast['id']} was finished correctly.")
     get_dast_info_resp = mdast.get_scan_info(dast['id'])
-    if not get_dast_info_resp.status_code == 200:
+    if get_dast_info_resp.status_code != 200:
         Log.error(f"Error while getting scan info with id {dast['id']}: {get_dast_info_resp.text}")
         sys.exit(1)
     dast = get_dast_info_resp.json()
 
-    if not dast['state'] == DastState.SUCCESS:
+    if dast['state'] != DastState.SUCCESS:
         Log.error(
             f"Expected state {DastStateDict.get(DastState.SUCCESS)}, but in real it was {dast['state']}. "
             f"Exit with error status code.")
         sys.exit(1)
 
-    if not dast['state'] == DastState.SUCCESS:
+    if dast['state'] != DastState.SUCCESS:
         Log.error(
             f"Expected state {DastStateDict.get(DastState.SUCCESS)},"
             f" but in real it was {dast['state']}. Exit with error status code.")
