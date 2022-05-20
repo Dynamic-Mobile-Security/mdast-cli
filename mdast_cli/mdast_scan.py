@@ -143,7 +143,10 @@ def parse_args():
     # Arguments for AppStore
     parser.add_argument('--appstore_app_id', type=str,
                         help='Application id from AppStore, you can get it on app page from url, format: .../id{APP_ID}'
-                             'This argument is required if distribution system set to "appstore"')
+                             'You should specify either bundle_id or app_id if distribution system set to "appstore"')
+    parser.add_argument('--appstore_bundle_id', type=str,
+                        help='Bundle id of application id from AppStore.'
+                             ' You should specify either bundle_id or app_id if distribution system set to "appstore"')
     parser.add_argument('--appstore_apple_id', type=str,
                         help='Your email for iTunes login. This argument is required '
                              'if distribution system set to "appstore"')
@@ -242,11 +245,11 @@ def parse_args():
                      '"--firebase_SAPISID_cookie", "--firebase_file_extension" arguments to be set')
 
     elif args.distribution_system == 'appstore' and (
-            args.appstore_app_id is None or
+            (args.appstore_app_id is None and args.appstore_bundle_id is None) or
             args.appstore_apple_id is None or
             args.appstore_password2FA is None):
-        parser.error('"--distribution_system appstore" requires "--appstore_app_id", "--appstore_apple_id",'
-                     ' "--appstore_password2FA" arguments to be set')
+        parser.error('"--distribution_system appstore" requires either "--appstore_app_id" or "--appstore_bundle_id", '
+                     '"--appstore_apple_id", "--appstore_password2FA" arguments to be set')
 
     elif args.distribution_system == 'google_play' and (
             args.google_play_package_name is None or
@@ -318,9 +321,10 @@ def main():
                             arguments.firebase_file_name)
         app_file = firebase.download_app()
     elif distribution_system == 'appstore':
-        appstore = AppStore(arguments.appstore_app_id,
-                            arguments.appstore_apple_id,
+        appstore = AppStore(arguments.appstore_apple_id,
                             arguments.appstore_password2FA,
+                            arguments.appstore_app_id,
+                            arguments.appstore_bundle_id,
                             arguments.appstore_file_name)
         app_file = appstore.download_app()
     elif distribution_system == 'google_play':
