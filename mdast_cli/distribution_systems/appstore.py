@@ -55,10 +55,12 @@ class AppStore(DistributionSystem):
     Downloading application(.ipa file) from AppStore
     """
 
-    def __init__(self, appstore_app_id, appstore_apple_id, appstore_password2FA, appstore_file_name=None):
-        self.app_id = appstore_app_id
+    def __init__(self, appstore_apple_id, appstore_password2FA,
+                 appstore_app_id=None, appstore_bundle_id=None, appstore_file_name=None):
         self.apple_id = appstore_apple_id
         self.pass2FA = appstore_password2FA
+        self.app_id = appstore_app_id
+        self.bundle_id = appstore_bundle_id
         self.appstore_file_name = appstore_file_name
         self.download_path = 'downloaded_apps'
 
@@ -85,6 +87,19 @@ class AppStore(DistributionSystem):
             sys.exit(4)
 
         try:
+            if self.app_id is None:
+                Log.info(f'Trying to find app in App Store with bundle id {self.bundle_id}')
+                found_by_bundle_resp = Store.find_app_by_bundle(self.bundle_id)
+                resp_info = found_by_bundle_resp.json()
+                if found_by_bundle_resp.status_code != 200 or resp_info['resultCount'] != 1:
+                    Log.error('Application with your bundle id not found, probably you enter invalid bundle')
+                    sys.exit(4)
+                app_info = resp_info['results'][0]
+                Log.info(f'Successfully found application by bundle id ({self.bundle_id}) '
+                         f'with name: "{app_info["trackName"]}", version: {app_info["version"]},'
+                         f' app_id: {app_info["trackId"]}')
+                self.app_id = app_info["trackId"]
+
             Log.info(f'Trying to purchase app with id {self.app_id}')
             purchase_resp = Store.purchase(self.app_id)
             if purchase_resp.status_code == 200:
