@@ -1,4 +1,6 @@
 from reprlib import repr as limitedRepr
+
+
 from typing import List
 
 
@@ -29,11 +31,11 @@ class StoreAuthenticateResp:
             }
 
             def __init__(
-                    self,
-                    type: str = None,
-                    latestTerms: int = None,
-                    agreedToTerms: int = None,
-                    source: str = None,
+                self,
+                type: str = None,
+                latestTerms: int = None,
+                agreedToTerms: int = None,
+                source: str = None,
             ):
                 pass
                 self.__type = type
@@ -332,10 +334,10 @@ class StoreAuthenticateResp:
         }
 
         def __init__(
-                self,
-                terms: List[_terms] = None,
-                account: _account = None,
-                family: _family = None,
+            self,
+            terms: List[_terms] = None,
+            account: _account = None,
+            family: _family = None,
         ):
             pass
             self.__terms = terms
@@ -349,8 +351,8 @@ class StoreAuthenticateResp:
             if not isinstance(value, list):
                 raise TypeError("terms must be list")
             if not all(
-                    isinstance(i, StoreAuthenticateResp._subscriptionStatus._terms)
-                    for i in value
+                isinstance(i, StoreAuthenticateResp._subscriptionStatus._terms)
+                for i in value
             ):
                 raise TypeError(
                     "terms list values must be StoreAuthenticateResp._subscriptionStatus._terms"
@@ -365,7 +367,7 @@ class StoreAuthenticateResp:
 
         def _set_account(self, value):
             if not isinstance(
-                    value, StoreAuthenticateResp._subscriptionStatus._account
+                value, StoreAuthenticateResp._subscriptionStatus._account
             ):
                 raise TypeError(
                     "account must be StoreAuthenticateResp._subscriptionStatus._account"
@@ -482,10 +484,10 @@ class StoreAuthenticateResp:
         }
 
         def __init__(
-                self,
-                download_queue_item_count: int = None,
-                dsid: int = None,
-                is_auto_download_machine: bool = None,
+            self,
+            download_queue_item_count: int = None,
+            dsid: int = None,
+            is_auto_download_machine: bool = None,
         ):
             pass
             self.__download_queue_item_count = download_queue_item_count
@@ -622,13 +624,13 @@ class StoreAuthenticateResp:
         }
 
         def __init__(
-                self,
-                m_allowed: bool = None,
-                message: str = None,
-                explanation: str = None,
-                defaultButton: str = None,
-                okButtonString: str = None,
-                initialCheckboxValue: bool = None,
+            self,
+            m_allowed: bool = None,
+            message: str = None,
+            explanation: str = None,
+            defaultButton: str = None,
+            okButtonString: str = None,
+            initialCheckboxValue: bool = None,
         ):
             pass
             self.__m_allowed = m_allowed
@@ -854,13 +856,13 @@ class StoreAuthenticateResp:
         }
 
         def __init__(
-                self,
-                com_apple_onboarding_appstore: int = None,
-                com_apple_onboarding_applemusic: int = None,
-                com_apple_onboarding_videos: int = None,
-                com_apple_onboarding_itunesstore: int = None,
-                com_apple_onboarding_itunesu: int = None,
-                com_apple_onboarding_applearcade: int = None,
+            self,
+            com_apple_onboarding_appstore: int = None,
+            com_apple_onboarding_applemusic: int = None,
+            com_apple_onboarding_videos: int = None,
+            com_apple_onboarding_itunesstore: int = None,
+            com_apple_onboarding_itunesu: int = None,
+            com_apple_onboarding_applearcade: int = None,
         ):
             pass
             self.__com_apple_onboarding_appstore = com_apple_onboarding_appstore
@@ -1370,23 +1372,23 @@ class StoreAuthenticateResp:
         }
 
         def __init__(
-                self,
-                personalization: bool = None,
-                underThirteen: bool = None,
-                identityLastVerified: int = None,
-                verifiedExpirationDate: int = None,
-                retailDemo: bool = None,
-                autoPlay: bool = None,
-                isDisabledAccount: bool = None,
-                isRestrictedAccount: bool = None,
-                isManagedAccount: bool = None,
-                isInRestrictedRegion: bool = None,
-                accountFlagsVersion: int = None,
-                hasAgreedToTerms: bool = None,
-                hasAgreedToAppClipTerms: bool = None,
-                hasWatchHardwareOffer: bool = None,
-                isInFamily: bool = None,
-                hasSubscriptionFamilySharingEnabled: bool = None,
+            self,
+            personalization: bool = None,
+            underThirteen: bool = None,
+            identityLastVerified: int = None,
+            verifiedExpirationDate: int = None,
+            retailDemo: bool = None,
+            autoPlay: bool = None,
+            isDisabledAccount: bool = None,
+            isRestrictedAccount: bool = None,
+            isManagedAccount: bool = None,
+            isInRestrictedRegion: bool = None,
+            accountFlagsVersion: int = None,
+            hasAgreedToTerms: bool = None,
+            hasAgreedToAppClipTerms: bool = None,
+            hasWatchHardwareOffer: bool = None,
+            isInFamily: bool = None,
+            hasSubscriptionFamilySharingEnabled: bool = None,
         ):
             pass
             self.__personalization = personalization
@@ -1977,28 +1979,28 @@ class StoreAuthenticateResp:
     }
 
     def __init__(
-            self,
-            pings: List[float] = None,
-            cancel_purchase_batch: bool = None,
-            customerMessage: str = None,
-            failureType: str = None,
-            accountInfo: _accountInfo = None,
-            passwordToken: str = None,
-            clearToken: str = None,
-            m_allowed: bool = None,
-            is_cloud_enabled: str = None,
-            dsPersonId: str = None,
-            creditDisplay: str = None,
-            creditBalance: str = None,
-            freeSongBalance: str = None,
-            isManagedStudent: bool = None,
-            action: _action = None,
-            subscriptionStatus: _subscriptionStatus = None,
-            accountFlags: _accountFlags = None,
-            status: int = None,
-            download_queue_info: _download_queue_info = None,
-            privacyAcknowledgement: _privacyAcknowledgement = None,
-            dialog: _dialog = None,
+        self,
+        pings: List[float] = None,
+        cancel_purchase_batch: bool = None,
+        customerMessage: str = None,
+        failureType: str = None,
+        accountInfo: _accountInfo = None,
+        passwordToken: str = None,
+        clearToken: str = None,
+        m_allowed: bool = None,
+        is_cloud_enabled: str = None,
+        dsPersonId: str = None,
+        creditDisplay: str = None,
+        creditBalance: str = None,
+        freeSongBalance: str = None,
+        isManagedStudent: bool = None,
+        action: _action = None,
+        subscriptionStatus: _subscriptionStatus = None,
+        accountFlags: _accountFlags = None,
+        status: int = None,
+        download_queue_info: _download_queue_info = None,
+        privacyAcknowledgement: _privacyAcknowledgement = None,
+        dialog: _dialog = None,
     ):
         pass
         self.__pings = pings

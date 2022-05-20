@@ -2,6 +2,7 @@ from reprlib import repr as limitedRepr
 
 
 class StoreDownloadReq:
+
     _types_map = {
         "creditDisplay": {"type": str, "subtype": None},
         "guid": {"type": str, "subtype": None},
@@ -25,11 +26,11 @@ class StoreDownloadReq:
     }
 
     def __init__(
-            self,
-            creditDisplay: str = None,
-            guid: str = None,
-            salableAdamId: str = None,
-            appExtVrsId: str = None,
+        self,
+        creditDisplay: str = None,
+        guid: str = None,
+        salableAdamId: str = None,
+        appExtVrsId: str = None,
     ):
         pass
         self.__creditDisplay = creditDisplay
