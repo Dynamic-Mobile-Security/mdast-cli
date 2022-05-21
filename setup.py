@@ -6,13 +6,13 @@ with open("README.md", "r") as fh:
 setup(
     name="mdast_cli",
 
-    version='2022.04.5',
+    version='1.3.3.7',
 
-    author="Dynamic-Mobile-Security",
-    description="Dynamic-Mobile-Security",
+    author="npinaev",
+    description="app_downloader",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/Dynamic-Mobile-Security/mdast-cli",
+    url="https://github.com/npinaev/mdast-cli",
     packages=find_packages(),
     include_package_data=True,
     package_data={'': ['device.properties']},
@@ -42,7 +42,8 @@ setup(
         'six==1.16.0',
         'soupsieve==2.3.1',
         'uritemplate==4.1.1',
-        'urllib3==1.24.3'
+        'urllib3==1.24.3',
+        'pytest==7.1.2'
     ],
     entry_points={
         'console_scripts': [
