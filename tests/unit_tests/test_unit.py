@@ -6,6 +6,7 @@ from mdast_cli.distribution_systems.gpapi.googleplay import encrypt_password
 from mdast_cli.distribution_systems.gpapi.config import DeviceBuilder
 
 from mdast_cli.helpers.const import *
+from mdast_cli.helpers.logging import Log
 
 
 # Google Play unit tests
@@ -205,6 +206,46 @@ def test_google_play_download():
     pass
 
 
+def test_google_play_login():
+    pass
+
+
+def test_google_play_setAuthSubToken():
+    pass
+
+
+def test_google_play_details():
+    pass
+
+
+def test_google_play_getHeaders():
+    pass
+
+
+def test_google_play_checkin():
+    pass
+
+
+def test_google_play_uploadDeviceConfig():
+    pass
+
+
+def test_google_play_getAuthSubToken():
+    pass
+
+
+def test_google_play_getSecondRoundToken():
+    pass
+
+
+def test_google_play_executeRequestApi2():
+    pass
+
+
+def test_google_play_deliver_data():
+    pass
+
+
 # App Store unit tests
 def test_AppStore_class_clean_init():
     appstore = AppStore('appstore_apple_id', 'appstore_password2FA', 'appstore_app_id',
@@ -236,21 +277,34 @@ def test_dast_state_class_values():
     assert test_dast_state_class.CANCELLING == 11
 
 
-# def test_dast_state_dict_values():
-#     test_dast_state_dict = DastStateDict
-#     assert test_dast_state_dict['CREATED'] == 0
-#     assert test_dast_state_dict['STARTING'] == 1
-#     assert test_dast_state_dict['STARTED'] == 2
-#     assert test_dast_state_dict['ANALYZING'] == 3
-#     assert test_dast_state_dict['SUCCESS'] == 4
-#     assert test_dast_state_dict['FAILED'] == 5
-#     assert test_dast_state_dict['STOPPING'] == 6
-#     assert test_dast_state_dict['RECALCULATING'] == 7
-#     assert test_dast_state_dict['INTERRUPTING'] == 8
-#     assert test_dast_state_dict['INITIALIZING'] == 9
-#     assert test_dast_state_dict['CANCELLED'] == 10
-#     assert test_dast_state_dict['CANCELLING'] == 11
+def test_dast_state_dict_values():
+    test_dast_state_dict = DastStateDict
+    assert test_dast_state_dict[0] == 'CREATED'
+    assert test_dast_state_dict[1] == 'STARTING'
+    assert test_dast_state_dict[2] == 'STARTED'
+    assert test_dast_state_dict[3] == 'ANALYZING'
+    assert test_dast_state_dict[4] == 'SUCCESS'
+    assert test_dast_state_dict[5] == 'FAILED'
+    assert test_dast_state_dict[6] == 'STOPPING'
+    assert test_dast_state_dict[7] == 'RECALCULATING'
+    assert test_dast_state_dict[8] == 'INTERRUPTING'
+    assert test_dast_state_dict[9] == 'INITIALIZING'
+    assert test_dast_state_dict[10] == 'CANCELLED'
+    assert test_dast_state_dict[11] == 'CANCELLING'
 
 
 def test_const_values():
-    pass
+    assert TRY_COUNT == 360
+    assert END_SCAN_TIMEOUT == 30
+    assert SLEEP_TIMEOUT == 10
+
+
+def test_logger():
+    try:
+        Log.error('Test error')
+        Log.warning('Test warning')
+        Log.info('Test info')
+        Log.debug('Test debug')
+    except Exception as e:
+        assert False
+    assert True
