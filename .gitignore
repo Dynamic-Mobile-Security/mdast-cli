@@ -58,3 +58,5 @@ Thumbs.db
 downloaded_apps/
 
 venv!/mdast_cli.egg-info/
+
+config
