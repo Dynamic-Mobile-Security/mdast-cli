@@ -1,9 +1,10 @@
-# Mobile DAST CI/CD Python script
-[![Docker Hub](https://img.shields.io/docker/v/mobilesecurity/mdast_cli?label=docker%20hub)](https://hub.docker.com/repository/docker/mobilesecurity/mdast_cli)
-[![PyPi](https://img.shields.io/pypi/v/mdast_cli?color=3)](https://pypi.org/project/mdast-cli/)
+#App downloader from Google Play and App Store
+
+**Automate the download of mobile applications.**
+
+Dowmload apps from most popular markets automatically 
 
 **Automate the security analysis of mobile applications.**
-
 This script is designed to integrate mobile applications' security analysis in the continuous development process (CI / CD).  
 During the execution of the script, the application is sent to the dynamic analysis. The output is a json/pdf file with detailed results. You can use the local file or download the application from one of the distribution systems. If you download the app, you should have write permissions.
 
