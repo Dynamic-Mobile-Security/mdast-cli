@@ -309,6 +309,7 @@ def test_download_app_appstore_invalid_data(appstore_logged_in):
         appstore_logged_in.bundle_id = 'app1337'
         appstore_logged_in.download_app()
     except SystemExit:
+
         assert True
 
 
