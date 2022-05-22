@@ -1,0 +1,3 @@
+
+[run]
+omit = *req.py, *resp.py, *test*

@@ -2866,7 +2866,7 @@ class StoreDownloadResp:
                 )
             return d
 
-        def __repr__(self):
+        # def __repr__(self):
             return "<Class _metrics. itemIds: {}, currency: {}, exchangeRateToUSD: {}>".format(
                 limitedRepr(
                     self.__itemIds[:20]
@@ -3114,29 +3114,29 @@ class StoreDownloadResp:
                     )
                 return d
 
-            def __repr__(self):
-                return "<Class _terms. type: {}, latestTerms: {}, agreedToTerms: {}, source: {}>".format(
-                    limitedRepr(
-                        self.__type[:20]
-                        if isinstance(self.__type, bytes)
-                        else self.__type
-                    ),
-                    limitedRepr(
-                        self.__latestTerms[:20]
-                        if isinstance(self.__latestTerms, bytes)
-                        else self.__latestTerms
-                    ),
-                    limitedRepr(
-                        self.__agreedToTerms[:20]
-                        if isinstance(self.__agreedToTerms, bytes)
-                        else self.__agreedToTerms
-                    ),
-                    limitedRepr(
-                        self.__source[:20]
-                        if isinstance(self.__source, bytes)
-                        else self.__source
-                    ),
-                )
+            # def __repr__(self):
+            #     return "<Class _terms. type: {}, latestTerms: {}, agreedToTerms: {}, source: {}>".format(
+            #         limitedRepr(
+            #             self.__type[:20]
+            #             if isinstance(self.__type, bytes)
+            #             else self.__type
+            #         ),
+            #         limitedRepr(
+            #             self.__latestTerms[:20]
+            #             if isinstance(self.__latestTerms, bytes)
+            #             else self.__latestTerms
+            #         ),
+            #         limitedRepr(
+            #             self.__agreedToTerms[:20]
+            #             if isinstance(self.__agreedToTerms, bytes)
+            #             else self.__agreedToTerms
+            #         ),
+            #         limitedRepr(
+            #             self.__source[:20]
+            #             if isinstance(self.__source, bytes)
+            #             else self.__source
+            #         ),
+            #     )
 
         class _family:
 
@@ -3320,24 +3320,24 @@ class StoreDownloadResp:
                 )
             return d
 
-        def __repr__(self):
-            return "<Class _subscriptionStatus. terms: {}, account: {}, family: {}>".format(
-                limitedRepr(
-                    self.__terms[:20]
-                    if isinstance(self.__terms, bytes)
-                    else self.__terms
-                ),
-                limitedRepr(
-                    self.__account[:20]
-                    if isinstance(self.__account, bytes)
-                    else self.__account
-                ),
-                limitedRepr(
-                    self.__family[:20]
-                    if isinstance(self.__family, bytes)
-                    else self.__family
-                ),
-            )
+        # def __repr__(self):
+        #     return "<Class _subscriptionStatus. terms: {}, account: {}, family: {}>".format(
+        #         limitedRepr(
+        #             self.__terms[:20]
+        #             if isinstance(self.__terms, bytes)
+        #             else self.__terms
+        #         ),
+        #         limitedRepr(
+        #             self.__account[:20]
+        #             if isinstance(self.__account, bytes)
+        #             else self.__account
+        #         ),
+        #         limitedRepr(
+        #             self.__family[:20]
+        #             if isinstance(self.__family, bytes)
+        #             else self.__family
+        #         ),
+        #     )
 
     _types_map = {
         "pings": {"type": list, "subtype": float},
@@ -3827,84 +3827,84 @@ class StoreDownloadResp:
             )
         return d
 
-    def __repr__(self):
-        return "<Class StoreDownloadResp. pings: {}, cancel_purchase_batch: {}, customerMessage: {}, failureType: {}, jingleDocType: {}, jingleAction: {}, status: {}, dsPersonId: {}, creditDisplay: {}, creditBalance: {}, freeSongBalance: {}, authorized: {}, download_queue_item_count: {}, songList: {}, metrics: {}, subscriptionStatus: {}>".format(
-            limitedRepr(
-                self.__pings[:20] if isinstance(self.__pings, bytes) else self.__pings
-            ),
-            limitedRepr(
-                self.__cancel_purchase_batch[:20]
-                if isinstance(self.__cancel_purchase_batch, bytes)
-                else self.__cancel_purchase_batch
-            ),
-            limitedRepr(
-                self.__customerMessage[:20]
-                if isinstance(self.__customerMessage, bytes)
-                else self.__customerMessage
-            ),
-            limitedRepr(
-                self.__failureType[:20]
-                if isinstance(self.__failureType, bytes)
-                else self.__failureType
-            ),
-            limitedRepr(
-                self.__jingleDocType[:20]
-                if isinstance(self.__jingleDocType, bytes)
-                else self.__jingleDocType
-            ),
-            limitedRepr(
-                self.__jingleAction[:20]
-                if isinstance(self.__jingleAction, bytes)
-                else self.__jingleAction
-            ),
-            limitedRepr(
-                self.__status[:20]
-                if isinstance(self.__status, bytes)
-                else self.__status
-            ),
-            limitedRepr(
-                self.__dsPersonId[:20]
-                if isinstance(self.__dsPersonId, bytes)
-                else self.__dsPersonId
-            ),
-            limitedRepr(
-                self.__creditDisplay[:20]
-                if isinstance(self.__creditDisplay, bytes)
-                else self.__creditDisplay
-            ),
-            limitedRepr(
-                self.__creditBalance[:20]
-                if isinstance(self.__creditBalance, bytes)
-                else self.__creditBalance
-            ),
-            limitedRepr(
-                self.__freeSongBalance[:20]
-                if isinstance(self.__freeSongBalance, bytes)
-                else self.__freeSongBalance
-            ),
-            limitedRepr(
-                self.__authorized[:20]
-                if isinstance(self.__authorized, bytes)
-                else self.__authorized
-            ),
-            limitedRepr(
-                self.__download_queue_item_count[:20]
-                if isinstance(self.__download_queue_item_count, bytes)
-                else self.__download_queue_item_count
-            ),
-            limitedRepr(
-                self.__songList[:20]
-                if isinstance(self.__songList, bytes)
-                else self.__songList
-            ),
-            limitedRepr(
-                self.__metrics[:20]
-                if isinstance(self.__metrics, bytes)
-                else self.__metrics
-            ),
-            limitedRepr(
-                self.__subscriptionStatus[:20]
-                if isinstance(self.__subscriptionStatus, bytes)
-                else self.__subscriptionStatus
-            ),
-        )
+    # def __repr__(self):
+    #     return "<Class StoreDownloadResp. pings: {}, cancel_purchase_batch: {}, customerMessage: {}, failureType: {}, jingleDocType: {}, jingleAction: {}, status: {}, dsPersonId: {}, creditDisplay: {}, creditBalance: {}, freeSongBalance: {}, authorized: {}, download_queue_item_count: {}, songList: {}, metrics: {}, subscriptionStatus: {}>".format(
+    #         limitedRepr(
+    #             self.__pings[:20] if isinstance(self.__pings, bytes) else self.__pings
+    #         ),
+    #         limitedRepr(
+    #             self.__cancel_purchase_batch[:20]
+    #             if isinstance(self.__cancel_purchase_batch, bytes)
+    #             else self.__cancel_purchase_batch
+    #         ),
+    #         limitedRepr(
+    #             self.__customerMessage[:20]
+    #             if isinstance(self.__customerMessage, bytes)
+    #             else self.__customerMessage
+    #         ),
+    #         limitedRepr(
+    #             self.__failureType[:20]
+    #             if isinstance(self.__failureType, bytes)
+    #             else self.__failureType
+    #         ),
+    #         limitedRepr(
+    #             self.__jingleDocType[:20]
+    #             if isinstance(self.__jingleDocType, bytes)
+    #             else self.__jingleDocType
+    #         ),
+    #         limitedRepr(
+    #             self.__jingleAction[:20]
+    #             if isinstance(self.__jingleAction, bytes)
+    #             else self.__jingleAction
+    #         ),
+    #         limitedRepr(
+    #             self.__status[:20]
+    #             if isinstance(self.__status, bytes)
+    #             else self.__status
+    #         ),
+    #         limitedRepr(
+    #             self.__dsPersonId[:20]
+    #             if isinstance(self.__dsPersonId, bytes)
+    #             else self.__dsPersonId
+    #         ),
+    #         limitedRepr(
+    #             self.__creditDisplay[:20]
+    #             if isinstance(self.__creditDisplay, bytes)
+    #             else self.__creditDisplay
+    #         ),
+    #         limitedRepr(
+    #             self.__creditBalance[:20]
+    #             if isinstance(self.__creditBalance, bytes)
+    #             else self.__creditBalance
+    #         ),
+    #         limitedRepr(
+    #             self.__freeSongBalance[:20]
+    #             if isinstance(self.__freeSongBalance, bytes)
+    #             else self.__freeSongBalance
+    #         ),
+    #         limitedRepr(
+    #             self.__authorized[:20]
+    #             if isinstance(self.__authorized, bytes)
+    #             else self.__authorized
+    #         ),
+    #         limitedRepr(
+    #             self.__download_queue_item_count[:20]
+    #             if isinstance(self.__download_queue_item_count, bytes)
+    #             else self.__download_queue_item_count
+    #         ),
+    #         limitedRepr(
+    #             self.__songList[:20]
+    #             if isinstance(self.__songList, bytes)
+    #             else self.__songList
+    #         ),
+    #         limitedRepr(
+    #             self.__metrics[:20]
+    #             if isinstance(self.__metrics, bytes)
+    #             else self.__metrics
+    #         ),
+    #         limitedRepr(
+    #             self.__subscriptionStatus[:20]
+    #             if isinstance(self.__subscriptionStatus, bytes)
+    #             else self.__subscriptionStatus
+    #         ),
+    #     )
