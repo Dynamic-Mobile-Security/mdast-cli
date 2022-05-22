@@ -89,7 +89,7 @@ class GooglePlayAPI(object):
                     Log.error('Google Play - Security check is needed, '
                               'try to visit https://accounts.google.com/b/0/DisplayUnlockCaptcha to unlock.')
                     Log.error(f'Google Play - server says: "{params["error"]}"')
-                    sys.exit(4)
+                    # sys.exit(4)
 
             self.gsfId = self.checkin(email, ac2dmToken)
             self.getAuthSubToken(email, encryptedPass)

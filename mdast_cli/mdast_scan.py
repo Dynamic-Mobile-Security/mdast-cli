@@ -7,16 +7,6 @@ import time
 import urllib3
 
 try:
-    from mdast_cli_core import mDastToken as mDast
-except (ModuleNotFoundError, ImportError):
-    # Export package directory to python environment. Needed for run script without installing package
-    PACKAGE_PARENT = '..'
-    SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(__file__))))
-    sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
-
-    from mdast_cli_core.token import mDastToken as mDast
-
-try:
     from distribution_systems.appstore import AppStore
     from distribution_systems.google_play import google_play_download
     from helpers.const import END_SCAN_TIMEOUT, SLEEP_TIMEOUT, TRY_COUNT, DastState, DastStateDict
@@ -29,15 +19,10 @@ except ImportError:
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='Start scan and get scan results.')
-    parser.add_argument('--download_only', '-d', action='store_true', help='Use it for downloading application '
-                                                                           'without scan.'
-                                                                           ' This argument is optional')
+    parser = argparse.ArgumentParser(description='Start download and get file.')
     parser.add_argument('--distribution_system', '-ds', type=str, help='Select how to download file: '
-                                                                       'file/hockeyapp/appcenter/nexus'
-                                                                       '/firebase/appstore/google_play',
-                        choices=['appstore', 'google_play'],
-                        required=True)
+                                                                       'appstore/google_play',
+                        choices=['appstore', 'google_play'], required=True)
     # Arguments for AppStore
     parser.add_argument('--appstore_app_id', type=str,
                         help='Application id from AppStore, you can get it on app page from url, format: .../id{APP_ID}'
@@ -106,21 +91,6 @@ def main():
     arguments = parse_args()
 
     distribution_system = arguments.distribution_system
-
-    if arguments.download_only is False:
-        url = arguments.url
-        company_id = arguments.company_id
-        architecture = arguments.architecture_id
-        token = arguments.token
-        profile_id = arguments.profile_id
-        testcase_id = arguments.testcase_id
-        json_summary_file_name = arguments.summary_report_json_file_name
-        pdf_report_file_name = arguments.pdf_report_file_name
-        not_wait_scan_end = arguments.nowait
-
-        url = url if url.endswith('/') else f'{url}/'
-        url = url if url.endswith('rest/') else f'{url}rest'
-
     app_file = ''
     if distribution_system == 'appstore':
         appstore = AppStore(arguments.appstore_apple_id,
