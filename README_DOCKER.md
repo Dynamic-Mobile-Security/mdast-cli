@@ -5,6 +5,7 @@
 **Automate the security analysis of mobile applications.**
 
 This script is designed to integrate mobile applications' security analysis in the continuous development process (CI / CD).  
+
 During the execution of the script, the application is sent to the dynamic analysis. The output is a json/pdf file with detailed results. You can use the local file or download the application from one of the distribution systems. If you download the app, you should have write permissions.
 
 ## Install options
@@ -100,8 +101,10 @@ You need to select the `--distribution_system firebase` and specify mandatory pa
 First, you should log in via Google SSO to [Firebase](https://console.firebase.google.com/u/0/) and get necessary cookies from your Chrome session local storage(F12 -> Application -> Cookies)  
 And copy SID, SSID, APISID, SAPISID, HSID to your launch command. The lifetime of them are 2 years, so you don't have to do it often :)  
 
-Screenshot of cookie storage:
-![cookie_storage](https://user-images.githubusercontent.com/46852358/149788352-d453dd78-547f-4989-8132-b94a6f020a81.png)
+Screenshot of cookie storage:  
+
+<img src="https://user-images.githubusercontent.com/46852358/149788352-d453dd78-547f-4989-8132-b94a6f020a81.png" width="1000">
+
 
  * `firebase_SID_cookie` - SID
  * `firebase_HSID_cookie` - HSID
@@ -111,16 +114,20 @@ Screenshot of cookie storage:
 
 Now you need project_id, app_id, app_code, api_key to complete parameters for the scan. To get them go to:
 
-App Project home page, url looks like this `https://console.firebase.google.com/u/0/project/{project_name}/overview` ->
-![app_project](https://user-images.githubusercontent.com/46852358/149789837-2787cb52-355d-4ef0-9440-89053764db78.png)
+App Project home page, url looks like this `https://console.firebase.google.com/u/0/project/{project_name}/overview` ->  
 
-to `Release & Monitor -> App Distribution` ->
-![distr_page](https://user-images.githubusercontent.com/46852358/149791304-2658f1be-9ee0-422e-94ce-59f1ba1858df.png)  
+<img src="https://user-images.githubusercontent.com/46852358/149789837-2787cb52-355d-4ef0-9440-89053764db78.png" width="1000">
+
+to `Release & Monitor -> App Distribution` ->   
+
+<img src="https://user-images.githubusercontent.com/46852358/149791304-2658f1be-9ee0-422e-94ce-59f1ba1858df.png" width="1000">
+
 
 Open network console(F12 -> Network -> Clear) and click `Download`
 
-You will get this request in DevTools:
-![download_req](https://user-images.githubusercontent.com/46852358/149792212-512d33ab-2323-45b6-a25c-6a8d817cde1f.png)  
+You will get this request in DevTools:  
+
+<img src="https://user-images.githubusercontent.com/46852358/149792212-512d33ab-2323-45b6-a25c-6a8d817cde1f.png" width="1000">
 
 And url will be like:  
 
@@ -149,10 +156,10 @@ You need to select the `--distribution_system appstore` and specify mandatory pa
 This script will not work if the app has not been purchased in your AppStore account. It is the status of the app that is important, it must be confirmed with a fingerprint or password even if it is free. You can check this by making sure your app is in 'My apps' in your AppStore account settings.
 
 To successfully sign in to iTunes, you will need to **obtain and save** the 2fa code for later use.  
-When you run the script for the first time, use your email and password, you will get a login error in the console and at this point a two-factor authentication code will come to your device  
+When you run the script for the first time, use your email and password, you will get a login error in the console and at this point a two-factor authentication code will come to your device:  
 
 
-<img src="https://user-images.githubusercontent.com/46852358/153638449-6488cf6d-214f-44cb-8265-fe8b79b2614f.png" alt="drawing" width="300"/>  
+<img src="https://user-images.githubusercontent.com/46852358/153638449-6488cf6d-214f-44cb-8265-fe8b79b2614f.png" alt="drawing" width="200"/>  
 
 
 
@@ -160,8 +167,9 @@ For the subsequent work of the script without repeating the step with the manual
 
 For example, password is `P@ssword` and 2FA is `742877`, so your parameter `--appstore_password2FA P@ssword742877`.
 
-To get the app_id, go to the app page in the AppStore in your browser, you can extract the required parameter from the url:
-![app_id_example](https://user-images.githubusercontent.com/46852358/153639003-f121273a-41ac-415d-aad7-6b2789f77cee.png)  
+To get the app_id, go to the app page in the AppStore in your browser, you can extract the required parameter from the url:  
+
+<img src="https://user-images.githubusercontent.com/46852358/153639003-f121273a-41ac-415d-aad7-6b2789f77cee.png" width="1000">
 
 `appstore_app_id 398129933` in this example. 
 
@@ -179,7 +187,8 @@ If you lost the 2fa code and the login has already been made, the session will b
 
 If there is an error associated with the wrong Apple ID when you start scanning:
 
-![wrong_apple_id](https://user-images.githubusercontent.com/46852358/158440208-45868069-d772-4476-a1bf-6508c2bac1eb.jpg)   
+  
+<img src="https://user-images.githubusercontent.com/46852358/158440208-45868069-d772-4476-a1bf-6508c2bac1eb.jpg" width="300">
 
 or error in logs:
 
@@ -229,28 +238,10 @@ You can also specify downloaded app file name with an optional parameter
 You should use either email + pass ("--google_play_email" + "--google_play_password") or gsfid + token ("--google_play_gsfid" + "google_play_auth_token") arguments for mdast_cli script. For the continuous process you need only gsfid and token.
 
 
-## Launch examples
 
-### Scan type
-There are several ways to start scan: with previously recorded testcase or without it.
- * In first scenario with selected testcase - it will be replayed in the scan execution. 
- * In second scenario without testcase, application will be installed on the device, started, waiting for 30 seconds and then stopped and further analysis will be performed.
 
-#### Start scan with testcase (run previously recorded steps in application)
-To start this type of scan you need to specify `id` of previosly recorded testcase in `--testcase_id` parameter:
-```
-mdast_cli --testcase_id 4 --distribution_system file --file_path "/files/demo/apk/demo.apk" --url "https://saas.mobile.appsec.world" --profile_id 1 --company_id 1 - architecture_id 1 --token "eyJ0eXA4OiJKA1QiLbJhcGciO5JIU4I1NiJ1.eyJzdaJqZWNcX2lkIj53LCJle5AiOjf1OTM5OTU3MjB1.hrI6c4VN_U2mo5VjHvRoENPv2"
-```
+### Launch example
 
-#### Start scan without testcase 
-To start this type of scan don't specify `--testcase_id` parameter:
-```
-mdast_cli --distribution_system file --file_path "/files/demo/apk/demo.apk" --url "https://saas.mobile.appsec.world" --profile_id 1 --company_id 1 - architecture_id 1 --token "eyJ0eXA4OiJKA1QiLbJhcGciO5JIU4I1NiJ1.eyJzdaJqZWNcX2lkIj53LCJle5AiOjf1OTM5OTU3MjB1.hrI6c4VN_U2mo5VjHvRoENPv2"
-```
-
-### Local file
-
-#### Docker launch
 After pulling run docker using command like this (all parameters are applied due to distribution_system choice):
 
 ```
@@ -267,95 +258,10 @@ Where:
 To run analysis of a local file:
 
 ```
-mdast_cli --distribution_system file --file_path "/files/demo/apk/demo.apk" --url "https://saas.mobile.appsec.world" --profile_id 1 --testcase_id 4 --company_id 1 - architecture_id 1 --token "eyJ0eXA4OiJKA1QiLbJhcGciO5JIU4I1NiJ1.eyJzdaJqZWNcX2lkIj53LCJle5AiOjf1OTM5OTU3MjB1.hrI6c4VN_U2mo5VjHvRoENPv2"
+docker run -it -v {path_to_folder_with_application}:/mdast/files -v {path_to_report_folder}:/mdast/report mobilesecurity/mdast_cli:latest --distribution_system file --file_path /mdast/files/demo.apk --url "https://saas.mobile.appsec.world" --profile_id 1 --testcase_id 4 --company_id 1 - architecture_id 1 --token "eyJ0eXA4OiJKA1QiLbJhcGciO5JIU4I1NiJ1.eyJzdaJqZWNcX2lkIj53LCJle5AiOjf1OTM5OTU3MjB1.hrI6c4VN_U2mo5VjHvRoENPv2"
 ```
 
 As a result, automated analysis of the `demo.apk` application with a profile with` id` 1 will be launched and a test case with `id` 4 will be launched.
 
-#### Start without waiting for the scan to complete
 
-```
-mdast_cli --distribution_system file --file_path "/files/demo/apk/demo.apk" --url "https://saas.mobile.appsec.world" --profile_id 1 --testcase_id 4 --company_id 1 - architecture_id 1 --token "eyJ0eXA4OiJKA1QiLbJhcGciO5JIU4I1NiJ1.eyJzdaJqZWNcX2lkIj53LCJle5AiOjf1OTM5OTU3MjB1.hrI6c4VN_U2mo5VjHvRoENPv2"
-```
-As a result, automated analysis of the `demo.apk` application with a profile with` id` 1 will be launched and a test case with `id` 4 will be launched and the script will finish immediately after starting the scan and will not wait for the end and generate a report.
-
-#### Generating a Summary report in JSON format
-
-```
-mdast_cli --distribution_system file --file_path "/files/demo/apk/demo.apk" --url "https://saas.mobile.appsec.world" --profile_id 1 --testcase_id 4 --company_id 1 - architecture_id 1 --token "eyJ0eXA4OiJKA1QiLbJhcGciO5JIU4I1NiJ1.eyJzdaJqZWNcX2lkIj53LCJle5AiOjf1OTM5OTU3MjB1.hfI6c4VN_U2mo5VfCvRoENPvLvlPvN_U2mo5VfCvRoENhPlv" --summary_report_json_file_name json-scan-report.json
-```
-As a result, automated analysis of the `demo.apk` application with a profile with` id` 1 will be launched and a test case with `id` 4 will be launched, and upon completion of scanning, a JSON report with the total number of defects and brief statistics will be saved.
-
-### HockeyApp by bundle_identifier and version
-To run application analysis from a HockeyApp system:
-
-```
-mdast_cli --distribution_system hockeyapp --hockey_token 18bc81146d374ba4b1182ed65e0b3aaa --bundle_id com.appsec.demo --hockey_version 31337 --url "https://saas.mobile.appsec.world" --profile_id 2 --testcase_id 3 --company_id 1 --architecture_id 1 --token "eyJ0eXA4OiJKA1QiLbJhcGciO5JIU4I1NiJ1.eyJzdaJqZWNcX2lkIj53LCJle5AiOjf1OTM5OTU3MjB1.hfI6c4VN_U2mo5VfRoENPvJCvpxhLzjHqI0gxqgr2Bs"
-```
-
-As a result, an application with the package ID `com.appsec.demo` and version` 31337` will be found on the HockeyApp system. It will be downloaded, and an automated analysis will be performed for it with a profile with `id 2` and a test case with `id 3`.
-
-### HockeyApp with public identifier and the latest available version
-To start scanning the latest version of an application in HockeyApp system using the application's public ID:
-
-```
-mdast_cli --distribution_system hockeyapp --hockey_token 18bc81146d374ba4b1182ed65e0b3aaa --public_id "1234567890abcdef1234567890abcdef" --url "https://saas.mobile.appsec.world" --profile_id 2 --testcase_id 3 --company_id 1 --architecture_id 1 --token "eyJ0eXA4OiJKA1QiLbJhcGciO5JIU4I1NiJ1.eyJzdaJqZWNcX2lkIj53LCJle5AiOjf1OTM5OTU3MjB1.hfI6c4VN_U2mo5VfRoENPvJCvpxhLzjHqI0gxqgr2Bs"
-```
-
-As a result, the latest available version of the application with the unique public ID `1234567890abcdef1234567890abcdef` will be found in HockeyApp system. The application will be downloaded and automatically analyzed using the profile with `id 2` and the test case with `id 3`.
-
-### AppCenter with the release ID
-To start scanning an application using its name, the name of the owner and the release ID, the following command should be entered:
-
-```
-mdast_cli --distribution_system appcenter --appcenter_token 18bc81146d374ba4b1182ed65e0b3aaa --appcenter_owner_name test_org_or_user --appcenter_app_name demo_app --appcenter_release_id 710 --url "https://saas.mobile.appsec.world" --profile_id 2 --testcase_id 3 --company_id 1 --architecture_id 1 --token "eyJ0eXA4OiJKA1QiLbJhcGciO5JIU4I1NiJ1.eyJzdaJqZWNcX2lkIj53LCJle5AiOjf1OTM5OTU3MjB1.hfI6c4VN_U2mo5VfRoENPvJCvpxhLzjHqI0gxqgr2Bs"
-```
-
-As a result, the `demo_app` application with release `id 710` will be found among applications of the specified owner (user or organization `test_org_or_user`). This version of the release will be downloaded and sent for security analysis.
-
-To download the latest version of the release you need to use the following parameter: `appcenter_release_id latest`. The command line will look as follows:
-
-```
-mdast_cli --distribution_system appcenter --appcenter_token 18bc81146d374ba4b1182ed65e0b3aaa --appcenter_owner_name "test_org_or_user" --appcenter_app_name "demo_app" --appcenter_release_id latest --url "https://saas.mobile.appsec.world" --profile_id 2 --testcase_id 3 --company_id 1 --architecture_id 1 --token "eyJ0eXA4OiJKA1QiLbJhcGciO5JIU4I1NiJ1.eyJzdaJqZWNcX2lkIj53LCJle5AiOjf1OTM5OTU3MjB1.hfI6c4VN_U2mo5VfRoENPvJCvpxhLzjHqI0gxqgr2Bs"
-```
-
-As a result, the latest available release of the application will be downloaded.
-
-### AppCenter by application version
-To start the analysis of the application by the known name, owner and version (`version_code` in` Android Manifest`), you need to run the following command:
-
-``` 
-mdast_cli --distribution_system appcenter --appcenter_token 18bc81146d374ba4b1182ed65e0b3aaa --appcenter_owner_name "test_org_or_user" --appcenter_app_name "demo_app" --appcenter_app_version 31337 --url "https://saas.mobile.appsec.world" --profile_id 2 --testcase_id 3 --company_id 1 --architecture_id 1 --token "eyJ0eXA4OiJKA1QiLbJhcGciO5JIU4I1NiJ1.eyJzdaJqZWNcX2lkIj53LCJle5AiOjf1OTM5OTU3MjB1.hfI6c4VN_U2mo5VfRoENPvJCvpxhLzjHqI0gxqgr2Bs"
-```
-
-As a result, in the owner workspace (user or organization `test_org_or_user`) will be found application `demo_app` and will be found a release in which the version of the application `31337` was specified. This version will be downloaded and submitted for security analysis.
-
-
-### Firebase launch example
-To start the manual scan analysis of the application, that was downloaded from Firebase, you need to run the following command:
-```
-python mdast_cli/mdast_scan.py --profile_id 468 --architecture_id 2 --distribution_system firebase --firebase_project_id 2834204**** --firebase_app_id 1:283***3642:android:8b0a0***56ac40c1a43 --firebase_app_code 2b***sltr0 --firebase_api_key AIzaSyDov*****qKdbj-geRWyzMTrg --firebase_SID_cookie FgiA*****ZiQakQ-_C-5ZaEHvbDMFGkrgriAByQ9P9fv7LfRrYJ5suXgrCwIQBoOjA. --firebase_HSID_cookie AsiL****OjPI --firebase_SSID_cookie A****dwcZk1Z-1pE --firebase_APISID_cookie Z-FmS1aPB****djK/AjmG0h2Hc-GG9g2Ac --firebase_SAPISID_cookie XYR2tnf****0zOt/AEvVZ8JVEuCnE6pxm --url "https://saas.mobile.appsec.world" --company_id 1 --token 2fac9652a2fbe4****9f44af59c3381772f --firebase_file_name your_app_file_name  --firebase_file_extension apk
-```
-As a result in the `downloaded_apps` repository will be application with name `your_app_file_name.apk` and manual scan will be started.
-
-### AppStore launch example
-To start the manual scan analysis of the application, that was downloaded from AppStore, you need to run the following command:
-```
- python mdast_cli/mdast_scan.py --architecture_id 3 --profile_id 1246 --distribution_system appstore --appstore_app_id 564177498 --appstore_apple_id ubet******@icloud.com --appstore_password2FA pass*******31******454  --url "https://saas.mobile.appsec.world" --company_id 2 --token 5d5f6****************2d9f --appstore_file_name my_b3st_4pp
-```
-As a result in the `downloaded_apps` repository will be application with name `my_b3st_4pp.ipa` and manual scan will be started.
-
-### Google Play launch example
-To start the initial login for Google Play, you need to run the following command:
-```
- python mdast_cli/mdast_scan.py --profile_id 1337 --architecture_id 1 --distribution_system google_play --url "https://saas.mobile.appsec.world" --company_id 1 --token 5d5f6c98*********487a68ee20d4562d9f --google_play_package_name com.instagram.android --google_play_email download*******ly@gmail.com --google_play_password Paaswoord
-```
-To start the manual scan analysis of the application, that was downloaded from Google Play, you need to run the following command:
-
-```
- python mdast_cli/mdast_scan.py --profile_id 1337 --architecture_id 1 --distribution_system google_play --url "https://saas.mobile.appsec.world" --company_id 1 --token 5d5f6c98*********487a68ee20d4562d9f --google_play_package_name com.instagram.android --google_play_gsfid 432******************43 --google_play_auth_token JAgw_2h*************************************8KRaYQ. --google_play_file_name best_apk_d0wnl04d3r
-```
-
-As a result in the `downloaded_apps` repository will be application with name `best_apk_d0wnl04d3r.apk` and manual scan will be started.
-
-While creating AppStore integration [ipatool](https://github.com/majd/ipatool) helped a lot, huge thanks for everyone who contributed to this nice open-source tool.
+If you want to find more launch examples of the mdast_cli script please go to the [github readme](https://github.com/Dynamic-Mobile-Security/mdast-cli#launch-examples). Due to word limit on the dockerhub we can't provide a full description of the examples here.
