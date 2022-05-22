@@ -1,4 +1,3 @@
+
 [run]
-omit =
-mdast_cli_core/*
-*resp.py
+omit = *req.py, *resp.py, *test*

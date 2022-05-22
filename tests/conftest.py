@@ -1,6 +1,7 @@
 from pytest_testconfig import config
 import pytest
 from mdast_cli.distribution_systems.google_play import GooglePlayAPI
+from mdast_cli.distribution_systems.appstore import AppStore
 
 
 @pytest.fixture
@@ -16,3 +17,9 @@ def gp_api_logged_in():
     gp_api = GooglePlayAPI()
     gp_api.login(email=None, password=None, gsfId=int(gsfId), authSubToken=auth_token)
     return gp_api
+
+
+@pytest.fixture
+def appstore_logged_in():
+    appstore = AppStore(config['as']['apple_id'], config['as']['password2FA'])
+    return appstore

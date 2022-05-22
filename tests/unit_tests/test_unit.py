@@ -1,11 +1,17 @@
+import sys
+
 from pytest_testconfig import config
 import math
+import requests
 
 from mdast_cli.distribution_systems.google_play import GooglePlayAPI
 from mdast_cli.distribution_systems.appstore import AppStore
 from mdast_cli.distribution_systems.gpapi.googleplay import encrypt_password
 from mdast_cli.distribution_systems.gpapi.config import DeviceBuilder
 from mdast_cli.distribution_systems.google_play import google_play_download
+
+from mdast_cli.distribution_systems.appstore_client.store import StoreClient, StoreException
+from mdast_cli.distribution_systems.appstore import *
 
 from mdast_cli.helpers.const import *
 from mdast_cli.helpers.logging import Log
@@ -194,7 +200,7 @@ def test_google_play_login_token(gp_api):
     assert gp_api.authSubToken == config['gp']['authSubToken']
 
 
-def test_google_play_setAuthSubToken(gp_api):
+def test_google_play_set_auth_sub_token(gp_api):
     gp_api.setAuthSubToken(config['gp']['authSubToken'])
     assert gp_api.authSubToken == config['gp']['authSubToken']
 
@@ -207,7 +213,7 @@ def test_google_play_details(gp_api_logged_in):
     assert details['detailsUrl'] == 'details?doc=com.postmuseapp.designer'
 
 
-def test_google_play_getHeaders(gp_api_logged_in):
+def test_google_play_get_headers(gp_api_logged_in):
     headers = gp_api_logged_in.getHeaders()
     assert len(headers) == 10
     assert headers['Accept-Language'] == 'en-US'
@@ -221,12 +227,12 @@ def test_google_play_checkin(gp_api_logged_in):
     assert int(math.log10(checkin)) == 18
 
 
-def test_google_play_uploadDeviceConfig(gp_api_logged_in):
+def test_google_play_upload_device_config(gp_api_logged_in):
     gp_api_logged_in.uploadDeviceConfig()
     assert type(gp_api_logged_in.device_config_token) is str
 
 
-def test_google_play_getSecondRoundToken(gp_api_logged_in):
+def test_google_play_get_second_round_token(gp_api_logged_in):
     try:
         gp_api_logged_in.getSecondRoundToken('data', 'data')
     except TypeError as e:
@@ -242,13 +248,14 @@ def test_google_play_executeRequestApi2(gp_api_logged_in):
 
 def test_google_play_download_from_class(gp_api_logged_in):
     response = gp_api_logged_in.download(config['gp']['package_name_test'])
-    assert response[1]['developerName']=='PostMuse'
-    assert response[1]['developerWebsite']=='https://postmuseapp.com'
+    assert response[1]['developerName'] == 'PostMuse'
+    assert response[1]['developerWebsite'] == 'https://postmuseapp.com'
 
 
 def test_google_play_download_default():
     path_to_file = google_play_download(config['gp']['package_name_test'], None, None,
                                         int(config['gp']['gsfid']), config['gp']['authSubToken'], None, False)
+    assert path_to_file != ''
 
 
 # App Store unit tests
@@ -263,6 +270,79 @@ def test_AppStore_class_clean_init():
     assert appstore.download_path == 'downloaded_apps'
     assert appstore.app_version == ''
     assert appstore.url == ''
+
+
+def test_get_zipinfo_datetime():
+    zipinfo_time = get_zipinfo_datetime()
+    assert type(zipinfo_time) == tuple
+    assert zipinfo_time[0] >= 2022
+    assert 1 <= zipinfo_time[1] <= 12
+
+
+def test_store_client_class_init():
+    store_client = StoreClient(requests.Session())
+    assert store_client.sess != ''
+    assert store_client.account_name is None
+    assert store_client.guid == '000C2941396B'
+    assert store_client.store_front is None
+    assert store_client.dsid is None
+
+
+def test_download_app_appstore_by_id(appstore_logged_in):
+    appstore_logged_in.app_id = config['as']['app_id']
+    app_path = appstore_logged_in.download_app()
+    app_name = "Ростелеком"
+    assert app_path != ''
+    assert app_name in app_path
+
+
+def test_download_app_appstore_by_bundle(appstore_logged_in):
+    appstore_logged_in.bundle_id = config['as']['bundle_id']
+    app_path = appstore_logged_in.download_app()
+    app_name = "Газпром"
+    assert app_path != ''
+    assert app_name in app_path
+
+
+def test_download_app_appstore_invalid_data(appstore_logged_in):
+    try:
+        appstore_logged_in.bundle_id = 'app1337'
+        appstore_logged_in.download_app()
+    except SystemExit:
+        assert True
+
+
+def test_store_client_authenticate():
+    store_client = StoreClient(requests.Session())
+    auth_resp = store_client.authenticate(config['as']['apple_id'], config['as']['password2FA'])
+    assert auth_resp.status == -128
+    assert auth_resp.freeSongBalance == '1311811'
+    assert auth_resp.dsPersonId == '20279203723'
+    assert auth_resp.cancel_purchase_batch is None
+
+
+def test_store_client_find_app_by_bundle():
+    store_client = StoreClient(requests.Session())
+    found_app_resp = store_client.find_app_by_bundle(config['as']['bundle_id'])
+    app_data = found_app_resp.json()['results'][0]
+    assert found_app_resp.status_code == 200
+    assert found_app_resp.json()['resultCount'] == 1
+    assert app_data['trackName'] == 'Газпромбанк'
+    assert app_data['minimumOsVersion'] == '10.3'
+    assert app_data['trackId'] == 1406492297
+
+
+def test_store_client_purchase():
+    store_client = StoreClient(requests.Session())
+    purchase_resp = store_client.purchase(config['as']['app_id_to_purchase'])
+    assert purchase_resp.status_code == 200
+
+
+def test_store_from_client_download_failure():
+    store_client = StoreClient(requests.Session())
+    download_from_client_resp = store_client.download('1321')
+    assert download_from_client_resp.failureType == '5002'
+    assert download_from_client_resp.customerMessage == 'An unknown error has occurred'
 
 
 # Constants and helpers utils unit tests
