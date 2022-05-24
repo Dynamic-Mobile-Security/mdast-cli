@@ -1,11 +1,33 @@
-# Mobile DAST CI/CD Python script
+<h1>Mobile DAST CI/CD</h1>
+
+**Python script for automating security analysis of mobile applications.**
+
 [![Docker Hub](https://img.shields.io/docker/v/mobilesecurity/mdast_cli?label=docker%20hub)](https://hub.docker.com/repository/docker/mobilesecurity/mdast_cli)
 [![PyPi](https://img.shields.io/pypi/v/mdast_cli?color=3)](https://pypi.org/project/mdast-cli/)
+![GitHub issues](https://img.shields.io/github/issues-raw/Dynamic-Mobile-Security/mdast-cli)
+![GitHub pull requests](https://img.shields.io/github/issues-pr-raw/Dynamic-Mobile-Security/mdast-cli)
 
-**Automate the security analysis of mobile applications.**
 
 This script is designed to integrate mobile applications' security analysis in the continuous development process (CI / CD).  
+You can also only download applications from supported integrations with distribution systems without scanning.
+
 During the execution of the script, the application is sent to the dynamic analysis. The output is a json/pdf file with detailed results. You can use the local file or download the application from one of the distribution systems. If you download the app, you should have write permissions.
+
+
+* [Install options](#install-options)
+    * [DockerHub](#dockerhub)
+    * [PyPi](#from-pypi)
+    * [Source](#source)
+* [Launch options](#launch-options)
+* [Distribution systems](#distribution-systems)
+  * [Local file](#local-file)
+  * [HockeyApp](#hockeyapp)
+  * [AppCenter](#appcenter)
+  * [Nexus](#nexus)
+  * [Firebase](#firebase)
+  * [AppStore](#appstore)
+  * [Google play](#google-play)
+
 
 ## Install options
 
@@ -32,29 +54,39 @@ It also supports launching by loading source files and launching the main script
 
 With this method of launching, you must additionally install the packages specified in `requirements.txt`
 
+
 ## Launch options
-Currently, several launch options are supported:
+
+Currently, several distribution systems are supported:
  * Local file
+ * Applications from [Google Play](https://play.google.com/store/apps)
+ * Applications from [Appstore](https://www.apple.com/app-store/)
+ * Applications from [Firebase](https://firebase.google.com/)
  * Applications from [HockeyApp](https://hockeyapp.net/)
  * Applications from [AppCenter](https://appcenter.ms)
  * Applications from [Nexus Repository 3.x](https://help.sonatype.com/repomanager3) from maven repo.
- * Applications from [Firebase](https://firebase.google.com/)
- * Applications from [Appstore](https://www.apple.com/app-store/)
- * Applications from [Google Play](https://play.google.com/store/apps)
 
-## Launch parameters
-The launch options depend on the location of the apk file sent for analysis. Also, there are required parameters that must be specified for any type of launch:
+If you just want to download the application without scanning, specify `--download_only` or `-d`  
+After that you will need to specify the distribution system and mandatory parameters for specified system
+
+* `distribution_system` - distribution method for the application   
+_possible values_ `file`/`google_play`/`appstore`/`firebase`/`hockeyapp`/`appcenter`/`nexus`   
+For detailed information refer to the respective sections below.
+ 
+If you want to integrate security analysis of downloaded application in the CI/CD you should specify these parameters.  
+
+The launch options depend on the location of the apk file sent for analysis. Also, there are required parameters that must be specified for launch:
  * `url` - network address for system (the path to the root without the final /)
  * `profile_id` - ID of the profile to be analyzed
  * `testcase_id` - ID of the test case to be executed. This is an optional parameter, if not set - manual scan with 20 seconds delay until finish will be executed;
  * `token` - CI/CD access token (refer to our documentation for ways to retrieve the token)
- * `distribution_system` - distribution method for the application; possible values: `file`, `hockeyapp` or `appcenter`. For detailed information refer to the respective sections below.
  * `company_id` - identifier of the company within which the scan will be performed
  * `architecture_id` - identifier of the operating system architecture on which the scan will be performed
  * `nowait` - an optional parameter specifying whether to wait for the scan to complete. If this flag is set, the script will not wait for the scan to complete but will exit immediately after starting. If the flag is not selected, the script will wait for the completion of the analysis process and generate a report.
  * `summary_report_json_file_name` - an optional parameter defining the name of the json file into which the scanning information in json format is uploaded. If the parameter is absent, the information will not be saved.
  * `pdf_report_file_name` - an optional parameter that specifies the name of the pdf file into which information on scanning in pdf format is uploaded. If the parameter is absent, the report will not be saved.
 
+## Distribution systems
 ### Local file launch
 This type of launch implies that the application file is located locally.
 To select this method at startup, you must specify the parameter `distribution_system file`.  
@@ -163,8 +195,7 @@ For example, password is `P@ssword` and 2FA is `742877`, so your parameter `--ap
 To get the app_id, go to the app page in the AppStore in your browser, you can extract the required parameter from the url:
 ![app_id_example](https://user-images.githubusercontent.com/46852358/153639003-f121273a-41ac-415d-aad7-6b2789f77cee.png)  
 
-`appstore_app_id 398129933` in this example. 
-
+`appstore_app_id 398129933` in this example.
 Also, you need to select the `distribution_system appstore` and specify the following mandatory parameters:
  * `appstore_app_id` - Application id from AppStore, you can get it on app page from url,   
 format: apps.apple.com/app/id{appstore_app_id}
