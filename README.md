@@ -23,10 +23,12 @@ During the execution of the script, the application is sent for the dynamic anal
    * [Download only](#download-only)
    * [Scan parameters](#scan-parameters)
 * [Distribution systems](#distribution-systems)
-  * [Local file](#local-file)
-    * [parameters]()
-    * [launch examples]()
+  * [Local file](#local-file-launch)
+    * [parameters](#parameters)
+    * [launch example](#launch-example)
   * [Google play](#google-play)
+    * [parameters](#parameters)
+    * [launch example](#launch-example)
   * [AppStore](#appstore)
   * [Firebase](#firebase)
   * [HockeyApp](#hockeyapp)
@@ -43,6 +45,7 @@ You can run this script using [docker image](https://hub.docker.com/r/mobilesecu
 `docker pull mobilesecurity/mdast_cli:latest`
 
 ### From PyPi
+
 It is possible to install a package using pip:
 
 `pip install mdast_cli`
@@ -54,6 +57,7 @@ With this method, it is possible to start scanning without specifying the `pytho
 All examples below will use exactly this approach.
 
 ### Source
+
 It also supports launching by loading source files and launching the main script directly:
 
 `python3 mdast_cli/mdast_scan.py -h`
@@ -75,6 +79,7 @@ Currently, several distribution systems are supported:
 ## Launch parameters
 
 #### Download only
+
 If you just want to download the application without scanning, specify `--download_only` or `-d`  
 After that you will need to specify the distribution system and mandatory parameters for specified system
 
@@ -85,6 +90,7 @@ For detailed information refer to the respective sections below.
 If you want to integrate security analysis of downloaded application in the CI/CD you should specify these parameters.  
 
 #### Scan parameters
+
 The launch options depend on the location of the apk file sent for analysis. Also, there are required parameters that must be specified for launch:
  * `url` - network address for system (the path to the root without the final /)
  * `profile_id` - ID of the profile to be analyzed
@@ -97,10 +103,102 @@ The launch options depend on the location of the apk file sent for analysis. Als
  * `pdf_report_file_name` - an optional parameter that specifies the name of the pdf file into which information on scanning in pdf format is uploaded. If the parameter is absent, the report will not be saved.
 
 ## Distribution systems
+
 ### Local file launch
+
+#### Parameters
+
 This type of launch implies that the application file is located locally.
 To select this method at startup, you must specify the parameter `distribution_system file`.  
 In this case, the required parameter must specify the path to the file: `file_path`
+
+#### Launch example
+
+__Docker launch__  
+After pulling run docker using command like this (all parameters are applied due to distribution_system choice):
+
+```
+docker run -it -v {path_to_folder_with_application}:/mdast/files -v {path_to_report_folder}:/mdast/report mobilesecurity/mdast_cli:latest --profile_id 1 --architecture_id 5 --testcase_id 4 --distribution_system file --file_path /mdast/files/{application_file_name} --url "https://saas.mobile.appsec.world" --company_id 1 --token eyJ0eXA4OiJKA1Q**********U4I1NiJ1 --summary_report_json_file_name /mdast/report/json-report.json --pdf_report_file_name /mdast/report/pdf-report.pdf
+```
+
+Where:
+ * `{path_to_folder_with_application}` - absolute path to the folder where build application locating
+ * `{path_to_report_folder}` - absolute path to the folder where reports will be generated
+ * `{application_file_name}` - full name of the built apk inside the `{path_to_folder_with_application}` folder
+
+
+__Standard launch method__
+```
+mdast_cli --distribution_system file --file_path "/files/demo/apk/demo.apk" --url "https://saas.mobile.appsec.world" --profile_id 1 --testcase_id 4 --company_id 1 - architecture_id 1 --token "eyJ0eXA4Oi**************I1NiJ1.eyJzdaJqZWNcX**************8OTU3MjB1.hrI6c4VN_U2mo5VjHvRoENPv2"
+```
+
+As a result, automated analysis of the `demo.apk` application with a profile with` id` 1 will be launched and a test case with `id` 4 will be launched.
+
+__Start without waiting for the scan to complete__
+```
+mdast_cli --distribution_system file --file_path "/files/demo/apk/demo.apk" --url "https://saas.mobile.appsec.world" --profile_id 1 --testcase_id 4 --company_id 1 - architecture_id 1 --token "eyJ0eXA4Oi**************I1NiJ1.eyJzdaJqZWNcX**************8OTU3MjB1.hrI6c4VN_U2mo5VjHvRoENPv2"
+```
+As a result, automated analysis of the `demo.apk` application with a profile with` id` 1 will be launched and a test case with `id` 4 will be launched and the script will finish immediately after starting the scan and will not wait for the end and generate a report.
+
+__Generating a Summary report in JSON format__
+```
+mdast_cli --distribution_system file --file_path "/files/demo/apk/demo.apk" --url "https://saas.mobile.appsec.world" --profile_id 1 --testcase_id 4 --company_id 1 - architecture_id 1 --token "eyJ0eXA4Oi**************I1NiJ1.eyJzdaJqZWNcX**************8OTU3MjB1.hrI6c4VN_U2mo5VjHvRoENPv2" --summary_report_json_file_name json-scan-report.json
+```
+As a result, automated analysis of the `demo.apk` application with a profile with` id` 1 will be launched and a test case with `id` 4 will be launched, and upon completion of scanning, a JSON report with the total number of defects and brief statistics will be saved.
+### Google play
+
+> :bangbang: *Updated May 2022: Seems like in last update Google disabled app passwords for play store access, so currently login with email + password is not working. If you already have gsfid + token just use them for now.  
+Contact your suppport team if you need help, we will share with you working credentials from service account.*
+
+To download application from Google Play Store you need **temporary account with 2fa authentication disabled**.  
+
+You should specify the package name of the application you want to download, you can get it directly from the Google Play app page or any other way.
+
+
+Also, you need to select the `distribution_system google_play`.  
+
+During the initial launch of the script you should specify the mandatory parameters: email + password, after that the application will not be downloaded if you don't specify optional parameter `google_play_download_with_creds` and the scan will not run, but you will **receive gsfid and token** for google authentication, which you should use later on for the successful Google Play application scan.  
+
+#### Parameters
+ * `google_play_package_name` - package name of application you want to download
+ * `google_play_email` - email of your Google account for first login only
+ * `google_play_password` - password of your Google account for login only
+
+You can download app while logging in by email and password with an optional parameter:
+
+ * `google_play_download_with_creds` - app will be downloaded during initial login  
+
+
+At the initial run of the script you will get the **gsfId** and **auth token** in the script logs, you should copy and save them. They are required for stable and successful execution of the script afterwards.
+
+![gsfid_token_logs](https://user-images.githubusercontent.com/46852358/162791052-fbce7121-1430-49ca-a9b9-68997391abd6.png)  
+
+Using these parameters you will have all parameters for successful downloading applications from Google Play Store:
+
+ * `google_play_package_name` - package name of application you want to download
+ * `google_play_gsfid` - The Google Services Framework Identifier (GSF ID)
+ * `google_play_auth_token` - Google auth token for access to Google Play API
+
+You can also specify downloaded app file name with an optional parameter
+
+ * `google_play_file_name` - file name for app to be saved with  
+
+You should use either email + pass ("--google_play_email" + "--google_play_password") or gsfid + token ("--google_play_gsfid" + "google_play_auth_token") arguments for mdast_cli script. For the continuous process you need only gsfid and token.
+
+#### Launch example
+
+To start the initial login for Google Play, you need to run the following command:
+```
+ python mdast_cli/mdast_scan.py -d --distribution_system google_play --google_play_package_name com.instagram.android --google_play_email download*******ly@gmail.com --google_play_password Paaswoord
+```
+To start the manual scan analysis of the application, that was downloaded from Google Play, you need to run the following command:
+
+```
+ python mdast_cli/mdast_scan.py --profile_id 1337 --architecture_id 1 --distribution_system google_play --url "https://saas.mobile.appsec.world" --company_id 1 --token 5d5f6c98*********487a68ee20d4562d9f --google_play_package_name com.instagram.android --google_play_gsfid 432******************43 --google_play_auth_token JAgw_2h*************************************8KRaYQ. --google_play_file_name best_apk_d0wnl04d3r
+```
+
+As a result in the `downloaded_apps` repository will be application with name `best_apk_d0wnl04d3r.apk` and manual scan will be started.
+
 
 ### HockeyApp
 To download an application from the HockeyApp distribution system you need to select the `distribution_system = hockeyapp` parameter.  
@@ -228,47 +326,6 @@ or error in logs:
 
 Then contact the support team to agree on an Apple ID, which will be used for AppStore integration, you will be offered a solution to this problem.
 
-### Google play
-To download application from Google Play Store you need **temporary account with 2fa authentication disabled**.  
-
-You should specify the package name of the application you want to download, you can get it directly from the Google Play app page or any other way.
-
-
-Also, you need to select the `distribution_system google_play`.  
-
-During the initial launch of the script you should specify the mandatory parameters: email + password, after that the application will not be downloaded and the scan will not run, but you will **receive gsfid and token** for google authentication, which you should use later on for the successful Google Play application scan.  
-
- * `google_play_package_name` - package name of application you want to download
- * `google_play_email` - email of your Google account for first login only
- * `google_play_password` - password of your Google account for login only
-
-You can download app while logging in by email and password with an optional parameter:
-
- * `google_play_download_with_creds` - app will be downloaded during initial login  
-
-When running the integration of Google Play at the first login from a new ip address it is possible that you will need to confirm your account through the browser, to do this, go to the  [google account verification link](https://accounts.google.com/b/0/DisplayUnlockCaptcha) , login to your temporary account and click on 'Proceed'.  
-  
-![google_unlock_image](https://user-images.githubusercontent.com/46852358/161290143-05d0d847-2037-4c4f-8187-53d3ffed83ec.png)
-
-After this login will be successful through the script mdast_cli. You can also get a link to solve the problem from the logs of the script.  
-
-
-At the initial run of the script you will get the gsfId and auth token in the script logs, copy and save them. You will need them for a stable and successful execution of the script afterwards  
-
-![gsfid_token_logs](https://user-images.githubusercontent.com/46852358/162791052-fbce7121-1430-49ca-a9b9-68997391abd6.png)  
-
-Using these parameters you will have all parameters for successful downloading applications from Google Play Store:
-
- * `google_play_package_name` - package name of application you want to download
- * `google_play_gsfid` - The Google Services Framework Identifier (GSF ID)
- * `google_play_auth_token` - Google auth token for access to Google Play API
-
-You can also specify downloaded app file name with an optional parameter
-
- * `google_play_file_name` - file name for app to be saved with  
-
-You should use either email + pass ("--google_play_email" + "--google_play_password") or gsfid + token ("--google_play_gsfid" + "google_play_auth_token") arguments for mdast_cli script. For the continuous process you need only gsfid and token.
-
 
 ## Launch examples
 
@@ -288,44 +345,6 @@ To start this type of scan don't specify `--testcase_id` parameter:
 ```
 mdast_cli --distribution_system file --file_path "/files/demo/apk/demo.apk" --url "https://saas.mobile.appsec.world" --profile_id 1 --company_id 1 - architecture_id 1 --token "eyJ0eXA4OiJKA1QiLbJhcGciO5JIU4I1NiJ1.eyJzdaJqZWNcX2lkIj53LCJle5AiOjf1OTM5OTU3MjB1.hrI6c4VN_U2mo5VjHvRoENPv2"
 ```
-
-### Local file
-
-#### Docker launch
-After pulling run docker using command like this (all parameters are applied due to distribution_system choice):
-
-```
-docker run -it -v {path_to_folder_with_application}:/mdast/files -v {path_to_report_folder}:/mdast/report mobilesecurity/mdast_cli:latest --profile_id 1 --architecture_id 5 --testcase_id 4 --distribution_system file --file_path /mdast/files/{application_file_name} --url "https://saas.mobile.appsec.world" --company_id 1 --token eyJ0eXA4OiJKA1QiLbJhcGciO5JIU4I1NiJ1 --summary_report_json_file_name /mdast/report/json-report.json --pdf_report_file_name /mdast/report/pdf-report.pdf
-```
-
-Where:
- * `{path_to_folder_with_application}` - absolute path to the folder where build application locating
- * `{path_to_report_folder}` - absolute path to the folder where reports will be generated
- * `{application_file_name}` - full name of the built apk inside the `{path_to_folder_with_application}` folder
-
-
-#### Standard launch method
-To run analysis of a local file:
-
-```
-mdast_cli --distribution_system file --file_path "/files/demo/apk/demo.apk" --url "https://saas.mobile.appsec.world" --profile_id 1 --testcase_id 4 --company_id 1 - architecture_id 1 --token "eyJ0eXA4OiJKA1QiLbJhcGciO5JIU4I1NiJ1.eyJzdaJqZWNcX2lkIj53LCJle5AiOjf1OTM5OTU3MjB1.hrI6c4VN_U2mo5VjHvRoENPv2"
-```
-
-As a result, automated analysis of the `demo.apk` application with a profile with` id` 1 will be launched and a test case with `id` 4 will be launched.
-
-#### Start without waiting for the scan to complete
-
-```
-mdast_cli --distribution_system file --file_path "/files/demo/apk/demo.apk" --url "https://saas.mobile.appsec.world" --profile_id 1 --testcase_id 4 --company_id 1 - architecture_id 1 --token "eyJ0eXA4OiJKA1QiLbJhcGciO5JIU4I1NiJ1.eyJzdaJqZWNcX2lkIj53LCJle5AiOjf1OTM5OTU3MjB1.hrI6c4VN_U2mo5VjHvRoENPv2"
-```
-As a result, automated analysis of the `demo.apk` application with a profile with` id` 1 will be launched and a test case with `id` 4 will be launched and the script will finish immediately after starting the scan and will not wait for the end and generate a report.
-
-#### Generating a Summary report in JSON format
-
-```
-mdast_cli --distribution_system file --file_path "/files/demo/apk/demo.apk" --url "https://saas.mobile.appsec.world" --profile_id 1 --testcase_id 4 --company_id 1 - architecture_id 1 --token "eyJ0eXA4OiJKA1QiLbJhcGciO5JIU4I1NiJ1.eyJzdaJqZWNcX2lkIj53LCJle5AiOjf1OTM5OTU3MjB1.hfI6c4VN_U2mo5VfCvRoENPvLvlPvN_U2mo5VfCvRoENhPlv" --summary_report_json_file_name json-scan-report.json
-```
-As a result, automated analysis of the `demo.apk` application with a profile with` id` 1 will be launched and a test case with `id` 4 will be launched, and upon completion of scanning, a JSON report with the total number of defects and brief statistics will be saved.
 
 ### HockeyApp by bundle_identifier and version
 To run application analysis from a HockeyApp system:
@@ -385,18 +404,5 @@ To start the manual scan analysis of the application, that was downloaded from A
  python mdast_cli/mdast_scan.py --architecture_id 3 --profile_id 1246 --distribution_system appstore --appstore_app_id 564177498 --appstore_apple_id ubet******@icloud.com --appstore_password2FA pass*******31******454  --url "https://saas.mobile.appsec.world" --company_id 2 --token 5d5f6****************2d9f --appstore_file_name my_b3st_4pp
 ```
 As a result in the `downloaded_apps` repository will be application with name `my_b3st_4pp.ipa` and manual scan will be started.
-
-### Google Play launch example
-To start the initial login for Google Play, you need to run the following command:
-```
- python mdast_cli/mdast_scan.py --profile_id 1337 --architecture_id 1 --distribution_system google_play --url "https://saas.mobile.appsec.world" --company_id 1 --token 5d5f6c98*********487a68ee20d4562d9f --google_play_package_name com.instagram.android --google_play_email download*******ly@gmail.com --google_play_password Paaswoord
-```
-To start the manual scan analysis of the application, that was downloaded from Google Play, you need to run the following command:
-
-```
- python mdast_cli/mdast_scan.py --profile_id 1337 --architecture_id 1 --distribution_system google_play --url "https://saas.mobile.appsec.world" --company_id 1 --token 5d5f6c98*********487a68ee20d4562d9f --google_play_package_name com.instagram.android --google_play_gsfid 432******************43 --google_play_auth_token JAgw_2h*************************************8KRaYQ. --google_play_file_name best_apk_d0wnl04d3r
-```
-
-As a result in the `downloaded_apps` repository will be application with name `best_apk_d0wnl04d3r.apk` and manual scan will be started.
 
 While creating AppStore integration [ipatool](https://github.com/majd/ipatool) helped a lot, huge thanks for everyone who contributed to this nice open-source tool.
