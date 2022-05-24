@@ -60,3 +60,5 @@ downloaded_apps/
 venv!/mdast_cli.egg-info/
 
 config
+!/README_DOCKER.md
+README_DOCKER.md
