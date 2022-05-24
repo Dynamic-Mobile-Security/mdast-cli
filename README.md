@@ -11,7 +11,7 @@
 This script is designed to integrate mobile applications' security analysis in the continuous development process (CI / CD).  
 You can also only download applications from supported integrations with distribution systems without scanning.
 
-During the execution of the script, the application is sent to the dynamic analysis. The output is a json/pdf file with detailed results. You can use the local file or download the application from one of the distribution systems. If you download the app, you should have write permissions.
+During the execution of the script, the application is sent for the dynamic analysis. The output is a json/pdf file with detailed results. You can use the local file or download the application from one of the distribution systems. You should have write permissions to download the application.
 
 
 * [Install options](#install-options)
@@ -19,14 +19,20 @@ During the execution of the script, the application is sent to the dynamic analy
     * [PyPi](#from-pypi)
     * [Source](#source)
 * [Launch options](#launch-options)
+* [Launch parameters](#launch-parameters)
+   * [Download only](#download-only)
+   * [Scan parameters](#scan-parameters)
 * [Distribution systems](#distribution-systems)
   * [Local file](#local-file)
+    * [parameters]()
+    * [launch examples]()
+  * [Google play](#google-play)
+  * [AppStore](#appstore)
+  * [Firebase](#firebase)
   * [HockeyApp](#hockeyapp)
   * [AppCenter](#appcenter)
   * [Nexus](#nexus)
-  * [Firebase](#firebase)
-  * [AppStore](#appstore)
-  * [Google play](#google-play)
+
 
 
 ## Install options
@@ -66,15 +72,19 @@ Currently, several distribution systems are supported:
  * Applications from [AppCenter](https://appcenter.ms)
  * Applications from [Nexus Repository 3.x](https://help.sonatype.com/repomanager3) from maven repo.
 
+## Launch parameters
+
+#### Download only
 If you just want to download the application without scanning, specify `--download_only` or `-d`  
 After that you will need to specify the distribution system and mandatory parameters for specified system
 
 * `distribution_system` - distribution method for the application   
 _possible values_ `file`/`google_play`/`appstore`/`firebase`/`hockeyapp`/`appcenter`/`nexus`   
 For detailed information refer to the respective sections below.
- 
+
 If you want to integrate security analysis of downloaded application in the CI/CD you should specify these parameters.  
 
+#### Scan parameters
 The launch options depend on the location of the apk file sent for analysis. Also, there are required parameters that must be specified for launch:
  * `url` - network address for system (the path to the root without the final /)
  * `profile_id` - ID of the profile to be analyzed
