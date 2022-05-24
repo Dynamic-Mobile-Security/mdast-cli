@@ -30,7 +30,7 @@ During the execution of the script, the application is sent for the dynamic anal
   * [HockeyApp](#hockeyapp)
   * [AppCenter](#appcenter)
   * [Nexus](#nexus)
-
+* [Scan types](#scan-types)
 
 
 ## Install options
@@ -189,7 +189,7 @@ To start the initial login for Google Play, you need to run the following comman
 ```
  python mdast_cli/mdast_scan.py -d --distribution_system google_play --google_play_package_name com.instagram.android --google_play_email download*******ly@gmail.com --google_play_password Paaswoord
 ```
-To start the manual scan analysis of the application, that was downloaded from Google Play, you need to run the following command:
+To start the manual scan analysis of the application from Google Play, you need to run the following command:
 
 ```
  python mdast_cli/mdast_scan.py --profile_id 1337 --architecture_id 1 --distribution_system google_play --url "https://saas.mobile.appsec.world" --company_id 1 --token 5d5f6c98*********487a68ee20d4562d9f --google_play_package_name com.instagram.android --google_play_gsfid 432******************43 --google_play_auth_token JAgw_2h*************************************8KRaYQ. --google_play_file_name best_apk_d0wnl04d3r
@@ -198,12 +198,11 @@ To start the manual scan analysis of the application, that was downloaded from G
 As a result in the `downloaded_apps` repository will be application with name `best_apk_d0wnl04d3r.apk` and manual scan will be started.
 
 ### AppStore
-To download application from AppStore you need to know application_id and have **iTunes account with installed application** and credentials for it: email and password with 2FA code.  
+To download application from AppStore you need to know application_id and have **iTunes account** and credentials for it: email and password with 2FA code.  
 
 
 You need to select the `--distribution_system appstore` and specify mandatory parameters.
 
-This script will not work if the app has not been purchased in your AppStore account. It is the status of the app that is important, it must be confirmed with a fingerprint or password even if it is free. You can check this by making sure your app is in 'My apps' in your AppStore account settings.
 
 To successfully sign in to iTunes, you will need to **obtain and save** the 2fa code for later use.  
 When you run the script for the first time, use your email and password, you will get a login error in the console and at this point a two-factor authentication code will come to your device  
@@ -220,16 +219,31 @@ For example, password is `P@ssword` and 2FA is `742877`, so your parameter `--ap
 To get the app_id, go to the app page in the AppStore in your browser, you can extract the required parameter from the url:
 ![app_id_example](https://user-images.githubusercontent.com/46852358/153639003-f121273a-41ac-415d-aad7-6b2789f77cee.png)  
 
-`appstore_app_id 398129933` in this example.
-Also, you need to select the `distribution_system appstore` and specify the following mandatory parameters:
- * `appstore_app_id` - Application id from AppStore, you can get it on app page from url,   
+`appstore_app_id 398129933` in this example.  
+
+#### Parameters
+
+ You need to select the `distribution_system appstore` and specify the following mandatory parameters:
+* `appstore_bundle_id` or `appstore_app_id`
+  * `appstore_bundle_id` - bundle id of application
+  * `appstore_app_id` - Application id from AppStore, you can get it on app page from url,   
 format: apps.apple.com/app/id{appstore_app_id}
- * `appstore_apple_id` - Your email for iTunes login.
- * `appstore_password2FA` - Your password and 2FA code for iTunes login, format: password2FA_code 
+* `appstore_apple_id` - Your email for iTunes login.
+* `appstore_password2FA` - Your password and 2FA code for iTunes login, format: password2FA_code 
 
 You can specify downloaded app file name with an optional parameter
 
  * `appstore_file_name` - file name for app to be saved with
+
+#### Launch example
+
+To start the manual scan analysis of the application from AppStore, you need to run the following command:
+```
+ python mdast_cli/mdast_scan.py --architecture_id 3 --profile_id 1246 --distribution_system appstore --appstore_app_id 564177498 --appstore_apple_id ubet******@icloud.com --appstore_password2FA pass*******31******454  --url "https://saas.mobile.appsec.world" --company_id 2 --token 5d5f6****************2d9f --appstore_file_name my_b3st_4pp
+```
+As a result in the `downloaded_apps` repository will be application with name `my_b3st_4pp.ipa` and manual scan will be started.
+
+#### Details
 
 If you lost the 2fa code and the login has already been made, the session will be active for a few time without using 2fa, only apple_id + password. You also will not be able to end your session via this script, so for the script to work correctly you need to login again after session expires and save the two-factor authentication code in your notes.  
 
@@ -243,6 +257,8 @@ or error in logs:
 
 Then contact the support team to agree on an Apple ID, which will be used for AppStore integration, you will be offered a solution to this problem.
 
+While creating AppStore integration [ipatool](https://github.com/majd/ipatool) helped a lot, huge thanks for everyone who contributed to this nice open-source tool.
+
 ### Firebase
 To download the application from firebase platform you need to know some cookies for Google SSO authentication and project_id, app_id, app_code, api_key and file_extension parameters from firebase project.  
 You need to select the `--distribution_system firebase` and specify mandatory parameters.  
@@ -252,6 +268,8 @@ And copy SID, SSID, APISID, SAPISID, HSID to your launch command. The lifetime o
 
 Screenshot of cookie storage:
 ![cookie_storage](https://user-images.githubusercontent.com/46852358/149788352-d453dd78-547f-4989-8132-b94a6f020a81.png)
+
+#### Parameters
 
  * `firebase_SID_cookie` - SID
  * `firebase_HSID_cookie` - HSID
@@ -289,6 +307,14 @@ Request url will match this pattern, you should extract 4 parameters from url.
 You can specify the downloaded app file name with an optional parameter
 
  * `firebase_file_name` - file name for app to be saved with
+
+#### Launch example
+
+To start the manual scan analysis of the application, that was downloaded from Firebase, you need to run the following command:
+```
+python mdast_cli/mdast_scan.py --profile_id 468 --architecture_id 2 --distribution_system firebase --firebase_project_id 2834204**** --firebase_app_id 1:283***3642:android:8b0a0***56ac40c1a43 --firebase_app_code 2b***sltr0 --firebase_api_key AIzaSyDov*****qKdbj-geRWyzMTrg --firebase_SID_cookie FgiA*****ZiQakQ-_C-5ZaEHvbDMFGkrgriAByQ9P9fv7LfRrYJ5suXgrCwIQBoOjA. --firebase_HSID_cookie AsiL****OjPI --firebase_SSID_cookie A****dwcZk1Z-1pE --firebase_APISID_cookie Z-FmS1aPB****djK/AjmG0h2Hc-GG9g2Ac --firebase_SAPISID_cookie XYR2tnf****0zOt/AEvVZ8JVEuCnE6pxm --url "https://saas.mobile.appsec.world" --company_id 1 --token 2fac9652a2fbe4****9f44af59c3381772f --firebase_file_name your_app_file_name  --firebase_file_extension apk
+```
+As a result in the `downloaded_apps` repository will be application with name `your_app_file_name.apk` and manual scan will be started.
 
 ### HockeyApp
  
@@ -350,7 +376,8 @@ mdast_cli --distribution_system appcenter --appcenter_token 18bc81146d374ba4b118
 As a result, the `demo_app` application with release `id 710` will be found among applications of the specified owner (user or organization `test_org_or_user`). This version of the release will be downloaded and sent for security analysis.
 
 
-__AppCenter latest version of the release__
+__AppCenter latest version of the release__  
+
 To download the latest version of the release you need to use the following parameter: `appcenter_release_id latest`. The command line will look as follows:
 
 ```
@@ -359,7 +386,8 @@ mdast_cli --distribution_system appcenter --appcenter_token 18bc81146d374ba4b118
 
 As a result, the latest available release of the application will be downloaded.
 
-### AppCenter by application version
+__AppCenter by application version__  
+
 To start the analysis of the application by the known name, owner and version (`version_code` in` Android Manifest`), you need to run the following command:
 
 ``` 
@@ -367,7 +395,6 @@ mdast_cli --distribution_system appcenter --appcenter_token 18bc81146d374ba4b118
 ```
 
 As a result, in the owner workspace (user or organization `test_org_or_user`) will be found application `demo_app` and will be found a release in which the version of the application `31337` was specified. This version will be downloaded and submitted for security analysis.
-
 
 ### Nexus
 To download the application from maven repository you need to know the repository where the mobile application is stored and its group_id, artifact_id and version. To upload mobile application to Nexus you can use [this snippet](https://gist.github.com/Dynamic-Mobile-Security/9730e8eaa1b5d5f7f21e28beb63561a8) for android apk and [this one](https://gist.github.com/Dynamic-Mobile-Security/66daaf526e0109636d8bcdc21fd10779) for iOS ipa.  
@@ -381,12 +408,9 @@ Also, you need to select the `distribution_system nexus` and specify the followi
  * `nexus_artifact_id` - artifact_id of the uploaded mobile application from maven data.
  * `nexus_version` - version of the uploaded mobile application from maven data.
  
- 
 
-## Launch examples
-
-### Scan type
-There are several ways to start scan: with previously recorded testcase or without it.
+### Scan types
+There are several ways to start scan for android applications: with previously recorded testcase or without it.
  * In first scenario with selected testcase - it will be replayed in the scan execution. 
  * In second scenario without testcase, application will be installed on the device, started, waiting for 30 seconds and then stopped and further analysis will be performed.
 
@@ -401,20 +425,3 @@ To start this type of scan don't specify `--testcase_id` parameter:
 ```
 mdast_cli --distribution_system file --file_path "/files/demo/apk/demo.apk" --url "https://saas.mobile.appsec.world" --profile_id 1 --company_id 1 - architecture_id 1 --token "eyJ0eXA4OiJKA1QiLbJhcGciO5JIU4I1NiJ1.eyJzdaJqZWNcX2lkIj53LCJle5AiOjf1OTM5OTU3MjB1.hrI6c4VN_U2mo5VjHvRoENPv2"
 ```
-
-
-### Firebase launch example
-To start the manual scan analysis of the application, that was downloaded from Firebase, you need to run the following command:
-```
-python mdast_cli/mdast_scan.py --profile_id 468 --architecture_id 2 --distribution_system firebase --firebase_project_id 2834204**** --firebase_app_id 1:283***3642:android:8b0a0***56ac40c1a43 --firebase_app_code 2b***sltr0 --firebase_api_key AIzaSyDov*****qKdbj-geRWyzMTrg --firebase_SID_cookie FgiA*****ZiQakQ-_C-5ZaEHvbDMFGkrgriAByQ9P9fv7LfRrYJ5suXgrCwIQBoOjA. --firebase_HSID_cookie AsiL****OjPI --firebase_SSID_cookie A****dwcZk1Z-1pE --firebase_APISID_cookie Z-FmS1aPB****djK/AjmG0h2Hc-GG9g2Ac --firebase_SAPISID_cookie XYR2tnf****0zOt/AEvVZ8JVEuCnE6pxm --url "https://saas.mobile.appsec.world" --company_id 1 --token 2fac9652a2fbe4****9f44af59c3381772f --firebase_file_name your_app_file_name  --firebase_file_extension apk
-```
-As a result in the `downloaded_apps` repository will be application with name `your_app_file_name.apk` and manual scan will be started.
-
-### AppStore launch example
-To start the manual scan analysis of the application, that was downloaded from AppStore, you need to run the following command:
-```
- python mdast_cli/mdast_scan.py --architecture_id 3 --profile_id 1246 --distribution_system appstore --appstore_app_id 564177498 --appstore_apple_id ubet******@icloud.com --appstore_password2FA pass*******31******454  --url "https://saas.mobile.appsec.world" --company_id 2 --token 5d5f6****************2d9f --appstore_file_name my_b3st_4pp
-```
-As a result in the `downloaded_apps` repository will be application with name `my_b3st_4pp.ipa` and manual scan will be started.
-
-While creating AppStore integration [ipatool](https://github.com/majd/ipatool) helped a lot, huge thanks for everyone who contributed to this nice open-source tool.
