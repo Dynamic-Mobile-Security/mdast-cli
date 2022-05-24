@@ -24,11 +24,7 @@ During the execution of the script, the application is sent for the dynamic anal
    * [Scan parameters](#scan-parameters)
 * [Distribution systems](#distribution-systems)
   * [Local file](#local-file-launch)
-    * [parameters](#parameters)
-    * [launch example](#launch-example)
   * [Google play](#google-play)
-    * [parameters](#parameters)
-    * [launch example](#launch-example)
   * [AppStore](#appstore)
   * [Firebase](#firebase)
   * [HockeyApp](#hockeyapp)
@@ -145,10 +141,12 @@ __Generating a Summary report in JSON format__
 mdast_cli --distribution_system file --file_path "/files/demo/apk/demo.apk" --url "https://saas.mobile.appsec.world" --profile_id 1 --testcase_id 4 --company_id 1 - architecture_id 1 --token "eyJ0eXA4Oi**************I1NiJ1.eyJzdaJqZWNcX**************8OTU3MjB1.hrI6c4VN_U2mo5VjHvRoENPv2" --summary_report_json_file_name json-scan-report.json
 ```
 As a result, automated analysis of the `demo.apk` application with a profile with` id` 1 will be launched and a test case with `id` 4 will be launched, and upon completion of scanning, a JSON report with the total number of defects and brief statistics will be saved.
+
 ### Google play
 
-> :bangbang: *Updated May 2022: Seems like in last update Google disabled app passwords for play store access, so currently login with email + password is not working. If you already have gsfid + token just use them for now.  
-Contact your suppport team if you need help, we will share with you working credentials from service account.*
+> :bangbang: :bangbang: :bangbang: *Updated May 2022*:   
+> Seems like in last update Google disabled app passwords for play store access, so currently login with email + password is not working. If you already have gsfid + token just use them for now.  
+Contact your suppport team if you need help, we will share with you working credentials from service account.
 
 To download application from Google Play Store you need **temporary account with 2fa authentication disabled**.  
 
@@ -199,39 +197,51 @@ To start the manual scan analysis of the application, that was downloaded from G
 
 As a result in the `downloaded_apps` repository will be application with name `best_apk_d0wnl04d3r.apk` and manual scan will be started.
 
+### AppStore
+To download application from AppStore you need to know application_id and have **iTunes account with installed application** and credentials for it: email and password with 2FA code.  
 
-### HockeyApp
-To download an application from the HockeyApp distribution system you need to select the `distribution_system = hockeyapp` parameter.  
-Also, you need to specify the following mandatory parameters:
 
- * `hockey_token` (mandatory parameter) - API access token. Look in the [HockeyApp documentation](https://rink.hockeyapp.net/manage/auth_tokens) how to retrieve it.
- * `hockey_version` (optional parameter) - this parameter downloads the specific version of the application in accordance with its version ID (the `version` field in the [API](https://support.hockeyapp.net/kb/api/api-versions)).   
- If this parameter is not set, the latest available version of the application ("latest") will be downloaded.
- * `hockey_bundle_id` or `hockey_public_id` (mandatory parameter)
-    * `hockey_bundle_id` - ID of Android application or, alternatively, the package name (`com.app.example`). This option launches a search among all HockeyApp applications and thereafter picks an application with the corresponding ID. API field - [bundle_identifier](https://support.hockeyapp.net/kb/api/api-apps).
-    * `hockey_public_id` - ID of an application inside the HockeyApp system. This parameter downloads an application with the corresponding ID. API field - [public_identifier](https://support.hockeyapp.net/kb/api/api-apps)
+You need to select the `--distribution_system appstore` and specify mandatory parameters.
 
-### AppCenter
-To download the application from AppCenter distribution system you need to select the `distribution_system appcenter` parameter. Also, you need to specify the following mandatory parameters:
- * `appcenter_token` - API access token. Look in official documentation to [learn how to retrieve it]((https://docs.microsoft.com/en-us/appcenter/api-docs/)).
- * `appcenter_owner_name` - owner of the application. Look in official documentation to learn how to retrieve the [owner name](https://docs.microsoft.com/en-us/appcenter/api-docs/#find-your-app-center-app-name-and-owner-name).
- * `appcenter_app_name` - the name of the application in the AppCenter system. Look in official documentation to [learn how to retrieve it](https://docs.microsoft.com/en-us/appcenter/api-docs/#find-your-app-center-app-name-and-owner-name)
- * `appcenter_release_id` or `appcenter_app_version`
-    * `appcenter_release_id` - ID of the specific release of the application to be downloaded from AppCenter. There is a possibility to select the "latest" value - the [latest available version](https://openapi.appcenter.ms/#/distribute/releases_getLatestByUser) of the application will be downloaded.
-    * `appcenter_app_version` - this parameter finds and downloads the specific version of the application by its version ID (shown in Android Manifest) (the "version" field in the [AppCenter Documentation](https://openapi.appcenter.ms/#/distribute/releases_list))
+This script will not work if the app has not been purchased in your AppStore account. It is the status of the app that is important, it must be confirmed with a fingerprint or password even if it is free. You can check this by making sure your app is in 'My apps' in your AppStore account settings.
 
-### Nexus
-To download the application from maven repository you need to know the repository where the mobile application is stored and its group_id, artifact_id and version. To upload mobile application to Nexus you can use [this snippet](https://gist.github.com/Dynamic-Mobile-Security/9730e8eaa1b5d5f7f21e28beb63561a8) for android apk and [this one](https://gist.github.com/Dynamic-Mobile-Security/66daaf526e0109636d8bcdc21fd10779) for iOS ipa.  
+To successfully sign in to iTunes, you will need to **obtain and save** the 2fa code for later use.  
+When you run the script for the first time, use your email and password, you will get a login error in the console and at this point a two-factor authentication code will come to your device  
 
-Also, you need to select the `distribution_system nexus` and specify the following mandatory parameters:
- * `nexus_url` - http(s) url for Nexus server where the mobile application is located.
- * `nexus_login` - username for Nexus server with permissions to the repository where mobile application is located.
- * `nexus_password` - password for the Nexus server with permissions to the repository where mobile application is located.
- * `nexus_repo_name` - repository name in Nexus where mobile application is located.
- * `nexus_group_id` - group_id of the uploaded mobile application from maven data.
- * `nexus_artifact_id` - artifact_id of the uploaded mobile application from maven data.
- * `nexus_version` - version of the uploaded mobile application from maven data.
 
+<img src="https://user-images.githubusercontent.com/46852358/153638449-6488cf6d-214f-44cb-8265-fe8b79b2614f.png" alt="drawing" width="300"/>  
+
+
+
+For the subsequent work of the script without repeating the step with the manual receipt of 2fa code you need to remember the received code, the session with it will be active for 6 months. After that, try to repeat the login with  password and 2FA, formatting it like `password2FA`. You do not need to get new 2fa codes later, this parameter will work for 6 months.   
+
+For example, password is `P@ssword` and 2FA is `742877`, so your parameter `--appstore_password2FA P@ssword742877`.
+
+To get the app_id, go to the app page in the AppStore in your browser, you can extract the required parameter from the url:
+![app_id_example](https://user-images.githubusercontent.com/46852358/153639003-f121273a-41ac-415d-aad7-6b2789f77cee.png)  
+
+`appstore_app_id 398129933` in this example.
+Also, you need to select the `distribution_system appstore` and specify the following mandatory parameters:
+ * `appstore_app_id` - Application id from AppStore, you can get it on app page from url,   
+format: apps.apple.com/app/id{appstore_app_id}
+ * `appstore_apple_id` - Your email for iTunes login.
+ * `appstore_password2FA` - Your password and 2FA code for iTunes login, format: password2FA_code 
+
+You can specify downloaded app file name with an optional parameter
+
+ * `appstore_file_name` - file name for app to be saved with
+
+If you lost the 2fa code and the login has already been made, the session will be active for a few time without using 2fa, only apple_id + password. You also will not be able to end your session via this script, so for the script to work correctly you need to login again after session expires and save the two-factor authentication code in your notes.  
+
+If there is an error associated with the wrong Apple ID when you start scanning:
+
+![wrong_apple_id](https://user-images.githubusercontent.com/46852358/158440208-45868069-d772-4476-a1bf-6508c2bac1eb.jpg)   
+
+or error in logs:
+
+"Logging in to the App Store. To open app, log in with the Apple ID with which you made the purchase."
+
+Then contact the support team to agree on an Apple ID, which will be used for AppStore integration, you will be offered a solution to this problem.
 
 ### Firebase
 To download the application from firebase platform you need to know some cookies for Google SSO authentication and project_id, app_id, app_code, api_key and file_extension parameters from firebase project.  
@@ -280,52 +290,98 @@ You can specify the downloaded app file name with an optional parameter
 
  * `firebase_file_name` - file name for app to be saved with
 
-### AppStore
-To download application from AppStore you need to know application_id and have **iTunes account with installed application** and credentials for it: email and password with 2FA code.  
+### HockeyApp
+ 
+To download an application from the HockeyApp distribution system you need to select the `distribution_system = hockeyapp` parameter.  
+Also, you need to specify the following mandatory parameters:
+
+#### Parameters
+
+ * `hockey_token` (mandatory parameter) - API access token. Look in the [HockeyApp documentation](https://rink.hockeyapp.net/manage/auth_tokens) how to retrieve it.
+ * `hockey_version` (optional parameter) - this parameter downloads the specific version of the application in accordance with its version ID (the `version` field in the [API](https://support.hockeyapp.net/kb/api/api-versions)).If this parameter is not set, the latest available version of the application ("latest") will be downloaded.  
+
+ * `hockey_bundle_id` or `hockey_public_id` (mandatory parameter)
+   * `hockey_bundle_id` - ID of Android application or, alternatively, the package name (`com.app.example`). This option launches a search among all HockeyApp applications and thereafter picks an application with the corresponding ID. API field - [bundle_identifier](https://support.hockeyapp.net/kb/api/api-apps).
+   * `hockey_public_id` - ID of an application inside the HockeyApp system. This parameter downloads an application with the corresponding ID. API field - [public_identifier](https://support.hockeyapp.net/kb/api/api-apps)
+
+#### Launch examples
+
+__HockeyApp by bundle_identifier and version__
+
+To run application analysis from a HockeyApp system:
+
+```
+mdast_cli --distribution_system hockeyapp --hockey_token 18bc81146d374ba4b1182ed65e0b3aaa --bundle_id com.appsec.demo --hockey_version 31337 --url "https://saas.mobile.appsec.world" --profile_id 2 --testcase_id 3 --company_id 1 --architecture_id 1 --token "eyJ0eXA4OiJKA1QiLbJhcGciO5JIU4I1NiJ1.eyJzdaJqZWNcX2lkIj53LCJle5AiOjf1OTM5OTU3MjB1.hfI6c4VN_U2mo5VfRoENPvJCvpxhLzjHqI0gxqgr2Bs"
+```
+
+As a result, an application with the package ID `com.appsec.demo` and version` 31337` will be found on the HockeyApp system. It will be downloaded, and an automated analysis will be performed for it with a profile with `id 2` and a test case with `id 3`.
+
+__HockeyApp with public identifier and the latest available version__  
+
+To start scanning the latest version of an application in HockeyApp system using the application's public ID:
+```
+mdast_cli --distribution_system hockeyapp --hockey_token 18bc81146d374ba4b1182ed65e0b3aaa --public_id "1234567890abcdef1234567890abcdef" --url "https://saas.mobile.appsec.world" --profile_id 2 --testcase_id 3 --company_id 1 --architecture_id 1 --token "eyJ0eXA4OiJKA1QiLbJhcGciO5JIU4I1NiJ1.eyJzdaJqZWNcX2lkIj53LCJle5AiOjf1OTM5OTU3MjB1.hfI6c4VN_U2mo5VfRoENPvJCvpxhLzjHqI0gxqgr2Bs"
+```
+
+As a result, the latest available version of the application with the unique public ID `1234567890abcdef1234567890abcdef` will be found in HockeyApp system. The application will be downloaded and automatically analyzed using the profile with `id 2` and the test case with `id 3`.
+
+### AppCenter
+
+#### Parameters
+
+To download the application from AppCenter distribution system you need to select the `distribution_system appcenter` parameter. Also, you need to specify the following mandatory parameters:
+ * `appcenter_token` - API access token. Look in official documentation to [learn how to retrieve it]((https://docs.microsoft.com/en-us/appcenter/api-docs/)).
+ * `appcenter_owner_name` - owner of the application. Look in official documentation to learn how to retrieve the [owner name](https://docs.microsoft.com/en-us/appcenter/api-docs/#find-your-app-center-app-name-and-owner-name).
+ * `appcenter_app_name` - the name of the application in the AppCenter system. Look in official documentation to [learn how to retrieve it](https://docs.microsoft.com/en-us/appcenter/api-docs/#find-your-app-center-app-name-and-owner-name)
+ * `appcenter_release_id` or `appcenter_app_version`
+    * `appcenter_release_id` - ID of the specific release of the application to be downloaded from AppCenter. There is a possibility to select the "latest" value - the [latest available version](https://openapi.appcenter.ms/#/distribute/releases_getLatestByUser) of the application will be downloaded.
+    * `appcenter_app_version` - this parameter finds and downloads the specific version of the application by its version ID (shown in Android Manifest) (the "version" field in the [AppCenter Documentation](https://openapi.appcenter.ms/#/distribute/releases_list))
+
+#### Launch examples
+
+__AppCenter with the release ID__  
+
+To start scanning an application using its name, the name of the owner and the release ID, the following command should be entered:
+
+```
+mdast_cli --distribution_system appcenter --appcenter_token 18bc81146d374ba4b1182ed65e0b3aaa --appcenter_owner_name test_org_or_user --appcenter_app_name demo_app --appcenter_release_id 710 --url "https://saas.mobile.appsec.world" --profile_id 2 --testcase_id 3 --company_id 1 --architecture_id 1 --token "eyJ0eXA4OiJKA1QiLbJhcGciO5JIU4I1NiJ1.eyJzdaJqZWNcX2lkIj53LCJle5AiOjf1OTM5OTU3MjB1.hfI6c4VN_U2mo5VfRoENPvJCvpxhLzjHqI0gxqgr2Bs"
+```
+
+As a result, the `demo_app` application with release `id 710` will be found among applications of the specified owner (user or organization `test_org_or_user`). This version of the release will be downloaded and sent for security analysis.
 
 
-You need to select the `--distribution_system appstore` and specify mandatory parameters.
+__AppCenter latest version of the release__
+To download the latest version of the release you need to use the following parameter: `appcenter_release_id latest`. The command line will look as follows:
 
-This script will not work if the app has not been purchased in your AppStore account. It is the status of the app that is important, it must be confirmed with a fingerprint or password even if it is free. You can check this by making sure your app is in 'My apps' in your AppStore account settings.
+```
+mdast_cli --distribution_system appcenter --appcenter_token 18bc81146d374ba4b1182ed65e0b3aaa --appcenter_owner_name "test_org_or_user" --appcenter_app_name "demo_app" --appcenter_release_id latest --url "https://saas.mobile.appsec.world" --profile_id 2 --testcase_id 3 --company_id 1 --architecture_id 1 --token "eyJ0eXA4OiJKA1QiLbJhcGciO5JIU4I1NiJ1.eyJzdaJqZWNcX2lkIj53LCJle5AiOjf1OTM5OTU3MjB1.hfI6c4VN_U2mo5VfRoENPvJCvpxhLzjHqI0gxqgr2Bs"
+```
 
-To successfully sign in to iTunes, you will need to **obtain and save** the 2fa code for later use.  
-When you run the script for the first time, use your email and password, you will get a login error in the console and at this point a two-factor authentication code will come to your device  
+As a result, the latest available release of the application will be downloaded.
+
+### AppCenter by application version
+To start the analysis of the application by the known name, owner and version (`version_code` in` Android Manifest`), you need to run the following command:
+
+``` 
+mdast_cli --distribution_system appcenter --appcenter_token 18bc81146d374ba4b1182ed65e0b3aaa --appcenter_owner_name "test_org_or_user" --appcenter_app_name "demo_app" --appcenter_app_version 31337 --url "https://saas.mobile.appsec.world" --profile_id 2 --testcase_id 3 --company_id 1 --architecture_id 1 --token "eyJ0eXA4OiJKA1QiLbJhcGciO5JIU4I1NiJ1.eyJzdaJqZWNcX2lkIj53LCJle5AiOjf1OTM5OTU3MjB1.hfI6c4VN_U2mo5VfRoENPvJCvpxhLzjHqI0gxqgr2Bs"
+```
+
+As a result, in the owner workspace (user or organization `test_org_or_user`) will be found application `demo_app` and will be found a release in which the version of the application `31337` was specified. This version will be downloaded and submitted for security analysis.
 
 
-<img src="https://user-images.githubusercontent.com/46852358/153638449-6488cf6d-214f-44cb-8265-fe8b79b2614f.png" alt="drawing" width="300"/>  
+### Nexus
+To download the application from maven repository you need to know the repository where the mobile application is stored and its group_id, artifact_id and version. To upload mobile application to Nexus you can use [this snippet](https://gist.github.com/Dynamic-Mobile-Security/9730e8eaa1b5d5f7f21e28beb63561a8) for android apk and [this one](https://gist.github.com/Dynamic-Mobile-Security/66daaf526e0109636d8bcdc21fd10779) for iOS ipa.  
 
-
-
-For the subsequent work of the script without repeating the step with the manual receipt of 2fa code you need to remember the received code, the session with it will be active for 6 months. After that, try to repeat the login with  password and 2FA, formatting it like `password2FA`. You do not need to get new 2fa codes later, this parameter will work for 6 months.   
-
-For example, password is `P@ssword` and 2FA is `742877`, so your parameter `--appstore_password2FA P@ssword742877`.
-
-To get the app_id, go to the app page in the AppStore in your browser, you can extract the required parameter from the url:
-![app_id_example](https://user-images.githubusercontent.com/46852358/153639003-f121273a-41ac-415d-aad7-6b2789f77cee.png)  
-
-`appstore_app_id 398129933` in this example.
-Also, you need to select the `distribution_system appstore` and specify the following mandatory parameters:
- * `appstore_app_id` - Application id from AppStore, you can get it on app page from url,   
-format: apps.apple.com/app/id{appstore_app_id}
- * `appstore_apple_id` - Your email for iTunes login.
- * `appstore_password2FA` - Your password and 2FA code for iTunes login, format: password2FA_code 
-
-You can specify downloaded app file name with an optional parameter
-
- * `appstore_file_name` - file name for app to be saved with
-
-If you lost the 2fa code and the login has already been made, the session will be active for a few time without using 2fa, only apple_id + password. You also will not be able to end your session via this script, so for the script to work correctly you need to login again after session expires and save the two-factor authentication code in your notes.  
-
-If there is an error associated with the wrong Apple ID when you start scanning:
-
-![wrong_apple_id](https://user-images.githubusercontent.com/46852358/158440208-45868069-d772-4476-a1bf-6508c2bac1eb.jpg)   
-
-or error in logs:
-
-"Logging in to the App Store. To open app, log in with the Apple ID with which you made the purchase."
-
-Then contact the support team to agree on an Apple ID, which will be used for AppStore integration, you will be offered a solution to this problem.
-
+Also, you need to select the `distribution_system nexus` and specify the following mandatory parameters:
+ * `nexus_url` - http(s) url for Nexus server where the mobile application is located.
+ * `nexus_login` - username for Nexus server with permissions to the repository where mobile application is located.
+ * `nexus_password` - password for the Nexus server with permissions to the repository where mobile application is located.
+ * `nexus_repo_name` - repository name in Nexus where mobile application is located.
+ * `nexus_group_id` - group_id of the uploaded mobile application from maven data.
+ * `nexus_artifact_id` - artifact_id of the uploaded mobile application from maven data.
+ * `nexus_version` - version of the uploaded mobile application from maven data.
+ 
+ 
 
 ## Launch examples
 
@@ -345,50 +401,6 @@ To start this type of scan don't specify `--testcase_id` parameter:
 ```
 mdast_cli --distribution_system file --file_path "/files/demo/apk/demo.apk" --url "https://saas.mobile.appsec.world" --profile_id 1 --company_id 1 - architecture_id 1 --token "eyJ0eXA4OiJKA1QiLbJhcGciO5JIU4I1NiJ1.eyJzdaJqZWNcX2lkIj53LCJle5AiOjf1OTM5OTU3MjB1.hrI6c4VN_U2mo5VjHvRoENPv2"
 ```
-
-### HockeyApp by bundle_identifier and version
-To run application analysis from a HockeyApp system:
-
-```
-mdast_cli --distribution_system hockeyapp --hockey_token 18bc81146d374ba4b1182ed65e0b3aaa --bundle_id com.appsec.demo --hockey_version 31337 --url "https://saas.mobile.appsec.world" --profile_id 2 --testcase_id 3 --company_id 1 --architecture_id 1 --token "eyJ0eXA4OiJKA1QiLbJhcGciO5JIU4I1NiJ1.eyJzdaJqZWNcX2lkIj53LCJle5AiOjf1OTM5OTU3MjB1.hfI6c4VN_U2mo5VfRoENPvJCvpxhLzjHqI0gxqgr2Bs"
-```
-
-As a result, an application with the package ID `com.appsec.demo` and version` 31337` will be found on the HockeyApp system. It will be downloaded, and an automated analysis will be performed for it with a profile with `id 2` and a test case with `id 3`.
-
-### HockeyApp with public identifier and the latest available version
-To start scanning the latest version of an application in HockeyApp system using the application's public ID:
-
-```
-mdast_cli --distribution_system hockeyapp --hockey_token 18bc81146d374ba4b1182ed65e0b3aaa --public_id "1234567890abcdef1234567890abcdef" --url "https://saas.mobile.appsec.world" --profile_id 2 --testcase_id 3 --company_id 1 --architecture_id 1 --token "eyJ0eXA4OiJKA1QiLbJhcGciO5JIU4I1NiJ1.eyJzdaJqZWNcX2lkIj53LCJle5AiOjf1OTM5OTU3MjB1.hfI6c4VN_U2mo5VfRoENPvJCvpxhLzjHqI0gxqgr2Bs"
-```
-
-As a result, the latest available version of the application with the unique public ID `1234567890abcdef1234567890abcdef` will be found in HockeyApp system. The application will be downloaded and automatically analyzed using the profile with `id 2` and the test case with `id 3`.
-
-### AppCenter with the release ID
-To start scanning an application using its name, the name of the owner and the release ID, the following command should be entered:
-
-```
-mdast_cli --distribution_system appcenter --appcenter_token 18bc81146d374ba4b1182ed65e0b3aaa --appcenter_owner_name test_org_or_user --appcenter_app_name demo_app --appcenter_release_id 710 --url "https://saas.mobile.appsec.world" --profile_id 2 --testcase_id 3 --company_id 1 --architecture_id 1 --token "eyJ0eXA4OiJKA1QiLbJhcGciO5JIU4I1NiJ1.eyJzdaJqZWNcX2lkIj53LCJle5AiOjf1OTM5OTU3MjB1.hfI6c4VN_U2mo5VfRoENPvJCvpxhLzjHqI0gxqgr2Bs"
-```
-
-As a result, the `demo_app` application with release `id 710` will be found among applications of the specified owner (user or organization `test_org_or_user`). This version of the release will be downloaded and sent for security analysis.
-
-To download the latest version of the release you need to use the following parameter: `appcenter_release_id latest`. The command line will look as follows:
-
-```
-mdast_cli --distribution_system appcenter --appcenter_token 18bc81146d374ba4b1182ed65e0b3aaa --appcenter_owner_name "test_org_or_user" --appcenter_app_name "demo_app" --appcenter_release_id latest --url "https://saas.mobile.appsec.world" --profile_id 2 --testcase_id 3 --company_id 1 --architecture_id 1 --token "eyJ0eXA4OiJKA1QiLbJhcGciO5JIU4I1NiJ1.eyJzdaJqZWNcX2lkIj53LCJle5AiOjf1OTM5OTU3MjB1.hfI6c4VN_U2mo5VfRoENPvJCvpxhLzjHqI0gxqgr2Bs"
-```
-
-As a result, the latest available release of the application will be downloaded.
-
-### AppCenter by application version
-To start the analysis of the application by the known name, owner and version (`version_code` in` Android Manifest`), you need to run the following command:
-
-``` 
-mdast_cli --distribution_system appcenter --appcenter_token 18bc81146d374ba4b1182ed65e0b3aaa --appcenter_owner_name "test_org_or_user" --appcenter_app_name "demo_app" --appcenter_app_version 31337 --url "https://saas.mobile.appsec.world" --profile_id 2 --testcase_id 3 --company_id 1 --architecture_id 1 --token "eyJ0eXA4OiJKA1QiLbJhcGciO5JIU4I1NiJ1.eyJzdaJqZWNcX2lkIj53LCJle5AiOjf1OTM5OTU3MjB1.hfI6c4VN_U2mo5VfRoENPvJCvpxhLzjHqI0gxqgr2Bs"
-```
-
-As a result, in the owner workspace (user or organization `test_org_or_user`) will be found application `demo_app` and will be found a release in which the version of the application `31337` was specified. This version will be downloaded and submitted for security analysis.
 
 
 ### Firebase launch example
