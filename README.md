@@ -27,7 +27,6 @@ During the execution of the script, the application is sent for the dynamic anal
   * [Google play](#google-play)
   * [AppStore](#appstore)
   * [Firebase](#firebase)
-  * [HockeyApp](#hockeyapp)
   * [AppCenter](#appcenter)
   * [Nexus](#nexus)
 * [Scan types](#scan-types)
@@ -68,7 +67,6 @@ Currently, several distribution systems are supported:
  * Applications from [Google Play](https://play.google.com/store/apps)
  * Applications from [Appstore](https://www.apple.com/app-store/)
  * Applications from [Firebase](https://firebase.google.com/)
- * Applications from [HockeyApp](https://hockeyapp.net/)
  * Applications from [AppCenter](https://appcenter.ms)
  * Applications from [Nexus Repository 3.x](https://help.sonatype.com/repomanager3) from maven repo.
 
@@ -80,7 +78,7 @@ If you just want to download the application without scanning, specify `--downlo
 After that you will need to specify the distribution system and mandatory parameters for specified system
 
 * `distribution_system` - distribution method for the application   
-_possible values_ `file`/`google_play`/`appstore`/`firebase`/`hockeyapp`/`appcenter`/`nexus`   
+_possible values_ `file`/`google_play`/`appstore`/`firebase`/`appcenter`/`nexus`   
 For detailed information refer to the respective sections below.
 
 If you want to integrate security analysis of downloaded application in the CI/CD you should specify these parameters.  
@@ -315,41 +313,6 @@ To start the manual scan analysis of the application, that was downloaded from F
 python mdast_cli/mdast_scan.py --profile_id 468 --architecture_id 2 --distribution_system firebase --firebase_project_id 2834204**** --firebase_app_id 1:283***3642:android:8b0a0***56ac40c1a43 --firebase_app_code 2b***sltr0 --firebase_api_key AIzaSyDov*****qKdbj-geRWyzMTrg --firebase_SID_cookie FgiA*****ZiQakQ-_C-5ZaEHvbDMFGkrgriAByQ9P9fv7LfRrYJ5suXgrCwIQBoOjA. --firebase_HSID_cookie AsiL****OjPI --firebase_SSID_cookie A****dwcZk1Z-1pE --firebase_APISID_cookie Z-FmS1aPB****djK/AjmG0h2Hc-GG9g2Ac --firebase_SAPISID_cookie XYR2tnf****0zOt/AEvVZ8JVEuCnE6pxm --url "https://saas.mobile.appsec.world" --company_id 1 --token 2fac9652a2fbe4****9f44af59c3381772f --firebase_file_name your_app_file_name  --firebase_file_extension apk
 ```
 As a result in the `downloaded_apps` repository will be application with name `your_app_file_name.apk` and manual scan will be started.
-
-### HockeyApp
- 
-To download an application from the HockeyApp distribution system you need to select the `distribution_system = hockeyapp` parameter.  
-Also, you need to specify the following mandatory parameters:
-
-#### Parameters
-
- * `hockey_token` (mandatory parameter) - API access token. Look in the [HockeyApp documentation](https://rink.hockeyapp.net/manage/auth_tokens) how to retrieve it.
- * `hockey_version` (optional parameter) - this parameter downloads the specific version of the application in accordance with its version ID (the `version` field in the [API](https://support.hockeyapp.net/kb/api/api-versions)).If this parameter is not set, the latest available version of the application ("latest") will be downloaded.  
-
- * `hockey_bundle_id` or `hockey_public_id` (mandatory parameter)
-   * `hockey_bundle_id` - ID of Android application or, alternatively, the package name (`com.app.example`). This option launches a search among all HockeyApp applications and thereafter picks an application with the corresponding ID. API field - [bundle_identifier](https://support.hockeyapp.net/kb/api/api-apps).
-   * `hockey_public_id` - ID of an application inside the HockeyApp system. This parameter downloads an application with the corresponding ID. API field - [public_identifier](https://support.hockeyapp.net/kb/api/api-apps)
-
-#### Launch examples
-
-__HockeyApp by bundle_identifier and version__
-
-To run application analysis from a HockeyApp system:
-
-```
-mdast_cli --distribution_system hockeyapp --hockey_token 18bc81146d374ba4b1182ed65e0b3aaa --bundle_id com.appsec.demo --hockey_version 31337 --url "https://saas.mobile.appsec.world" --profile_id 2 --testcase_id 3 --company_id 1 --architecture_id 1 --token "eyJ0eXA4OiJKA1QiLbJhcGciO5JIU4I1NiJ1.eyJzdaJqZWNcX2lkIj53LCJle5AiOjf1OTM5OTU3MjB1.hfI6c4VN_U2mo5VfRoENPvJCvpxhLzjHqI0gxqgr2Bs"
-```
-
-As a result, an application with the package ID `com.appsec.demo` and version` 31337` will be found on the HockeyApp system. It will be downloaded, and an automated analysis will be performed for it with a profile with `id 2` and a test case with `id 3`.
-
-__HockeyApp with public identifier and the latest available version__  
-
-To start scanning the latest version of an application in HockeyApp system using the application's public ID:
-```
-mdast_cli --distribution_system hockeyapp --hockey_token 18bc81146d374ba4b1182ed65e0b3aaa --public_id "1234567890abcdef1234567890abcdef" --url "https://saas.mobile.appsec.world" --profile_id 2 --testcase_id 3 --company_id 1 --architecture_id 1 --token "eyJ0eXA4OiJKA1QiLbJhcGciO5JIU4I1NiJ1.eyJzdaJqZWNcX2lkIj53LCJle5AiOjf1OTM5OTU3MjB1.hfI6c4VN_U2mo5VfRoENPvJCvpxhLzjHqI0gxqgr2Bs"
-```
-
-As a result, the latest available version of the application with the unique public ID `1234567890abcdef1234567890abcdef` will be found in HockeyApp system. The application will be downloaded and automatically analyzed using the profile with `id 2` and the test case with `id 3`.
 
 ### AppCenter
 

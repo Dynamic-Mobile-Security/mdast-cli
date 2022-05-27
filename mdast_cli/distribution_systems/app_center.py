@@ -13,7 +13,7 @@ except ImportError:
 
 class AppCenter(DistributionSystem):
     """
-    Downloading application from HockeyApp distribution system
+    Downloading application from AppCenter distribution system
     """
     url = 'https://api.appcenter.ms/v0.1'
     download_path = 'downloaded_apps'

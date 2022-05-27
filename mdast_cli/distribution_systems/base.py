@@ -1,6 +1,6 @@
 class DistributionSystem:
     """
-    Base class for various distribution systems such HockeyApp, Firebase, AppsFlayer, etc
+    Base class for various distribution systems such Firebase, AppsFlayer, etc
     """
     url = ''
     download_path = ''

@@ -21,7 +21,6 @@ try:
     from distribution_systems.appstore import AppStore
     from distribution_systems.firebase import Firebase
     from distribution_systems.google_play import google_play_download
-    from distribution_systems.hockey_app import HockeyApp
     from distribution_systems.nexus import NexusRepository
     from helpers.const import END_SCAN_TIMEOUT, SLEEP_TIMEOUT, TRY_COUNT, DastState, DastStateDict
     from helpers.logging import Log
@@ -30,7 +29,6 @@ except ImportError:
     from mdast_cli.distribution_systems.appstore import AppStore
     from mdast_cli.distribution_systems.firebase import Firebase
     from mdast_cli.distribution_systems.google_play import google_play_download
-    from mdast_cli.distribution_systems.hockey_app import HockeyApp
     from mdast_cli.distribution_systems.nexus import NexusRepository
     from mdast_cli.helpers.const import END_SCAN_TIMEOUT, SLEEP_TIMEOUT, TRY_COUNT, DastState, DastStateDict
     from mdast_cli.helpers.logging import Log
@@ -42,27 +40,14 @@ def parse_args():
                                                                            'without scan.'
                                                                            ' This argument is optional')
     parser.add_argument('--distribution_system', '-ds', type=str, help='Select how to download file: '
-                                                                       'file/hockeyapp/appcenter/nexus'
+                                                                       'file/appcenter/nexus'
                                                                        '/firebase/appstore/google_play',
-                        choices=['file', 'hockeyapp', 'appcenter', 'nexus', 'firebase', 'appstore', 'google_play'],
+                        choices=['file', 'appcenter', 'nexus', 'firebase', 'appstore', 'google_play'],
                         required=True)
 
     # Arguments used for distribution_system = file
     parser.add_argument('--file_path', type=str, help='Path to local file for analyze. This argument is required if '
                                                       'distribution system set to "file"')
-
-    # Arguments used for distribution_system hockeyapp
-    parser.add_argument('--hockey_token', type=str, help='Auth token for HockeyApp. This argument is required if '
-                                                         'distribution system set to "hockeyapp"')
-    parser.add_argument('--hockey_bundle_id', type=str, help='Application bundle in HockeyApp. This argument or '
-                                                             '"--hockey_public_id" is required if distribution system '
-                                                             'set to "hockeyapp"')
-    parser.add_argument('--hockey_public_id', type=str, help='Application identifier in HockeyApp. This argument or '
-                                                             '"--hockey_bundle_id" is required if distribution system '
-                                                             'set to "hockeyapp"')
-    parser.add_argument('--hockey_version', type=str, help='Application version in HockeyApp. If not set - the latest '
-                                                           'version will be downloaded. This argument is required if '
-                                                           'distribution system set to "hockeyapp"', default='latest')
 
     # Arguments used for distribution_system appcenter
     parser.add_argument('--appcenter_token', type=str, help='Auth token for AppCenter. This argument is required if '
@@ -202,11 +187,6 @@ def parse_args():
 
     if args.distribution_system == 'file' and args.file_path is None:
         parser.error('"--distribution_system file" requires "--file_path" argument to be set')
-    elif args.distribution_system == 'hockeyapp' and (
-            args.hockey_token is None or
-            (args.hockey_bundle_id is None or args.hockey_public_id is None)):
-        parser.error('"--distribution_system hockeyapp" requires "--hockey_token" and "--hockey_app" arguments to be '
-                     'set')
     elif args.distribution_system == 'appcenter' and (
             args.appcenter_token is None or
             args.appcenter_owner_name is None or
@@ -285,12 +265,6 @@ def main():
     app_file = ''
     if distribution_system == 'file':
         app_file = arguments.file_path
-    elif distribution_system == 'hockeyapp':
-        hockey_app = HockeyApp(arguments.hockey_token,
-                               arguments.hockey_bundle_id,
-                               arguments.hockey_public_id,
-                               arguments.hockey_version)
-        app_file = hockey_app.download_app()
     elif distribution_system == 'appcenter':
         appcenter = AppCenter(arguments.appcenter_token,
                               arguments.appcenter_app_name,
