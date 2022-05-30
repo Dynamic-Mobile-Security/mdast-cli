@@ -1,19 +1,17 @@
+import ssl
 import sys
 from base64 import b64decode, urlsafe_b64encode
 
-from cryptography.hazmat.primitives.asymmetric.utils import encode_dss_signature
+import requests
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.serialization import load_der_public_key
 from cryptography.hazmat.primitives.asymmetric import padding
-
-from mdast_cli.helpers.logging import Log
-
-import requests
-import ssl
-
+from cryptography.hazmat.primitives.asymmetric.utils import encode_dss_signature
+from cryptography.hazmat.primitives.serialization import load_der_public_key
 from urllib3.poolmanager import PoolManager
 from urllib3.util import ssl_
+
+from mdast_cli.helpers.logging import Log
 
 from . import config, googleplay_pb2, utils
 
