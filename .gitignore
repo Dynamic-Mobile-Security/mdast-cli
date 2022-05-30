@@ -6,7 +6,6 @@
 # Node artifact files
 node_modules/
 dist/
-stingray_cli.egg-info
 
 # venv
 venv/
@@ -62,3 +61,4 @@ venv!/mdast_cli.egg-info/
 config
 !/README_DOCKER.md
 README_DOCKER.md
+mdast_cli.egg-info/

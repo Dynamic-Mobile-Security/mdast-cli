@@ -1,16 +1,23 @@
 import sys
 from base64 import b64decode, urlsafe_b64encode
 
-import requests
+from cryptography.hazmat.primitives.asymmetric.utils import encode_dss_signature
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.asymmetric import padding
-from cryptography.hazmat.primitives.asymmetric.utils import encode_dss_signature
 from cryptography.hazmat.primitives.serialization import load_der_public_key
+from cryptography.hazmat.primitives.asymmetric import padding
 
 from mdast_cli.helpers.logging import Log
 
+import requests
+import ssl
+
+from urllib3.poolmanager import PoolManager
+from urllib3.util import ssl_
+
 from . import config, googleplay_pb2, utils
+
+ssl_verify = True
 
 BASE = "https://android.clients.google.com/"
 FDFE = BASE + "fdfe/"
@@ -26,7 +33,7 @@ CONTENT_TYPE_URLENC = "application/x-www-form-urlencoded; charset=UTF-8"
 CONTENT_TYPE_PROTO = "application/x-protobuf"
 
 
-def encrypt_password(login, password):
+def encrypt_password(login, passwd):
     binaryKey = b64decode(config.GOOGLE_PUBKEY)
     i = utils.readInt(binaryKey, 0)
     modulus = utils.toBigInt(binaryKey[4:][0:i])
@@ -40,7 +47,7 @@ def encrypt_password(login, password):
     der_data = encode_dss_signature(modulus, exponent)
     publicKey = load_der_public_key(der_data, backend=default_backend())
 
-    to_be_encrypted = login.encode() + b'\x00' + password.encode()
+    to_be_encrypted = login.encode() + b'\x00' + passwd.encode()
     ciphertext = publicKey.encrypt(
         to_be_encrypted,
         padding.OAEP(
@@ -53,16 +60,41 @@ def encrypt_password(login, password):
     return urlsafe_b64encode(h + ciphertext)
 
 
+class SSLContext(ssl.SSLContext):
+    def set_alpn_protocols(self, protocols):
+        """
+        ALPN headers cause Google to return 403 Bad Authentication.
+        """
+        pass
+
+
+class AuthHTTPAdapter(requests.adapters.HTTPAdapter):
+    def init_poolmanager(self, *args, **kwargs):
+        """
+        Secure settings from ssl.create_default_context(), but without
+        ssl.OP_NO_TICKET which causes Google to return 403 Bad
+        Authentication.
+        """
+        context = SSLContext()
+        context.set_ciphers(ssl_.DEFAULT_CIPHERS)
+        context.verify_mode = ssl.CERT_REQUIRED
+        context.options &= ~0x4000
+        self.poolmanager = PoolManager(*args, ssl_context=context, **kwargs)
+
+
 class GooglePlayAPI(object):
-    def __init__(self, locale="en_US", timezone="UTC", device_codename="angler"):
+    def __init__(self, locale="en_US", timezone="UTC", device_codename="walleye", proxies_config=None):
         self.authSubToken = None
         self.gsfId = None
         self.device_config_token = None
         self.deviceCheckinConsistencyToken = None
         self.dfeCookie = None
+        self.proxies_config = proxies_config
         self.deviceBuilder = config.DeviceBuilder(device_codename)
         self.deviceBuilder.setLocale(locale)
         self.deviceBuilder.setTimezone(timezone)
+        self.session = requests.session()
+        self.session.mount('https://', AuthHTTPAdapter())
 
     def login(self, email, password, gsfId, authSubToken):
         if email is not None and password is not None:
@@ -74,7 +106,11 @@ class GooglePlayAPI(object):
             params['callerPkg'] = 'com.google.android.gms'
             headers = self.deviceBuilder.getAuthHeaders(self.gsfId)
             headers['app'] = 'com.google.android.gsm'
-            response = requests.post(AUTH_URL, data=params)
+            with requests.Session() as s:
+                s.headers = {'User-Agent': 'GoogleAuth/1.4'}
+                response = s.post(AUTH_URL,
+                                  data=params,
+                                  verify=ssl_verify)
             data = response.text.split()
             params = {}
             for d in data:
@@ -82,7 +118,7 @@ class GooglePlayAPI(object):
                     continue
                 k, v = d.split("=", 1)
                 params[k.strip().lower()] = v.strip()
-            if "auth" in params:
+            if params["auth"] != '':
                 ac2dmToken = params["auth"]
             elif "error" in params:
                 if "NeedsBrowser" in params["error"]:
@@ -186,8 +222,8 @@ class GooglePlayAPI(object):
         request = self.deviceBuilder.getAndroidCheckinRequest()
 
         stringRequest = request.SerializeToString()
-        res = requests.post(CHECKIN_URL, data=stringRequest,
-                            headers=headers)
+        res = self.session.post(CHECKIN_URL, data=stringRequest,
+                                headers=headers, verify=ssl_verify)
         response = googleplay_pb2.AndroidCheckinResponse()
         response.ParseFromString(res.content)
         self.deviceCheckinConsistencyToken = response.deviceCheckinConsistencyToken
@@ -197,9 +233,10 @@ class GooglePlayAPI(object):
         request.accountCookie.append("[" + email + "]")
         request.accountCookie.append(ac2dmToken)
         stringRequest = request.SerializeToString()
-        requests.post(CHECKIN_URL,
-                      data=stringRequest,
-                      headers=headers)
+        self.session.post(CHECKIN_URL,
+                          data=stringRequest,
+                          headers=headers,
+                          verify=ssl_verify)
 
         return response.androidId
 
@@ -208,9 +245,10 @@ class GooglePlayAPI(object):
         upload.deviceConfiguration.CopyFrom(self.deviceBuilder.getDeviceConfig())
         headers = self.getHeaders(upload_fields=True)
         stringRequest = upload.SerializeToString()
-        response = requests.post(UPLOAD_URL, data=stringRequest,
-                                 headers=headers,
-                                 timeout=60)
+        response = self.session.post(UPLOAD_URL, data=stringRequest,
+                                     headers=headers,
+                                     verify=ssl_verify,
+                                     timeout=60)
         response = googleplay_pb2.ResponseWrapper.FromString(response.content)
         try:
             if response.payload.HasField('uploadDeviceConfigResponse'):
@@ -225,9 +263,11 @@ class GooglePlayAPI(object):
         requestParams['app'] = 'com.android.vending'
         headers = self.deviceBuilder.getAuthHeaders(self.gsfId)
         headers['app'] = 'com.android.vending'
-        response = requests.post(AUTH_URL,
-                                 data=requestParams,
-                                 headers=headers)
+        with requests.Session() as s:
+            s.headers = {'User-Agent': 'GoogleAuth/1.4', 'device': "{0:x}".format(self.gsfId)}
+            response = s.post(AUTH_URL,
+                              data=requestParams,
+                              verify=ssl_verify)
         data = response.text.split()
         params = {}
         for d in data:
@@ -258,9 +298,10 @@ class GooglePlayAPI(object):
         params.pop('EncryptedPasswd')
         headers = self.deviceBuilder.getAuthHeaders(self.gsfId)
         headers['app'] = 'com.android.vending'
-        response = requests.post(AUTH_URL,
-                                 data=params,
-                                 headers=headers)
+        response = self.session.post(AUTH_URL,
+                                     data=params,
+                                     headers=headers,
+                                     verify=ssl_verify)
         data = response.text.split()
         params = {}
         for d in data:
@@ -289,16 +330,18 @@ class GooglePlayAPI(object):
         headers["Content-Type"] = content_type
 
         if post_data is not None:
-            response = requests.post(path,
-                                     data=str(post_data),
-                                     headers=headers,
-                                     params=params,
-                                     timeout=60)
+            response = self.session.post(path,
+                                         data=str(post_data),
+                                         headers=headers,
+                                         params=params,
+                                         verify=ssl_verify,
+                                         timeout=60)
         else:
-            response = requests.get(path,
-                                    headers=headers,
-                                    params=params,
-                                    timeout=60)
+            response = self.session.get(path,
+                                        headers=headers,
+                                        params=params,
+                                        verify=ssl_verify,
+                                        timeout=60)
 
         message = googleplay_pb2.ResponseWrapper.FromString(response.content)
         if message.commands.displayErrorMessage != "":
@@ -308,7 +351,9 @@ class GooglePlayAPI(object):
 
     def _deliver_data(self, url, cookies):
         headers = self.getHeaders()
-        response = requests.get(url, headers=headers, cookies=cookies, stream=True, timeout=60)
+        response = self.session.get(url, headers=headers,
+                                    cookies=cookies, verify=ssl_verify,
+                                    stream=True, timeout=60)
         total_size = response.headers.get('content-length')
         chunk_size = 32 * (1 << 10)
         return {'data': response.iter_content(chunk_size=chunk_size),

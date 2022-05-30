@@ -142,10 +142,6 @@ As a result, automated analysis of the `demo.apk` application with a profile wit
 
 ### Google play
 
-> :bangbang: :bangbang: :bangbang: *Updated May 2022*:   
-> Seems like in last update Google disabled app passwords for play store access, so currently login with email + password is not working. If you already have gsfid + token just use them for now.  
-Contact your suppport team if you need help, we will share with you working credentials from service account.
-
 To download application from Google Play Store you need **temporary account with 2fa authentication disabled**.  
 
 You should specify the package name of the application you want to download, you can get it directly from the Google Play app page or any other way.
@@ -185,7 +181,7 @@ You should use either email + pass ("--google_play_email" + "--google_play_passw
 
 To start the initial login for Google Play, you need to run the following command:
 ```
- python mdast_cli/mdast_scan.py -d --distribution_system google_play --google_play_package_name com.instagram.android --google_play_email download*******ly@gmail.com --google_play_password Paaswoord
+mdast_cli -d --distribution_system google_play --google_play_package_name com.instagram.android --google_play_email download*******ly@gmail.com --google_play_password Paaswoord
 ```
 To start the manual scan analysis of the application from Google Play, you need to run the following command:
 

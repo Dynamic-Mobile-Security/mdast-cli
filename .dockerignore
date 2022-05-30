@@ -152,3 +152,4 @@ cython_debug/
 /downloaded_apps/
 /mdast_cli/downloaded_apps/
 /README_DOCKER.md
+/mdast_cli.egg-info/
