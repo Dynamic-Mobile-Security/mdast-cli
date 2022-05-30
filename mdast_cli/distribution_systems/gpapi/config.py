@@ -47,10 +47,8 @@ class DeviceBuilder(object):
         headers = self.getBaseHeaders()
         headers["X-DFE-Enabled-Experiments"] = "cl:billing.select_add_instrument_by_default"
         headers["X-DFE-Unsupported-Experiments"] = ("nocache:billing.use_charging_poller,"
-                                                    "market_emails,buyer_currency,prod_baseline,"
-                                                    "checkin.set_asset_paid_app_field,"
-                                                    "shekel_test,content_ratings,buyer_currency_in_app,"
-                                                    "nocache:encrypted_apk,recent_changes")
+                                                    "market_emails,buyer_currency,prod_baseline,checkin.set_asset_paid_app_field,"
+                                                    "shekel_test,content_ratings,buyer_currency_in_app,nocache:encrypted_apk,recent_changes")
         headers["X-DFE-SmallestScreenWidthDp"] = "320"
         headers["X-DFE-Filter-Level"] = "3"
         return headers
@@ -99,11 +97,11 @@ class DeviceBuilder(object):
                 "google_play_services_version": self.device.get('gsf.version'),
                 "has_permission": "1",
                 "source": "android",
-                "droidguard_results": "yyoyoew32",
                 "device_country": self.locale[0:2],
                 "lang": self.locale,
                 "client_sig": "38918a453d07199354f8b19af05ec6562ced5788",
-                "callerSig": "38918a453d07199354f8b19af05ec6562ced5788"}
+                "callerSig": "38918a453d07199354f8b19af05ec6562ced5788",
+                "droidguard_results": "yyoyoew32"}
 
     def getAndroidCheckinRequest(self):
         request = googleplay_pb2.AndroidCheckinRequest()
