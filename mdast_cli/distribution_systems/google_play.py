@@ -1,5 +1,6 @@
 import os
 import sys
+import shutil
 
 from .gpapi.googleplay import GooglePlayAPI
 
@@ -67,7 +68,7 @@ def google_play_download(package_name,
                     Log.info(
                         f'Google Play - Creating directory {path_to_file} for downloading split app')
 
-                with open(f'{path_to_file}/{package_name}.apk', 'wb') as file:
+                with open(f'{path_to_file}/base-master.apk', 'wb') as file:
                     for chunk in downloaded_file.get('file').get('data'):
                         file.write(chunk)
 
@@ -79,6 +80,8 @@ def google_play_download(package_name,
 
                 if os.path.exists(path_to_file):
                     Log.info('Google Play - Application with split successfully downloaded!')
+                    shutil.make_archive(path_to_file, 'zip', path_to_file)
+                    Log.info('Google Play - Archive was successfully created!')
                 else:
                     Log.info('Google Play - Failed to download application. '
                              'Seems like something is wrong with your file path or app file is broken')
