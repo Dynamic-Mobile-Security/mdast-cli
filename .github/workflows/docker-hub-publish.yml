@@ -1,0 +1,27 @@
+name: Publish mdast_cli image to Docker Hub
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-n-publish-docker:
+    name: Docker Hub - Publish mdast_cli
+    runs-on: ubuntu-18.04
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: docker login
+        env:
+          DOCKER_USER: ${{secrets.DOCKER_USER}}
+          DOCKER_PASSWORD: ${{secrets.DOCKER_PASSWORD}}
+        run:
+          docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
+
+      - name: Build the Docker image
+        run: docker build . --file Dockerfile --tag mobilesecurity/mdast_cli:2022.06.0
+
+      - name: Docker Hub push image
+        run: docker push mobilesecurity/mdast_cli
