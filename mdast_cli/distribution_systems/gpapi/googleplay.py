@@ -81,7 +81,7 @@ class AuthHTTPAdapter(requests.adapters.HTTPAdapter):
 
 
 class GooglePlayAPI(object):
-    def __init__(self, locale="en_US", timezone="UTC", device_codename="stingray_30", proxies_config=None):
+    def __init__(self, locale="en_US", timezone="UTC", device_codename="pixel_api30", proxies_config=None):
         self.authSubToken = None
         self.gsfId = None
         self.device_config_token = None
