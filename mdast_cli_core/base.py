@@ -552,3 +552,10 @@ class mDastBase:
                             headers=self.headers,
                             verify=False)
         return logs
+
+    def check_app_md5(self, org_id, md5):
+        resp = requests.get(f'{self.url}/organizations/{org_id}/applications/?md5={md5}',
+                            allow_redirects=True,
+                            headers=self.headers,
+                            verify=False)
+        return resp

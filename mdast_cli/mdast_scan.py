@@ -23,6 +23,7 @@ try:
     from distribution_systems.google_play import google_play_download
     from distribution_systems.nexus import NexusRepository
     from helpers.const import END_SCAN_TIMEOUT, SLEEP_TIMEOUT, TRY_COUNT, DastState, DastStateDict
+    from helpers.helpers import check_app_md5
     from helpers.logging import Log
 except ImportError:
     from mdast_cli.distribution_systems.app_center import AppCenter
@@ -31,6 +32,7 @@ except ImportError:
     from mdast_cli.distribution_systems.google_play import google_play_download
     from mdast_cli.distribution_systems.nexus import NexusRepository
     from mdast_cli.helpers.const import END_SCAN_TIMEOUT, SLEEP_TIMEOUT, TRY_COUNT, DastState, DastStateDict
+    from mdast_cli.helpers.helpers import check_app_md5
     from mdast_cli.helpers.logging import Log
 
 
@@ -349,14 +351,22 @@ def main():
         Log.info(f'Start auto scan with test case Id: '
                  f'{testcase_id}, profile Id: {profile_id} and file: {app_file}, architecture id is {architecture}')
 
-    Log.info('Uploading application to server')
-    upload_application_resp = mdast.upload_application(app_file, str(architecture_type['type']))
-    if upload_application_resp.status_code != 201:
-        Log.error(f'Error while uploading application to server: {upload_application_resp.text}')
-        sys.exit(1)
-
-    application = upload_application_resp.json()
-    Log.info(f"Application uploaded successfully. Application id: {application['id']}")
+    Log.info('Check if this version of application was already uploaded..')
+    check_app_already_uploaded = mdast.check_app_md5(mdast.company_id, check_app_md5(app_file)).json()
+    if check_app_already_uploaded:
+        application = check_app_already_uploaded[0]
+        Log.info(f"This app was uploaded before, application id is: {application['id']}, "
+                 f"package name: {application['package_name']},"
+                 f" version: {application['version_name']}, md5: {application['md5']}")
+    else:
+        Log.info('This is new application or new version')
+        Log.info('Uploading application to server..')
+        upload_application_resp = mdast.upload_application(app_file, str(architecture_type['type']))
+        if upload_application_resp.status_code != 201:
+            Log.error(f'Error while uploading application to server: {upload_application_resp.text}')
+            sys.exit(1)
+        application = upload_application_resp.json()
+        Log.info(f"Application uploaded successfully. Application id: {application['id']}")
 
     Log.info(f"Creating scan for application {application['id']}")
 
