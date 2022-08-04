@@ -21,6 +21,7 @@ try:
     from distribution_systems.appstore import AppStore
     from distribution_systems.firebase import Firebase
     from distribution_systems.google_play import google_play_download
+    from distribution_systems.rustore import Rustore
     from distribution_systems.nexus import NexusRepository
     from helpers.const import END_SCAN_TIMEOUT, SLEEP_TIMEOUT, TRY_COUNT, DastState, DastStateDict
     from helpers.helpers import check_app_md5
@@ -31,6 +32,7 @@ except ImportError:
     from mdast_cli.distribution_systems.firebase import Firebase
     from mdast_cli.distribution_systems.google_play import google_play_download
     from mdast_cli.distribution_systems.nexus import NexusRepository
+    from mdast_cli.distribution_systems.rustore import Rustore
     from mdast_cli.helpers.const import END_SCAN_TIMEOUT, SLEEP_TIMEOUT, TRY_COUNT, DastState, DastStateDict
     from mdast_cli.helpers.helpers import check_app_md5
     from mdast_cli.helpers.logging import Log
@@ -43,8 +45,8 @@ def parse_args():
                                                                            ' This argument is optional')
     parser.add_argument('--distribution_system', '-ds', type=str, help='Select how to download file: '
                                                                        'file/appcenter/nexus'
-                                                                       '/firebase/appstore/google_play',
-                        choices=['file', 'appcenter', 'nexus', 'firebase', 'appstore', 'google_play'],
+                                                                       '/firebase/appstore/google_play/rustore',
+                        choices=['file', 'appcenter', 'nexus', 'firebase', 'appstore', 'google_play', 'rustore'],
                         required=True)
 
     # Arguments used for distribution_system = file
@@ -170,6 +172,11 @@ def parse_args():
                         help='Download the application at the first login with email + password. '
                              'This argument is optional if distribution system set to "google_play"')
 
+    # Arguments for Rustore
+    parser.add_argument('--rustore_package_name', type=str,
+                        help='Application package name from Rustore. This argument is required if '
+                             'distribution system set to "rustore"')
+
     # Main arguments
     parser.add_argument('--url', type=str, help='System url', required=('-d' == False))
     parser.add_argument('--company_id', type=int, help='Company id for starting scan', required=('-d' == False))
@@ -240,6 +247,10 @@ def parse_args():
         parser.error('"--distribution_system google_play" requires "--google_play_package_name" and either'
                      ' email + pass ("--google_play_email" + "--google_play_password") or '
                      'gsfid + token ("--google_play_gsfid" + "google_play_auth_token") arguments to be set')
+
+    elif args.distribution_system == 'rustore' and args.rustore_package_name is None:
+        parser.error('"--distribution_system rustore" requires "--rustore_package_name" to be set')
+
     return args
 
 
@@ -311,6 +322,9 @@ def main():
                                         arguments.google_play_auth_token,
                                         arguments.google_play_file_name,
                                         arguments.google_play_download_with_creds)
+    elif distribution_system == 'rustore':
+        rustore = Rustore(arguments.rustore_package_name)
+        app_file = rustore.download_app()
 
     if arguments.download_only is True:
         Log.info('Your application was downloaded!')

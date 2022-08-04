@@ -29,6 +29,7 @@ During the execution of the script, the application is sent for the dynamic anal
   * [Firebase](#firebase)
   * [AppCenter](#appcenter)
   * [Nexus](#nexus)
+  *  [Rustore](#rustore)
 * [Scan types](#scan-types)
 
 
@@ -366,6 +367,13 @@ Also, you need to select the `distribution_system nexus` and specify the followi
  * `nexus_group_id` - group_id of the uploaded mobile application from maven data.
  * `nexus_artifact_id` - artifact_id of the uploaded mobile application from maven data.
  * `nexus_version` - version of the uploaded mobile application from maven data.
+
+### Rustore
+To download the application from rustore you need to know the package name of apk.  
+
+Also, you need to select the `distribution_system rustore` and specify the following mandatory parameter:
+ * `rustore_package_name` -  package name of application you want to download
+
  
 
 ### Scan types
