@@ -6,7 +6,7 @@ with open("README.md", "r") as fh:
 setup(
     name="mdast_cli",
 
-    version='2022.06.2',
+    version='2022.08.1',
 
     author="Dynamic-Mobile-Security",
     description="Dynamic-Mobile-Security",
@@ -21,9 +21,9 @@ setup(
         'cachetools==4.1.1',
         'certifi==2022.5.18.1',
         'cffi==1.15.0',
-        'chardet==3.0.4',
+        'chardet>=3.0.4',
         'charset-normalizer==2.0.12',
-        'cryptography==37.0.2',
+        'cryptography>=37.0.2',
         'google==3.0.0',
         'google-api-core==1.22.4',
         'google-api-python-client==1.12.3',

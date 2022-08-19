@@ -1,9 +1,9 @@
 beautifulsoup4==4.10.0
 cachetools==4.1.1
 cffi==1.15.0
-chardet==3.0.4
+chardet>=3.0.4
 charset-normalizer==2.0.12
-cryptography==37.0.2
+cryptography>=37.0.2
 google-api-core==1.22.4
 google-api-python-client==1.12.3
 google-auth==1.22.1
@@ -16,7 +16,7 @@ pyasn1==0.4.8
 pyasn1-modules==0.2.8
 pycparser==2.21
 pyparsing==3.0.7
-requests==2.23.0
+requests>=2.23.0
 rsa==4.6
 six==1.15.0
 soupsieve==2.3.1
