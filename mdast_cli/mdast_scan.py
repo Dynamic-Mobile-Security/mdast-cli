@@ -334,8 +334,7 @@ def main():
     get_architectures_resp = mdast.get_architectures()
 
     if get_architectures_resp.status_code != 200:
-        Log.error('Error while getting architectures.')
-        Log.error(f'Server response: {get_architectures_resp.text}')
+        Log.error(f'Error while getting architectures. Server response: {get_architectures_resp.text}')
         sys.exit(1)
 
     architectures = get_architectures_resp.json()
