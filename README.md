@@ -172,12 +172,15 @@ Using these parameters you will have all parameters for successful downloading a
  * `google_play_gsfid` - The Google Services Framework Identifier (GSF ID)
  * `google_play_auth_token` - Google auth token for access to Google Play API
 
+If your app is published in **split apk format** you will get a directory with all split apks downloaded, the main app will be called *base-master.apk*. Also there will be a zip archive with all splits, that can be used for DAST analysis.
+
 You can also specify downloaded app file name with an optional parameter
 
  * `google_play_file_name` - file name for app to be saved with  
 
 You should use either email + pass ("--google_play_email" + "--google_play_password") or gsfid + token ("--google_play_gsfid" + "google_play_auth_token") arguments for mdast_cli script. For the continuous process you need only gsfid and token.
 
+For successful launch of Google Play integration you should use python 3.8 or 3.9.
 #### Launch example
 
 To start the initial login for Google Play, you need to run the following command:
