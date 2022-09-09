@@ -217,34 +217,28 @@ class StoreAuthenticateReq:
         return d
 
     def __repr__(self):
-        return "<Class StoreAuthenticateReq. appleId: {}, attempt: {}, createSession: {}, guid: {}, password: {}, rmp: {}, why: {}>".format(
-            limitedRepr(
+        return "<Class StoreAuthenticateReq. appleId: {}, attempt: {}, createSession: {}, guid: {}, password: {}, " \
+               "rmp: {}, why: {}>"\
+            .format(limitedRepr(
                 self.__appleId[:20]
                 if isinstance(self.__appleId, bytes)
                 else self.__appleId
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__attempt[:20]
                 if isinstance(self.__attempt, bytes)
                 else self.__attempt
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__createSession[:20]
                 if isinstance(self.__createSession, bytes)
                 else self.__createSession
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__guid[:20] if isinstance(self.__guid, bytes) else self.__guid
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__password[:20]
                 if isinstance(self.__password, bytes)
                 else self.__password
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__rmp[:20] if isinstance(self.__rmp, bytes) else self.__rmp
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__why[:20] if isinstance(self.__why, bytes) else self.__why
-            ),
-        )
+            ),)

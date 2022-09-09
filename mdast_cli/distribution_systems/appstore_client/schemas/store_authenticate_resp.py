@@ -573,21 +573,19 @@ class StoreAuthenticateResp:
             return d
 
         def __repr__(self):
-            return "<Class _download_queue_info. download_queue_item_count: {}, dsid: {}, is_auto_download_machine: {}>".format(
-                limitedRepr(
+            return "<Class _download_queue_info. download_queue_item_count: {}, dsid: {}, " \
+                   "is_auto_download_machine: {}>"\
+                .format(limitedRepr(
                     self.__download_queue_item_count[:20]
                     if isinstance(self.__download_queue_item_count, bytes)
                     else self.__download_queue_item_count
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__dsid[:20] if isinstance(self.__dsid, bytes) else self.__dsid
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__is_auto_download_machine[:20]
                     if isinstance(self.__is_auto_download_machine, bytes)
                     else self.__is_auto_download_machine
-                ),
-            )
+                ),)
 
     class _dialog:
 
@@ -788,38 +786,33 @@ class StoreAuthenticateResp:
             return d
 
         def __repr__(self):
-            return "<Class _dialog. m_allowed: {}, message: {}, explanation: {}, defaultButton: {}, okButtonString: {}, initialCheckboxValue: {}>".format(
-                limitedRepr(
+            return "<Class _dialog. m_allowed: {}, message: {}, explanation: {}, defaultButton: {}, " \
+                   "okButtonString: {}, initialCheckboxValue: {}>"\
+                .format(limitedRepr(
                     self.__m_allowed[:20]
                     if isinstance(self.__m_allowed, bytes)
                     else self.__m_allowed
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__message[:20]
                     if isinstance(self.__message, bytes)
                     else self.__message
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__explanation[:20]
                     if isinstance(self.__explanation, bytes)
                     else self.__explanation
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__defaultButton[:20]
                     if isinstance(self.__defaultButton, bytes)
                     else self.__defaultButton
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__okButtonString[:20]
                     if isinstance(self.__okButtonString, bytes)
                     else self.__okButtonString
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__initialCheckboxValue[:20]
                     if isinstance(self.__initialCheckboxValue, bytes)
                     else self.__initialCheckboxValue
-                ),
-            )
+                ),)
 
     class _privacyAcknowledgement:
 
@@ -1030,38 +1023,35 @@ class StoreAuthenticateResp:
             return d
 
         def __repr__(self):
-            return "<Class _privacyAcknowledgement. com_apple_onboarding_appstore: {}, com_apple_onboarding_applemusic: {}, com_apple_onboarding_videos: {}, com_apple_onboarding_itunesstore: {}, com_apple_onboarding_itunesu: {}, com_apple_onboarding_applearcade: {}>".format(
-                limitedRepr(
+            return "<Class _privacyAcknowledgement. com_apple_onboarding_appstore: {}, " \
+                   "com_apple_onboarding_applemusic: {}, com_apple_onboarding_videos: {}, " \
+                   "com_apple_onboarding_itunesstore: {}, com_apple_onboarding_itunesu: {}, " \
+                   "com_apple_onboarding_applearcade: {}>"\
+                .format(limitedRepr(
                     self.__com_apple_onboarding_appstore[:20]
                     if isinstance(self.__com_apple_onboarding_appstore, bytes)
                     else self.__com_apple_onboarding_appstore
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__com_apple_onboarding_applemusic[:20]
                     if isinstance(self.__com_apple_onboarding_applemusic, bytes)
                     else self.__com_apple_onboarding_applemusic
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__com_apple_onboarding_videos[:20]
                     if isinstance(self.__com_apple_onboarding_videos, bytes)
                     else self.__com_apple_onboarding_videos
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__com_apple_onboarding_itunesstore[:20]
                     if isinstance(self.__com_apple_onboarding_itunesstore, bytes)
                     else self.__com_apple_onboarding_itunesstore
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__com_apple_onboarding_itunesu[:20]
                     if isinstance(self.__com_apple_onboarding_itunesu, bytes)
                     else self.__com_apple_onboarding_itunesu
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__com_apple_onboarding_applearcade[:20]
                     if isinstance(self.__com_apple_onboarding_applearcade, bytes)
                     else self.__com_apple_onboarding_applearcade
-                ),
-            )
+                ),)
 
     class _action:
 
@@ -1803,88 +1793,76 @@ class StoreAuthenticateResp:
             return d
 
         def __repr__(self):
-            return "<Class _accountFlags. personalization: {}, underThirteen: {}, identityLastVerified: {}, verifiedExpirationDate: {}, retailDemo: {}, autoPlay: {}, isDisabledAccount: {}, isRestrictedAccount: {}, isManagedAccount: {}, isInRestrictedRegion: {}, accountFlagsVersion: {}, hasAgreedToTerms: {}, hasAgreedToAppClipTerms: {}, hasWatchHardwareOffer: {}, isInFamily: {}, hasSubscriptionFamilySharingEnabled: {}>".format(
-                limitedRepr(
+            return "<Class _accountFlags. personalization: {}, underThirteen: {}, identityLastVerified: {}, " \
+                   "verifiedExpirationDate: {}, retailDemo: {}, autoPlay: {}, isDisabledAccount: {}, " \
+                   "isRestrictedAccount: {}, isManagedAccount: {}, isInRestrictedRegion: {}, " \
+                   "accountFlagsVersion: {}, hasAgreedToTerms: {}, hasAgreedToAppClipTerms: {}, " \
+                   "hasWatchHardwareOffer: {}, isInFamily: {}, hasSubscriptionFamilySharingEnabled: {}>"\
+                .format(limitedRepr(
                     self.__personalization[:20]
                     if isinstance(self.__personalization, bytes)
                     else self.__personalization
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__underThirteen[:20]
                     if isinstance(self.__underThirteen, bytes)
                     else self.__underThirteen
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__identityLastVerified[:20]
                     if isinstance(self.__identityLastVerified, bytes)
                     else self.__identityLastVerified
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__verifiedExpirationDate[:20]
                     if isinstance(self.__verifiedExpirationDate, bytes)
                     else self.__verifiedExpirationDate
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__retailDemo[:20]
                     if isinstance(self.__retailDemo, bytes)
                     else self.__retailDemo
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__autoPlay[:20]
                     if isinstance(self.__autoPlay, bytes)
                     else self.__autoPlay
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__isDisabledAccount[:20]
                     if isinstance(self.__isDisabledAccount, bytes)
                     else self.__isDisabledAccount
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__isRestrictedAccount[:20]
                     if isinstance(self.__isRestrictedAccount, bytes)
                     else self.__isRestrictedAccount
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__isManagedAccount[:20]
                     if isinstance(self.__isManagedAccount, bytes)
                     else self.__isManagedAccount
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__isInRestrictedRegion[:20]
                     if isinstance(self.__isInRestrictedRegion, bytes)
                     else self.__isInRestrictedRegion
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__accountFlagsVersion[:20]
                     if isinstance(self.__accountFlagsVersion, bytes)
                     else self.__accountFlagsVersion
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__hasAgreedToTerms[:20]
                     if isinstance(self.__hasAgreedToTerms, bytes)
                     else self.__hasAgreedToTerms
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__hasAgreedToAppClipTerms[:20]
                     if isinstance(self.__hasAgreedToAppClipTerms, bytes)
                     else self.__hasAgreedToAppClipTerms
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__hasWatchHardwareOffer[:20]
                     if isinstance(self.__hasWatchHardwareOffer, bytes)
                     else self.__hasWatchHardwareOffer
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__isInFamily[:20]
                     if isinstance(self.__isInFamily, bytes)
                     else self.__isInFamily
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__hasSubscriptionFamilySharingEnabled[:20]
                     if isinstance(self.__hasSubscriptionFamilySharingEnabled, bytes)
                     else self.__hasSubscriptionFamilySharingEnabled
-                ),
-            )
+                ),)
 
     _types_map = {
         "pings": {"type": list, "subtype": float},
@@ -2529,108 +2507,91 @@ class StoreAuthenticateResp:
         return d
 
     def __repr__(self):
-        return "<Class StoreAuthenticateResp. pings: {}, cancel_purchase_batch: {}, customerMessage: {}, failureType: {}, accountInfo: {}, passwordToken: {}, clearToken: {}, m_allowed: {}, is_cloud_enabled: {}, dsPersonId: {}, creditDisplay: {}, creditBalance: {}, freeSongBalance: {}, isManagedStudent: {}, action: {}, subscriptionStatus: {}, accountFlags: {}, status: {}, download_queue_info: {}, privacyAcknowledgement: {}, dialog: {}>".format(
-            limitedRepr(
+        return "<Class StoreAuthenticateResp. pings: {}, cancel_purchase_batch: {}, customerMessage: {}, " \
+               "failureType: {}, accountInfo: {}, passwordToken: {}, clearToken: {}, m_allowed: {}, " \
+               "is_cloud_enabled: {}, dsPersonId: {}, creditDisplay: {}, creditBalance: {}, freeSongBalance: {}, " \
+               "isManagedStudent: {}, action: {}, subscriptionStatus: {}, accountFlags: {}, status: {}, " \
+               "download_queue_info: {}, privacyAcknowledgement: {}, dialog: {}>"\
+            .format(limitedRepr(
                 self.__pings[:20] if isinstance(self.__pings, bytes) else self.__pings
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__cancel_purchase_batch[:20]
                 if isinstance(self.__cancel_purchase_batch, bytes)
                 else self.__cancel_purchase_batch
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__customerMessage[:20]
                 if isinstance(self.__customerMessage, bytes)
                 else self.__customerMessage
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__failureType[:20]
                 if isinstance(self.__failureType, bytes)
                 else self.__failureType
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__accountInfo[:20]
                 if isinstance(self.__accountInfo, bytes)
                 else self.__accountInfo
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__passwordToken[:20]
                 if isinstance(self.__passwordToken, bytes)
                 else self.__passwordToken
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__clearToken[:20]
                 if isinstance(self.__clearToken, bytes)
                 else self.__clearToken
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__m_allowed[:20]
                 if isinstance(self.__m_allowed, bytes)
                 else self.__m_allowed
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__is_cloud_enabled[:20]
                 if isinstance(self.__is_cloud_enabled, bytes)
                 else self.__is_cloud_enabled
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__dsPersonId[:20]
                 if isinstance(self.__dsPersonId, bytes)
                 else self.__dsPersonId
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__creditDisplay[:20]
                 if isinstance(self.__creditDisplay, bytes)
                 else self.__creditDisplay
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__creditBalance[:20]
                 if isinstance(self.__creditBalance, bytes)
                 else self.__creditBalance
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__freeSongBalance[:20]
                 if isinstance(self.__freeSongBalance, bytes)
                 else self.__freeSongBalance
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__isManagedStudent[:20]
                 if isinstance(self.__isManagedStudent, bytes)
                 else self.__isManagedStudent
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__action[:20]
                 if isinstance(self.__action, bytes)
                 else self.__action
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__subscriptionStatus[:20]
                 if isinstance(self.__subscriptionStatus, bytes)
                 else self.__subscriptionStatus
-            ),
-            limitedRepr(
+            ),  limitedRepr(
                 self.__accountFlags[:20]
                 if isinstance(self.__accountFlags, bytes)
                 else self.__accountFlags
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__status[:20]
                 if isinstance(self.__status, bytes)
                 else self.__status
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__download_queue_info[:20]
                 if isinstance(self.__download_queue_info, bytes)
                 else self.__download_queue_info
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__privacyAcknowledgement[:20]
                 if isinstance(self.__privacyAcknowledgement, bytes)
                 else self.__privacyAcknowledgement
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__dialog[:20]
                 if isinstance(self.__dialog, bytes)
                 else self.__dialog
-            ),
-        )
+            ),)

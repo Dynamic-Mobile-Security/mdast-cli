@@ -1,16 +1,13 @@
+import logging
 import os
-import sys
 from hashlib import sha1
 from time import time
 
 import requests
 
-try:
-    from ..helpers.logging import Log
-    from .base import DistributionSystem
-except ImportError:
-    from mdast_cli.distribution_systems.base import DistributionSystem
-    from mdast_cli.helpers.logging import Log
+from .base import DistributionSystem
+
+logger = logging.getLogger(__name__)
 
 
 class Firebase(DistributionSystem):
@@ -64,21 +61,20 @@ class Firebase(DistributionSystem):
         req = requests.get(url_template, headers=headers, cookies=cookies)
 
         if req.status_code == 200:
-            Log.info('Firebase - Start downloading application')
+            logger.info('Firebase - Start downloading application')
         elif req.status_code == 401:
-            Log.info(f'Firebase - Failed to download application. '
-                     f'Seems like you are not authorized. Request return status code: {req.status_code}')
-            sys.exit(4)
+            raise RuntimeError(f'Firebase - Failed to download application. '
+                               f'Seems like you are not authorized. Request return status code: {req.status_code}')
+
         elif req.status_code == 403:
-            Log.info(f'Firebase - Failed to download application. Seems like you dont have permissions for downloading.'
-                     f' Please contact your administrator. Request return status code: {req.status_code}')
-            sys.exit(4)
+            raise RuntimeError(f'Firebase - Failed to download application. Seems like you dont have permissions '
+                               f'for downloading. Please contact your administrator. '
+                               f'Request return status code: {req.status_code}')
 
         file_url = req.json().get('fileUrl', '')
         if not file_url:
-            Log.info(
-                'It seems like Firebase API was changed or request was malformed. Please contact your administrator')
-            sys.exit(4)
+            raise RuntimeError('It seems like Firebase API was changed or request was malformed. '
+                               'Please contact your administrator')
 
         app_file = requests.get(file_url, allow_redirects=True)
 
@@ -89,15 +85,15 @@ class Firebase(DistributionSystem):
 
         if not os.path.exists(self.download_path):
             os.mkdir(self.download_path)
-            Log.info(f'Firebase - Creating directory {self.download_path} for downloading app from Firebase')
+            logger.info(f'Firebase - Creating directory {self.download_path} for downloading app from Firebase')
 
         with open(path_to_file, 'wb') as file:
             file.write(app_file.content)
 
         if os.path.exists(path_to_file):
-            Log.info('Firebase - Application successfully downloaded')
+            logger.info('Firebase - Application successfully downloaded')
         else:
-            Log.info('Firebase - Failed to download application. '
-                     'Seems like something is wrong with your file path or app file is broken')
+            logger.info('Firebase - Failed to download application. '
+                        'Seems like something is wrong with your file path or app file is broken')
 
         return path_to_file

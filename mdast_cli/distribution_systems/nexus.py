@@ -1,18 +1,15 @@
+import logging
 import os
-import sys
 from base64 import b64encode
 
 import requests
 import urllib3
 
-try:
-    from ..helpers.logging import Log
-    from .base import DistributionSystem
-except ImportError:
-    from mdast_cli.distribution_systems.base import DistributionSystem
-    from mdast_cli.helpers.logging import Log
+from .base import DistributionSystem
 
 urllib3.disable_warnings()
+
+logger = logging.getLogger(__name__)
 
 
 class NexusRepository(DistributionSystem):
@@ -44,9 +41,9 @@ class NexusRepository(DistributionSystem):
 
         json_response = self.session.post(api_url, data=body, verify=False)
         if json_response.status_code == 403:
-            Log.error('NexusRepo: Incorrect authentication credentials')
+            logger.error('NexusRepo: Incorrect authentication credentials')
         elif json_response.status_code == 500:
-            Log.error("NexusRepo: Nexus Repo server error 500 during authentication")
+            logger.error("NexusRepo: Nexus Repo server error 500 during authentication")
 
     def search_component(self):
 
@@ -55,12 +52,12 @@ class NexusRepository(DistributionSystem):
         json_response = self.session.get(search_url, verify=False)
         component_search_result = json_response.json().get('items', {})
         if component_search_result:
-            Log.info(f'NexusRepo: Search length: {len(component_search_result)}')
-            Log.info(f'NexusRepo: Successfully find component: {component_search_result}')
+            logger.info(f'NexusRepo: Search length: {len(component_search_result)}')
+            logger.info(f'NexusRepo: Successfully find component: {component_search_result}')
             return component_search_result[-1]
         else:
-            Log.info(f'NexusRepo: Unable to find component in repository - {self.repo_name}, name - {self.artifact_id},'
-                     f' version - {self.version}&group_id={self.group_id}')
+            logger.info(f'NexusRepo: Unable to find component in repository - {self.repo_name}, '
+                        f'name - {self.artifact_id}, version - {self.version}&group_id={self.group_id}')
             return None
 
     def download_app(self):
@@ -74,11 +71,11 @@ class NexusRepository(DistributionSystem):
                                                                    -1] != '' else f'{self.group_id}-{self.version}.apk'
                 break
         if not download_url:
-            Log.error(f'NexusRepo: Unable to find download URL: {len(component_search_result)}')
+            logger.error(f'NexusRepo: Unable to find download URL: {len(component_search_result)}')
         response = self.session.get(download_url, allow_redirects=True)
         if response.status_code != 200:
-            Log.error(f'NexusRepo: Failed to download application. Request return status code: {response.status_code}')
-            sys.exit(4)
+            raise RuntimeError(f'NexusRepo: Failed to download application. '
+                               f'Request return status code: {response.status_code}')
 
         path_to_save = os.path.join(self.download_path, file_name)
 
