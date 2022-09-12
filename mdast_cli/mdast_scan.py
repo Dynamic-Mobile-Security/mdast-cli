@@ -16,7 +16,7 @@ from helpers.helpers import check_app_md5
 
 from mdast_cli_core.token import mDastToken as mDast
 
-logging.basicConfig(format='%(asctime)s - %(levelname)s %(message)s', datefmt='%d/%m/%Y %H:%M:%S')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s %(message)s', datefmt='%d/%m/%Y %H:%M:%S')
 
 logger = logging.getLogger(__name__)
 
