@@ -6,6 +6,21 @@ import requests
 logger = logging.getLogger(__name__)
 
 
+def get_app_info(package_name):
+    app_info = requests.get(f'https://backapi.rustore.ru/applicationData/overallInfo/{package_name}')
+    if app_info.status_code == 200:
+        body_info = app_info.json()['body']
+        logger.info(f"Rustore - Successfully found app with package name: {package_name},"
+                    f" version:{body_info['versionName']}, company: {body_info['companyName']}")
+    apk_uid = body_info['apkUid']
+    return {
+        'package_name': body_info['packageName'],
+        'version': body_info['versionName'],
+        'download_url': f'https://static.rustore.ru/{apk_uid}',
+        'integration_type': 'rustore'
+    }
+
+
 class Rustore():
     """
     Downloading application from Rustore
@@ -15,21 +30,8 @@ class Rustore():
     def __init__(self, package_name):
         self.package_name = package_name
 
-    def get_app_info(self):
-        app_info = requests.get(f'https://backapi.rustore.ru/applicationData/overallInfo/{self.package_name}')
-        if app_info.status_code == 200:
-            body_info = app_info.json()['body']
-            logger.info(f"Rustore - Successfully found app with package name: {self.package_name},"
-                        f" version:{body_info['versionName']}, company: {body_info['companyName']}")
-        apk_uid = body_info['apkUid']
-        return {
-            'package_name': body_info['packageName'],
-            'version': body_info['versionName'],
-            'download_url': f'https://static.rustore.ru/{apk_uid}'
-        }
-
-    def download_app(self):
-        app_info = self.get_app_info()
+    def download_app(self, package_name):
+        app_info = get_app_info(package_name)
         logger.info('Rustore - Start downloading application')
         r = requests.get(app_info['download_url'])
         if r.status_code == 401:
