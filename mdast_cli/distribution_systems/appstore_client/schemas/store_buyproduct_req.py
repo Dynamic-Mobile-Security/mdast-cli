@@ -710,115 +710,101 @@ class StoreBuyproductReq:
         return d
 
     def __repr__(self):
-        return "<Class StoreBuyproductReq. ageCheck: {}, appExtVrsId: {}, guid: {}, hasBeenAuthedForBuy: {}, isInApp: {}, kbsync: {}, machineName: {}, mtApp: {}, mtClientId: {}, mtEventTime: {}, mtPageId: {}, mtPageType: {}, mtPrevPage: {}, mtRequestId: {}, mtTopic: {}, needDiv: {}, pg: {}, price: {}, pricingParameters: {}, productType: {}, salableAdamId: {}, hasAskedToFulfillPreorder: {}, buyWithoutAuthorization: {}, hasDoneAgeCheck: {}>".format(
-            limitedRepr(
+        return "<Class StoreBuyproductReq. ageCheck: {}, appExtVrsId: {}, guid: {}, hasBeenAuthedForBuy: {}, " \
+               "isInApp: {}, kbsync: {}, machineName: {}, mtApp: {}, mtClientId: {}, mtEventTime: {}, mtPageId: {}, " \
+               "mtPageType: {}, mtPrevPage: {}, mtRequestId: {}, mtTopic: {}, needDiv: {}, pg: {}, price: {}, " \
+               "pricingParameters: {}, productType: {}, salableAdamId: {}, hasAskedToFulfillPreorder: {}, " \
+               "buyWithoutAuthorization: {}, hasDoneAgeCheck: {}>"\
+            .format(limitedRepr(
                 self.__ageCheck[:20]
                 if isinstance(self.__ageCheck, bytes)
                 else self.__ageCheck
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__appExtVrsId[:20]
                 if isinstance(self.__appExtVrsId, bytes)
                 else self.__appExtVrsId
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__guid[:20] if isinstance(self.__guid, bytes) else self.__guid
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__hasBeenAuthedForBuy[:20]
                 if isinstance(self.__hasBeenAuthedForBuy, bytes)
                 else self.__hasBeenAuthedForBuy
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__isInApp[:20]
                 if isinstance(self.__isInApp, bytes)
                 else self.__isInApp
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__kbsync[:20]
                 if isinstance(self.__kbsync, bytes)
                 else self.__kbsync
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__machineName[:20]
                 if isinstance(self.__machineName, bytes)
                 else self.__machineName
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__mtApp[:20] if isinstance(self.__mtApp, bytes) else self.__mtApp
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__mtClientId[:20]
                 if isinstance(self.__mtClientId, bytes)
                 else self.__mtClientId
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__mtEventTime[:20]
                 if isinstance(self.__mtEventTime, bytes)
                 else self.__mtEventTime
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__mtPageId[:20]
                 if isinstance(self.__mtPageId, bytes)
                 else self.__mtPageId
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__mtPageType[:20]
                 if isinstance(self.__mtPageType, bytes)
                 else self.__mtPageType
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__mtPrevPage[:20]
                 if isinstance(self.__mtPrevPage, bytes)
                 else self.__mtPrevPage
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__mtRequestId[:20]
                 if isinstance(self.__mtRequestId, bytes)
                 else self.__mtRequestId
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__mtTopic[:20]
                 if isinstance(self.__mtTopic, bytes)
                 else self.__mtTopic
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__needDiv[:20]
                 if isinstance(self.__needDiv, bytes)
                 else self.__needDiv
-            ),
-            limitedRepr(self.__pg[:20] if isinstance(self.__pg, bytes) else self.__pg),
-            limitedRepr(
-                self.__price[:20] if isinstance(self.__price, bytes) else self.__price
-            ),
-            limitedRepr(
+            ), limitedRepr(
+                self.__pg[:20]
+                if isinstance(self.__pg, bytes)
+                else self.__pg
+            ), limitedRepr(
+                self.__price[:20]
+                if isinstance(self.__price, bytes)
+                else self.__price
+            ), limitedRepr(
                 self.__pricingParameters[:20]
                 if isinstance(self.__pricingParameters, bytes)
                 else self.__pricingParameters
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__productType[:20]
                 if isinstance(self.__productType, bytes)
                 else self.__productType
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__salableAdamId[:20]
                 if isinstance(self.__salableAdamId, bytes)
                 else self.__salableAdamId
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__hasAskedToFulfillPreorder[:20]
                 if isinstance(self.__hasAskedToFulfillPreorder, bytes)
                 else self.__hasAskedToFulfillPreorder
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__buyWithoutAuthorization[:20]
                 if isinstance(self.__buyWithoutAuthorization, bytes)
                 else self.__buyWithoutAuthorization
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__hasDoneAgeCheck[:20]
                 if isinstance(self.__hasDoneAgeCheck, bytes)
                 else self.__hasDoneAgeCheck
-            ),
-        )
+            ),)

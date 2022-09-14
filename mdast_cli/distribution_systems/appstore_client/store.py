@@ -2,12 +2,9 @@ import plistlib
 
 import requests
 
-from mdast_cli.helpers.logging import Log
-
 from .schemas.store_authenticate_req import StoreAuthenticateReq
 from .schemas.store_authenticate_resp import StoreAuthenticateResp
 from .schemas.store_buyproduct_req import StoreBuyproductReq
-from .schemas.store_buyproduct_resp import StoreBuyproductResp
 from .schemas.store_download_req import StoreDownloadReq
 from .schemas.store_download_resp import StoreDownloadResp
 
@@ -92,7 +89,8 @@ class StoreClient(object):
         return self.sess.post(url,
                               headers={
                                   "Content-Type": "application/x-apple-plist",
-                                  "User-Agent": "Configurator/2.15 (Macintosh; OS X 11.0.0; 16G29) AppleWebKit/2603.3.8",
+                                  "User-Agent": "Configurator/2.15 (Macintosh; OS X 11.0.0; 16G29) "
+                                                "AppleWebKit/2603.3.8",
                               },
                               data=plistlib.dumps(payload))
 

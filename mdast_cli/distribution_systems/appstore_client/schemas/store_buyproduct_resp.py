@@ -473,61 +473,52 @@ class StoreBuyproductResp:
             return d
 
         def __repr__(self):
-            return "<Class _dialog. kind: {}, m_allowed: {}, use_keychain: {}, isFree: {}, message: {}, explanation: {}, defaultButton: {}, okButtonString: {}, okButtonAction: {}, cancelButtonString: {}, initialCheckboxValue: {}>".format(
-                limitedRepr(
+            return "<Class _dialog. kind: {}, m_allowed: {}, use_keychain: {}, isFree: {}, message: {}, " \
+                   "explanation: {}, defaultButton: {}, okButtonString: {}, okButtonAction: {}, " \
+                   "cancelButtonString: {}, initialCheckboxValue: {}>"\
+                .format(limitedRepr(
                     self.__kind[:20] if isinstance(self.__kind, bytes) else self.__kind
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__m_allowed[:20]
                     if isinstance(self.__m_allowed, bytes)
                     else self.__m_allowed
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__use_keychain[:20]
                     if isinstance(self.__use_keychain, bytes)
                     else self.__use_keychain
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__isFree[:20]
                     if isinstance(self.__isFree, bytes)
                     else self.__isFree
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__message[:20]
                     if isinstance(self.__message, bytes)
                     else self.__message
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__explanation[:20]
                     if isinstance(self.__explanation, bytes)
                     else self.__explanation
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__defaultButton[:20]
                     if isinstance(self.__defaultButton, bytes)
                     else self.__defaultButton
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__okButtonString[:20]
                     if isinstance(self.__okButtonString, bytes)
                     else self.__okButtonString
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__okButtonAction[:20]
                     if isinstance(self.__okButtonAction, bytes)
                     else self.__okButtonAction
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__cancelButtonString[:20]
                     if isinstance(self.__cancelButtonString, bytes)
                     else self.__cancelButtonString
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__initialCheckboxValue[:20]
                     if isinstance(self.__initialCheckboxValue, bytes)
                     else self.__initialCheckboxValue
-                ),
-            )
+                ),)
 
     class _songList:
         class _metadata:
@@ -1142,7 +1133,8 @@ class StoreBuyproductResp:
                     StoreBuyproductResp._songList._metadata._MacUIRequiredDeviceCapabilities,
                 ):
                     raise TypeError(
-                        "MacUIRequiredDeviceCapabilities must be StoreBuyproductResp._songList._metadata._MacUIRequiredDeviceCapabilities"
+                        "MacUIRequiredDeviceCapabilities must be "
+                        "StoreBuyproductResp._songList._metadata._MacUIRequiredDeviceCapabilities"
                     )
 
                 self.__MacUIRequiredDeviceCapabilities = value
@@ -1161,7 +1153,8 @@ class StoreBuyproductResp:
                     StoreBuyproductResp._songList._metadata._UIRequiredDeviceCapabilities,
                 ):
                     raise TypeError(
-                        "UIRequiredDeviceCapabilities must be StoreBuyproductResp._songList._metadata._UIRequiredDeviceCapabilities"
+                        "UIRequiredDeviceCapabilities must be "
+                        "StoreBuyproductResp._songList._metadata._UIRequiredDeviceCapabilities"
                     )
 
                 self.__UIRequiredDeviceCapabilities = value
@@ -2134,206 +2127,178 @@ class StoreBuyproductResp:
                 return d
 
             def __repr__(self):
-                return "<Class _metadata. MacUIRequiredDeviceCapabilities: {}, UIRequiredDeviceCapabilities: {}, WKRunsIndependentlyOfCompanionApp: {}, WKWatchOnly: {}, appleWatchEnabled: {}, artistId: {}, artistName: {}, bundleDisplayName: {}, bundleShortVersionString: {}, bundleVersion: {}, copyright: {}, fileExtension: {}, gameCenterEnabled: {}, gameCenterEverEnabled: {}, genre: {}, genreId: {}, itemId: {}, itemName: {}, kind: {}, nameTranscriptions: {}, playlistName: {}, product_type: {}, rating: {}, releaseDate: {}, requiresRosetta: {}, runsOnAppleSilicon: {}, runsOnIntel: {}, s: {}, software_platform: {}, softwareIcon57x57URL: {}, softwareIconNeedsShine: {}, softwareSupportedDeviceIds: {}, softwareVersionBundleId: {}, softwareVersionExternalIdentifier: {}, softwareVersionExternalIdentifiers: {}, vendorId: {}, drmVersionNumber: {}, versionRestrictions: {}, storeCohort: {}, hasOrEverHasHadIAP: {}>".format(
-                    limitedRepr(
+                return "<Class _metadata. MacUIRequiredDeviceCapabilities: {}, UIRequiredDeviceCapabilities: {}, " \
+                       "WKRunsIndependentlyOfCompanionApp: {}, WKWatchOnly: {}, appleWatchEnabled: {}, artistId: {}, " \
+                       "artistName: {}, bundleDisplayName: {}, bundleShortVersionString: {}, bundleVersion: {}, " \
+                       "copyright: {}, fileExtension: {}, gameCenterEnabled: {}, gameCenterEverEnabled: {}, " \
+                       "genre: {}, genreId: {}, itemId: {}, itemName: {}, kind: {}, nameTranscriptions: {}, " \
+                       "playlistName: {}, product_type: {}, rating: {}, releaseDate: {}, requiresRosetta: {}, " \
+                       "runsOnAppleSilicon: {}, runsOnIntel: {}, s: {}, software_platform: {}, " \
+                       "softwareIcon57x57URL: {}, softwareIconNeedsShine: {}, softwareSupportedDeviceIds: {}, " \
+                       "softwareVersionBundleId: {}, softwareVersionExternalIdentifier: {}, " \
+                       "softwareVersionExternalIdentifiers: {}, vendorId: {}, drmVersionNumber: {}, " \
+                       "versionRestrictions: {}, storeCohort: {}, hasOrEverHasHadIAP: {}>"\
+                    .format(limitedRepr(
                         self.__MacUIRequiredDeviceCapabilities[:20]
                         if isinstance(self.__MacUIRequiredDeviceCapabilities, bytes)
                         else self.__MacUIRequiredDeviceCapabilities
-                    ),
-                    limitedRepr(
+                    ), limitedRepr(
                         self.__UIRequiredDeviceCapabilities[:20]
                         if isinstance(self.__UIRequiredDeviceCapabilities, bytes)
                         else self.__UIRequiredDeviceCapabilities
-                    ),
-                    limitedRepr(
+                    ), limitedRepr(
                         self.__WKRunsIndependentlyOfCompanionApp[:20]
                         if isinstance(self.__WKRunsIndependentlyOfCompanionApp, bytes)
                         else self.__WKRunsIndependentlyOfCompanionApp
-                    ),
-                    limitedRepr(
+                    ), limitedRepr(
                         self.__WKWatchOnly[:20]
                         if isinstance(self.__WKWatchOnly, bytes)
                         else self.__WKWatchOnly
-                    ),
-                    limitedRepr(
+                    ), limitedRepr(
                         self.__appleWatchEnabled[:20]
                         if isinstance(self.__appleWatchEnabled, bytes)
                         else self.__appleWatchEnabled
-                    ),
-                    limitedRepr(
+                    ), limitedRepr(
                         self.__artistId[:20]
                         if isinstance(self.__artistId, bytes)
                         else self.__artistId
-                    ),
-                    limitedRepr(
+                    ), limitedRepr(
                         self.__artistName[:20]
                         if isinstance(self.__artistName, bytes)
                         else self.__artistName
-                    ),
-                    limitedRepr(
+                    ), limitedRepr(
                         self.__bundleDisplayName[:20]
                         if isinstance(self.__bundleDisplayName, bytes)
                         else self.__bundleDisplayName
-                    ),
-                    limitedRepr(
+                    ), limitedRepr(
                         self.__bundleShortVersionString[:20]
                         if isinstance(self.__bundleShortVersionString, bytes)
                         else self.__bundleShortVersionString
-                    ),
-                    limitedRepr(
+                    ), limitedRepr(
                         self.__bundleVersion[:20]
                         if isinstance(self.__bundleVersion, bytes)
                         else self.__bundleVersion
-                    ),
-                    limitedRepr(
+                    ), limitedRepr(
                         self.__copyright[:20]
                         if isinstance(self.__copyright, bytes)
                         else self.__copyright
-                    ),
-                    limitedRepr(
+                    ), limitedRepr(
                         self.__fileExtension[:20]
                         if isinstance(self.__fileExtension, bytes)
                         else self.__fileExtension
-                    ),
-                    limitedRepr(
+                    ), limitedRepr(
                         self.__gameCenterEnabled[:20]
                         if isinstance(self.__gameCenterEnabled, bytes)
                         else self.__gameCenterEnabled
-                    ),
-                    limitedRepr(
+                    ), limitedRepr(
                         self.__gameCenterEverEnabled[:20]
                         if isinstance(self.__gameCenterEverEnabled, bytes)
                         else self.__gameCenterEverEnabled
-                    ),
-                    limitedRepr(
+                    ), limitedRepr(
                         self.__genre[:20]
                         if isinstance(self.__genre, bytes)
                         else self.__genre
-                    ),
-                    limitedRepr(
+                    ), limitedRepr(
                         self.__genreId[:20]
                         if isinstance(self.__genreId, bytes)
                         else self.__genreId
-                    ),
-                    limitedRepr(
+                    ), limitedRepr(
                         self.__itemId[:20]
                         if isinstance(self.__itemId, bytes)
                         else self.__itemId
-                    ),
-                    limitedRepr(
+                    ), limitedRepr(
                         self.__itemName[:20]
                         if isinstance(self.__itemName, bytes)
                         else self.__itemName
-                    ),
-                    limitedRepr(
+                    ), limitedRepr(
                         self.__kind[:20]
                         if isinstance(self.__kind, bytes)
                         else self.__kind
-                    ),
-                    limitedRepr(
+                    ), limitedRepr(
                         self.__nameTranscriptions[:20]
                         if isinstance(self.__nameTranscriptions, bytes)
                         else self.__nameTranscriptions
-                    ),
-                    limitedRepr(
+                    ), limitedRepr(
                         self.__playlistName[:20]
                         if isinstance(self.__playlistName, bytes)
                         else self.__playlistName
-                    ),
-                    limitedRepr(
+                    ), limitedRepr(
                         self.__product_type[:20]
                         if isinstance(self.__product_type, bytes)
                         else self.__product_type
-                    ),
-                    limitedRepr(
+                    ), limitedRepr(
                         self.__rating[:20]
                         if isinstance(self.__rating, bytes)
                         else self.__rating
-                    ),
-                    limitedRepr(
+                    ), limitedRepr(
                         self.__releaseDate[:20]
                         if isinstance(self.__releaseDate, bytes)
                         else self.__releaseDate
-                    ),
-                    limitedRepr(
+                    ), limitedRepr(
                         self.__requiresRosetta[:20]
                         if isinstance(self.__requiresRosetta, bytes)
                         else self.__requiresRosetta
-                    ),
-                    limitedRepr(
+                    ), limitedRepr(
                         self.__runsOnAppleSilicon[:20]
                         if isinstance(self.__runsOnAppleSilicon, bytes)
                         else self.__runsOnAppleSilicon
-                    ),
-                    limitedRepr(
+                    ), limitedRepr(
                         self.__runsOnIntel[:20]
                         if isinstance(self.__runsOnIntel, bytes)
                         else self.__runsOnIntel
-                    ),
-                    limitedRepr(
-                        self.__s[:20] if isinstance(self.__s, bytes) else self.__s
-                    ),
-                    limitedRepr(
+                    ), limitedRepr(
+                        self.__s[:20]
+                        if isinstance(self.__s, bytes)
+                        else self.__s
+                    ), limitedRepr(
                         self.__software_platform[:20]
                         if isinstance(self.__software_platform, bytes)
                         else self.__software_platform
-                    ),
-                    limitedRepr(
+                    ), limitedRepr(
                         self.__softwareIcon57x57URL[:20]
                         if isinstance(self.__softwareIcon57x57URL, bytes)
                         else self.__softwareIcon57x57URL
-                    ),
-                    limitedRepr(
+                    ), limitedRepr(
                         self.__softwareIconNeedsShine[:20]
                         if isinstance(self.__softwareIconNeedsShine, bytes)
                         else self.__softwareIconNeedsShine
-                    ),
-                    limitedRepr(
+                    ), limitedRepr(
                         self.__softwareSupportedDeviceIds[:20]
                         if isinstance(self.__softwareSupportedDeviceIds, bytes)
                         else self.__softwareSupportedDeviceIds
-                    ),
-                    limitedRepr(
+                    ), limitedRepr(
                         self.__softwareVersionBundleId[:20]
                         if isinstance(self.__softwareVersionBundleId, bytes)
                         else self.__softwareVersionBundleId
-                    ),
-                    limitedRepr(
+                    ), limitedRepr(
                         self.__softwareVersionExternalIdentifier[:20]
                         if isinstance(self.__softwareVersionExternalIdentifier, bytes)
                         else self.__softwareVersionExternalIdentifier
-                    ),
-                    limitedRepr(
+                    ), limitedRepr(
                         self.__softwareVersionExternalIdentifiers[:20]
                         if isinstance(self.__softwareVersionExternalIdentifiers, bytes)
                         else self.__softwareVersionExternalIdentifiers
-                    ),
-                    limitedRepr(
+                    ), limitedRepr(
                         self.__vendorId[:20]
                         if isinstance(self.__vendorId, bytes)
                         else self.__vendorId
-                    ),
-                    limitedRepr(
+                    ), limitedRepr(
                         self.__drmVersionNumber[:20]
                         if isinstance(self.__drmVersionNumber, bytes)
                         else self.__drmVersionNumber
-                    ),
-                    limitedRepr(
+                    ), limitedRepr(
                         self.__versionRestrictions[:20]
                         if isinstance(self.__versionRestrictions, bytes)
                         else self.__versionRestrictions
-                    ),
-                    limitedRepr(
+                    ), limitedRepr(
                         self.__storeCohort[:20]
                         if isinstance(self.__storeCohort, bytes)
                         else self.__storeCohort
-                    ),
-                    limitedRepr(
+                    ), limitedRepr(
                         self.__hasOrEverHasHadIAP[:20]
                         if isinstance(self.__hasOrEverHasHadIAP, bytes)
                         else self.__hasOrEverHasHadIAP
-                    ),
-                )
+                    ),)
 
         class _asset_info:
 
@@ -3221,79 +3186,70 @@ class StoreBuyproductResp:
             return d
 
         def __repr__(self):
-            return "<Class _songList. songId: {}, URL: {}, downloadKey: {}, artworkURL: {}, artwork_urls: {}, md5: {}, chunks: {}, isStreamable: {}, uncompressedSize: {}, sinfs: {}, purchaseDate: {}, download_id: {}, is_in_queue: {}, asset_info: {}, metadata: {}>".format(
-                limitedRepr(
+            return "<Class _songList. songId: {}, URL: {}, downloadKey: {}, artworkURL: {}, artwork_urls: {}, " \
+                   "md5: {}, chunks: {}, isStreamable: {}, uncompressedSize: {}, sinfs: {}, purchaseDate: {}, " \
+                   "download_id: {}, is_in_queue: {}, asset_info: {}, metadata: {}>"\
+                .format(limitedRepr(
                     self.__songId[:20]
                     if isinstance(self.__songId, bytes)
                     else self.__songId
-                ),
-                limitedRepr(
-                    self.__URL[:20] if isinstance(self.__URL, bytes) else self.__URL
-                ),
-                limitedRepr(
+                ), limitedRepr(
+                    self.__URL[:20]
+                    if isinstance(self.__URL, bytes)
+                    else self.__URL
+                ), limitedRepr(
                     self.__downloadKey[:20]
                     if isinstance(self.__downloadKey, bytes)
                     else self.__downloadKey
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__artworkURL[:20]
                     if isinstance(self.__artworkURL, bytes)
                     else self.__artworkURL
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__artwork_urls[:20]
                     if isinstance(self.__artwork_urls, bytes)
                     else self.__artwork_urls
-                ),
-                limitedRepr(
-                    self.__md5[:20] if isinstance(self.__md5, bytes) else self.__md5
-                ),
-                limitedRepr(
+                ), limitedRepr(
+                    self.__md5[:20]
+                    if isinstance(self.__md5, bytes)
+                    else self.__md5
+                ), limitedRepr(
                     self.__chunks[:20]
                     if isinstance(self.__chunks, bytes)
                     else self.__chunks
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__isStreamable[:20]
                     if isinstance(self.__isStreamable, bytes)
                     else self.__isStreamable
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__uncompressedSize[:20]
                     if isinstance(self.__uncompressedSize, bytes)
                     else self.__uncompressedSize
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__sinfs[:20]
                     if isinstance(self.__sinfs, bytes)
                     else self.__sinfs
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__purchaseDate[:20]
                     if isinstance(self.__purchaseDate, bytes)
                     else self.__purchaseDate
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__download_id[:20]
                     if isinstance(self.__download_id, bytes)
                     else self.__download_id
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__is_in_queue[:20]
                     if isinstance(self.__is_in_queue, bytes)
                     else self.__is_in_queue
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__asset_info[:20]
                     if isinstance(self.__asset_info, bytes)
                     else self.__asset_info
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__metadata[:20]
                     if isinstance(self.__metadata, bytes)
                     else self.__metadata
-                ),
-            )
+                ),)
 
     class _subscriptionStatus:
         class _family:
@@ -4065,21 +4021,21 @@ class StoreBuyproductResp:
             return d
 
         def __repr__(self):
-            return "<Class _download_queue_info. download_queue_item_count: {}, dsid: {}, is_auto_download_machine: {}>".format(
-                limitedRepr(
+            return "<Class _download_queue_info. download_queue_item_count: {}, dsid: {}, " \
+                   "is_auto_download_machine: {}>"\
+                .format(limitedRepr(
                     self.__download_queue_item_count[:20]
                     if isinstance(self.__download_queue_item_count, bytes)
                     else self.__download_queue_item_count
-                ),
-                limitedRepr(
-                    self.__dsid[:20] if isinstance(self.__dsid, bytes) else self.__dsid
-                ),
-                limitedRepr(
+                ), limitedRepr(
+                    self.__dsid[:20]
+                    if isinstance(self.__dsid, bytes)
+                    else self.__dsid
+                ), limitedRepr(
                     self.__is_auto_download_machine[:20]
                     if isinstance(self.__is_auto_download_machine, bytes)
                     else self.__is_auto_download_machine
-                ),
-            )
+                ),)
 
     class _metrics:
 
@@ -4866,138 +4822,117 @@ class StoreBuyproductResp:
             return d
 
         def __repr__(self):
-            return "<Class _metrics. itemIds: {}, price: {}, priceType: {}, productTypes: {}, mtApp: {}, mtClientId: {}, mtEventTime: {}, mtPageId: {}, mtPageType: {}, mtPrevPage: {}, mtRequestId: {}, mtTopic: {}, currency: {}, exchangeRateToUSD: {}, commerceEvent_purchase_priceType: {}, commerceEvent_storeFrontId: {}, commerceEvent_result_resultType: {}, commerceEvent_flowType: {}, commerceEvent_flowStep: {}, dialogId: {}, message: {}, messageCode: {}, options: {}, actionUrl: {}, asnState: {}, eventType: {}>".format(
-                limitedRepr(
+            return "<Class _metrics. itemIds: {}, price: {}, priceType: {}, productTypes: {}, mtApp: {}, " \
+                   "mtClientId: {}, mtEventTime: {}, mtPageId: {}, mtPageType: {}, mtPrevPage: {}, mtRequestId: {}, " \
+                   "mtTopic: {}, currency: {}, exchangeRateToUSD: {}, commerceEvent_purchase_priceType: {}, " \
+                   "commerceEvent_storeFrontId: {}, commerceEvent_result_resultType: {}, commerceEvent_flowType: {}, " \
+                   "commerceEvent_flowStep: {}, dialogId: {}, message: {}, messageCode: {}, options: {}, " \
+                   "actionUrl: {}, asnState: {}, eventType: {}>"\
+                .format(limitedRepr(
                     self.__itemIds[:20]
                     if isinstance(self.__itemIds, bytes)
                     else self.__itemIds
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__price[:20]
                     if isinstance(self.__price, bytes)
                     else self.__price
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__priceType[:20]
                     if isinstance(self.__priceType, bytes)
                     else self.__priceType
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__productTypes[:20]
                     if isinstance(self.__productTypes, bytes)
                     else self.__productTypes
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__mtApp[:20]
                     if isinstance(self.__mtApp, bytes)
                     else self.__mtApp
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__mtClientId[:20]
                     if isinstance(self.__mtClientId, bytes)
                     else self.__mtClientId
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__mtEventTime[:20]
                     if isinstance(self.__mtEventTime, bytes)
                     else self.__mtEventTime
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__mtPageId[:20]
                     if isinstance(self.__mtPageId, bytes)
                     else self.__mtPageId
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__mtPageType[:20]
                     if isinstance(self.__mtPageType, bytes)
                     else self.__mtPageType
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__mtPrevPage[:20]
                     if isinstance(self.__mtPrevPage, bytes)
                     else self.__mtPrevPage
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__mtRequestId[:20]
                     if isinstance(self.__mtRequestId, bytes)
                     else self.__mtRequestId
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__mtTopic[:20]
                     if isinstance(self.__mtTopic, bytes)
                     else self.__mtTopic
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__currency[:20]
                     if isinstance(self.__currency, bytes)
                     else self.__currency
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__exchangeRateToUSD[:20]
                     if isinstance(self.__exchangeRateToUSD, bytes)
                     else self.__exchangeRateToUSD
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__commerceEvent_purchase_priceType[:20]
                     if isinstance(self.__commerceEvent_purchase_priceType, bytes)
                     else self.__commerceEvent_purchase_priceType
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__commerceEvent_storeFrontId[:20]
                     if isinstance(self.__commerceEvent_storeFrontId, bytes)
                     else self.__commerceEvent_storeFrontId
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__commerceEvent_result_resultType[:20]
                     if isinstance(self.__commerceEvent_result_resultType, bytes)
                     else self.__commerceEvent_result_resultType
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__commerceEvent_flowType[:20]
                     if isinstance(self.__commerceEvent_flowType, bytes)
                     else self.__commerceEvent_flowType
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__commerceEvent_flowStep[:20]
                     if isinstance(self.__commerceEvent_flowStep, bytes)
                     else self.__commerceEvent_flowStep
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__dialogId[:20]
                     if isinstance(self.__dialogId, bytes)
                     else self.__dialogId
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__message[:20]
                     if isinstance(self.__message, bytes)
                     else self.__message
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__messageCode[:20]
                     if isinstance(self.__messageCode, bytes)
                     else self.__messageCode
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__options[:20]
                     if isinstance(self.__options, bytes)
                     else self.__options
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__actionUrl[:20]
                     if isinstance(self.__actionUrl, bytes)
                     else self.__actionUrl
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__asnState[:20]
                     if isinstance(self.__asnState, bytes)
                     else self.__asnState
-                ),
-                limitedRepr(
+                ), limitedRepr(
                     self.__eventType[:20]
                     if isinstance(self.__eventType, bytes)
                     else self.__eventType
-                ),
-            )
+                ),)
 
     _types_map = {
         "pings": {"type": list, "subtype": float},
@@ -5649,108 +5584,91 @@ class StoreBuyproductResp:
         return d
 
     def __repr__(self):
-        return "<Class StoreBuyproductResp. pings: {}, jingleDocType: {}, jingleAction: {}, status: {}, dsPersonId: {}, creditDisplay: {}, creditBalance: {}, freeSongBalance: {}, creditDisplayInternal: {}, authorized: {}, download_queue_item_count: {}, songList: {}, download_queue_info: {}, metrics: {}, duAnonymousPings: {}, subscriptionStatus: {}, cancel_purchase_batch: {}, failureType: {}, customerMessage: {}, m_allowed: {}, dialog: {}>".format(
-            limitedRepr(
+        return "<Class StoreBuyproductResp. pings: {}, jingleDocType: {}, jingleAction: {}, status: {}, " \
+               "dsPersonId: {}, creditDisplay: {}, creditBalance: {}, freeSongBalance: {}, " \
+               "creditDisplayInternal: {}, authorized: {}, download_queue_item_count: {}, songList: {}, " \
+               "download_queue_info: {}, metrics: {}, duAnonymousPings: {}, subscriptionStatus: {}, " \
+               "cancel_purchase_batch: {}, failureType: {}, customerMessage: {}, m_allowed: {}, dialog: {}>"\
+            .format(limitedRepr(
                 self.__pings[:20] if isinstance(self.__pings, bytes) else self.__pings
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__jingleDocType[:20]
                 if isinstance(self.__jingleDocType, bytes)
                 else self.__jingleDocType
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__jingleAction[:20]
                 if isinstance(self.__jingleAction, bytes)
                 else self.__jingleAction
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__status[:20]
                 if isinstance(self.__status, bytes)
                 else self.__status
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__dsPersonId[:20]
                 if isinstance(self.__dsPersonId, bytes)
                 else self.__dsPersonId
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__creditDisplay[:20]
                 if isinstance(self.__creditDisplay, bytes)
                 else self.__creditDisplay
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__creditBalance[:20]
                 if isinstance(self.__creditBalance, bytes)
                 else self.__creditBalance
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__freeSongBalance[:20]
                 if isinstance(self.__freeSongBalance, bytes)
                 else self.__freeSongBalance
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__creditDisplayInternal[:20]
                 if isinstance(self.__creditDisplayInternal, bytes)
                 else self.__creditDisplayInternal
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__authorized[:20]
                 if isinstance(self.__authorized, bytes)
                 else self.__authorized
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__download_queue_item_count[:20]
                 if isinstance(self.__download_queue_item_count, bytes)
                 else self.__download_queue_item_count
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__songList[:20]
                 if isinstance(self.__songList, bytes)
                 else self.__songList
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__download_queue_info[:20]
                 if isinstance(self.__download_queue_info, bytes)
                 else self.__download_queue_info
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__metrics[:20]
                 if isinstance(self.__metrics, bytes)
                 else self.__metrics
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__duAnonymousPings[:20]
                 if isinstance(self.__duAnonymousPings, bytes)
                 else self.__duAnonymousPings
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__subscriptionStatus[:20]
                 if isinstance(self.__subscriptionStatus, bytes)
                 else self.__subscriptionStatus
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__cancel_purchase_batch[:20]
                 if isinstance(self.__cancel_purchase_batch, bytes)
                 else self.__cancel_purchase_batch
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__failureType[:20]
                 if isinstance(self.__failureType, bytes)
                 else self.__failureType
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__customerMessage[:20]
                 if isinstance(self.__customerMessage, bytes)
                 else self.__customerMessage
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__m_allowed[:20]
                 if isinstance(self.__m_allowed, bytes)
                 else self.__m_allowed
-            ),
-            limitedRepr(
+            ), limitedRepr(
                 self.__dialog[:20]
                 if isinstance(self.__dialog, bytes)
                 else self.__dialog
-            ),
-        )
+            ),)

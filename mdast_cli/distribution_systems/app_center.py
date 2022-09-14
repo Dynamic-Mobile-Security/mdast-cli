@@ -1,14 +1,11 @@
+import logging
 import os
-import sys
 
 import requests
 
-try:
-    from ..helpers.logging import Log
-    from .base import DistributionSystem
-except ImportError:
-    from mdast_cli.distribution_systems.base import DistributionSystem
-    from mdast_cli.helpers.logging import Log
+from .base import DistributionSystem
+
+logger = logging.getLogger(__name__)
 
 
 class AppCenter(DistributionSystem):
@@ -26,14 +23,13 @@ class AppCenter(DistributionSystem):
         self.auth_header = {'X-API-Token': token}
 
     def get_version_info_by_id(self):
-        Log.info('AppCenter - Get information about application')
+        logger.info('AppCenter - Get information about application')
         url = f'{self.url}/apps/{self.owner_name}/{self.app_identifier}/releases/{self.id}'
         response = requests.get(url, headers=self.auth_header)
         if response.status_code != 200:
-            Log.error(
+            raise RuntimeError(
                 f'AppCenter - Failed to get information about application release.'
                 f' Request return status code: {response.status_code}')
-            sys.exit(4)
 
         version_info = response.json()
         return version_info
@@ -42,10 +38,9 @@ class AppCenter(DistributionSystem):
         url = f'{self.url}/apps/{self.owner_name}/{self.app_identifier}/releases?scope=tester'
         response = requests.get(url, headers=self.auth_header)
         if response.status_code != 200:
-            Log.error(
+            raise RuntimeError(
                 f'AppCenter - Failed to get information about application releases.'
                 f' Request return status code: {response.status_code}')
-            sys.exit(4)
 
         versions_info = response.json()
         for version in versions_info:
@@ -65,17 +60,16 @@ class AppCenter(DistributionSystem):
             version_info = self.get_version_info_by_version()
 
         if not version_info:
-            Log.error('AppCenter - Failed to get app version information.'
-                      ' Verify that you set up arguments correctly and try again')
+            logger.error('AppCenter - Failed to get app version information.'
+                         ' Verify that you set up arguments correctly and try again')
 
-        Log.info('AppCenter - Start download application')
+        logger.info('AppCenter - Start download application')
         download_url = version_info.get('download_url')
 
         response = requests.get(download_url, headers=self.auth_header, allow_redirects=True)
         if response.status_code != 200:
-            Log.error(f'AppCenter - Failed to download application. '
-                      f'Request return status code: {response.status_code}')
-            sys.exit(4)
+            raise RuntimeError(f'AppCenter - Failed to download application. '
+                               f'Request return status code: {response.status_code}')
 
         file_name = '{0}-{1}.apk'.format(self.app_identifier, version_info['version'])
         path_to_save = os.path.join(self.download_path, file_name)
@@ -86,6 +80,6 @@ class AppCenter(DistributionSystem):
         with open(path_to_save, 'wb') as file:
             file.write(response.content)
 
-        Log.info(f'AppCenter - Download application successfully completed to {path_to_save}')
+        logger.info(f'AppCenter - Download application successfully completed to {path_to_save}')
 
         return path_to_save

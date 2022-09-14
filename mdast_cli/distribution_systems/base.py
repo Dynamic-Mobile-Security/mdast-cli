@@ -11,3 +11,6 @@ class DistributionSystem:
 
     def download_app(self):
         pass
+
+    def get_app_info(self):
+        pass
