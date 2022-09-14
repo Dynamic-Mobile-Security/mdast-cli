@@ -70,6 +70,22 @@ class AppStore(DistributionSystem):
         self.sess.mount("https://", HTTPAdapter(max_retries=retry_strategy))
         self.sess.mount("http://", HTTPAdapter(max_retries=retry_strategy))
 
+    def get_app_info(self, bundle_id):
+        try:
+            Store = StoreClient(self.sess)
+            _login_iTunes(Store, self.apple_id, self.pass2FA)
+        except StoreException as e:
+            raise RuntimeError(f'Failed to login. Seems like your credentials are incorrect '
+                               f'or your 2FA code expired. Message: {e.req} {e.err_msg} {e.err_type}')
+        resp_info = Store.find_app_by_bundle(bundle_id).json()
+        app_info = resp_info['results'][0]
+        return {
+            'bundle_id': bundle_id,
+            'version': app_info['version'],
+            'appstore_id': app_info['trackId'],
+            'integration_type': 'app_store'
+        }
+
     def download_app(self):
         try:
             Store = StoreClient(self.sess)

@@ -314,8 +314,9 @@ def main():
             app_file = google_play.download_app()
 
         elif distribution_system == 'rustore':
-            rustore = Rustore(arguments.rustore_package_name)
-            app_file = rustore.download_app()
+            package_name = arguments.rustore_package_name
+            rustore = Rustore(package_name)
+            app_file = rustore.download_app(package_name)
     except Exception as e:
         logger.fatal(f'Cannot download application file: {e}')
         exit(4)

@@ -24,6 +24,16 @@ class GooglePlay(DistributionSystem):
     def get_auth_subtoken(self):
         return self.gp_api.authSubToken
 
+    def get_app_info(self, email=None, password=None, gsfId=None, authSubToken=None):
+        self.gp_api.login(email, password, gsfId, authSubToken)
+        app_data = self.gp_api.details(self.app_identifier)
+        return {
+            'package_name': app_data['details']['appDetails']['packageName'],
+            'version': app_data['details']['appDetails']['versionString'],
+            'version_code': app_data['details']['appDetails']['versionCode'],
+            'integration_type': 'google_play'
+        }
+
     def download_app(self):
         download_path = 'downloaded_apps'
 
