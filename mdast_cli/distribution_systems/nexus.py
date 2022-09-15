@@ -15,7 +15,6 @@ logger = logging.getLogger(__name__)
 class NexusRepository(DistributionSystem):
     session = None
     nexus_url = None
-    download_path = 'downloaded_apps'
 
     def __init__(self, nexus_url, login, password, repo_name, group_id, artifact_id, version):
         super().__init__(artifact_id, version)
@@ -60,7 +59,7 @@ class NexusRepository(DistributionSystem):
                         f'name - {self.artifact_id}, version - {self.version}&group_id={self.group_id}')
             return None
 
-    def download_app(self):
+    def download_app(self, download_path):
         download_url = ''
         file_name = ''
         component_search_result = self.search_component()
@@ -77,10 +76,10 @@ class NexusRepository(DistributionSystem):
             raise RuntimeError(f'NexusRepo: Failed to download application. '
                                f'Request return status code: {response.status_code}')
 
-        path_to_save = os.path.join(self.download_path, file_name)
+        path_to_save = os.path.join(download_path, file_name)
 
-        if not os.path.exists(self.download_path):
-            os.mkdir(self.download_path)
+        if not os.path.exists(download_path):
+            os.mkdir(download_path)
 
         with open(path_to_save, 'wb') as file:
             file.write(response.content)

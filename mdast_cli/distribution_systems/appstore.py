@@ -57,7 +57,6 @@ class AppStore(DistributionSystem):
         self.app_id = appstore_app_id
         self.bundle_id = appstore_bundle_id
         self.appstore_file_name = appstore_file_name
-        self.download_path = 'downloaded_apps'
 
         super().__init__(appstore_app_id, '')
         self.sess = requests.Session()
@@ -86,7 +85,7 @@ class AppStore(DistributionSystem):
             'integration_type': 'app_store'
         }
 
-    def download_app(self):
+    def download_app(self, download_path):
         try:
             Store = StoreClient(self.sess)
             _login_iTunes(Store, self.apple_id, self.pass2FA)
@@ -134,9 +133,9 @@ class AppStore(DistributionSystem):
             else:
                 file_name = '%s-%s.ipa' % (self.appstore_file_name, app_version)
 
-            file_path = os.path.join(self.download_path, file_name)
+            file_path = os.path.join(download_path, file_name)
             logger.info(f'Downloading ipa to {file_path}')
-            download_file(downloaded_app_info.URL, self.download_path, file_path)
+            download_file(downloaded_app_info.URL, download_path, file_path)
 
             with zipfile.ZipFile(file_path, 'a') as ipa_file:
                 logger.info('Creating iTunesMetadata.plist with metadata info')

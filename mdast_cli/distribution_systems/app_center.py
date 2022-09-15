@@ -13,7 +13,6 @@ class AppCenter(DistributionSystem):
     Downloading application from AppCenter distribution system
     """
     url = 'https://api.appcenter.ms/v0.1'
-    download_path = 'downloaded_apps'
 
     def __init__(self, token, app_name, owner_name, version, id):
         super().__init__(app_name, version)
@@ -53,7 +52,7 @@ class AppCenter(DistributionSystem):
 
         return None
 
-    def download_app(self):
+    def download_app(self, download_path):
         if self.id:
             version_info = self.get_version_info_by_id()
         else:
@@ -72,10 +71,10 @@ class AppCenter(DistributionSystem):
                                f'Request return status code: {response.status_code}')
 
         file_name = '{0}-{1}.apk'.format(self.app_identifier, version_info['version'])
-        path_to_save = os.path.join(self.download_path, file_name)
+        path_to_save = os.path.join(download_path, file_name)
 
-        if not os.path.exists(self.download_path):
-            os.mkdir(self.download_path)
+        if not os.path.exists(download_path):
+            os.mkdir(download_path)
 
         with open(path_to_save, 'wb') as file:
             file.write(response.content)

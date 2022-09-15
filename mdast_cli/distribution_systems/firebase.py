@@ -14,7 +14,6 @@ class Firebase(DistributionSystem):
     """
     Downloading application from Firebase
     """
-    download_path = 'downloaded_apps'
     url = 'https://console.firebase.google.com'
 
     def __init__(self, project_id, app_id, app_code, api_key, SID, HSID, SSID, APISID, SAPISID,
@@ -40,7 +39,7 @@ class Firebase(DistributionSystem):
         sha = sha1(sha_str.encode())
         return f'SAPISIDHASH {int(epoch)}_{sha.hexdigest()}'
 
-    def download_app(self):
+    def download_app(self, download_path):
         SAPISIDHASH = self.calculate_sapisid_hash()
 
         url_template = f'https://firebaseappdistribution-pa.clients6.google.com/v1/projects/{self.project_id}' \
@@ -81,11 +80,11 @@ class Firebase(DistributionSystem):
         if self.file_name is None:
             self.file_name = self.app_code
 
-        path_to_file = f'{self.download_path}/{self.file_name}.{self.file_extension}'
+        path_to_file = f'{download_path}/{self.file_name}.{self.file_extension}'
 
-        if not os.path.exists(self.download_path):
-            os.mkdir(self.download_path)
-            logger.info(f'Firebase - Creating directory {self.download_path} for downloading app from Firebase')
+        if not os.path.exists(download_path):
+            os.mkdir(download_path)
+            logger.info(f'Firebase - Creating directory {download_path} for downloading app from Firebase')
 
         with open(path_to_file, 'wb') as file:
             file.write(app_file.content)

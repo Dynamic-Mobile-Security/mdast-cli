@@ -174,6 +174,8 @@ def parse_args():
     parser.add_argument('--nowait', '-nw', action='store_true',
                         help='Wait before scan ends and get results if set to True. If set to False - just start scan '
                              'and exit')
+    parser.add_argument('--download_path', '-p', type=str, help='Path to folder with downloaded apps',
+                        default='downloaded_apps')
 
     args = parser.parse_args()
 
@@ -243,6 +245,7 @@ def main():
     arguments = parse_args()
 
     distribution_system = arguments.distribution_system
+    download_path = arguments.download_path
 
     if arguments.download_only is False:
         url = arguments.url
@@ -269,7 +272,7 @@ def main():
                                   arguments.appcenter_owner_name,
                                   arguments.appcenter_app_version,
                                   arguments.appcenter_release_id)
-            app_file = appcenter.download_app()
+            app_file = appcenter.download_app(download_path)
         elif distribution_system == 'nexus':
             nexus_repository = NexusRepository(arguments.nexus_url,
                                                arguments.nexus_login,
@@ -278,7 +281,7 @@ def main():
                                                arguments.nexus_group_id,
                                                arguments.nexus_artifact_id,
                                                arguments.nexus_version)
-            app_file = nexus_repository.download_app()
+            app_file = nexus_repository.download_app(download_path)
         elif distribution_system == 'firebase':
             firebase = Firebase(arguments.firebase_project_id,
                                 arguments.firebase_app_id,
@@ -291,14 +294,14 @@ def main():
                                 arguments.firebase_SAPISID_cookie,
                                 arguments.firebase_file_extension,
                                 arguments.firebase_file_name)
-            app_file = firebase.download_app()
+            app_file = firebase.download_app(download_path)
         elif distribution_system == 'appstore':
             appstore = AppStore(arguments.appstore_apple_id,
                                 arguments.appstore_password2FA,
                                 arguments.appstore_app_id,
                                 arguments.appstore_bundle_id,
                                 arguments.appstore_file_name)
-            app_file = appstore.download_app()
+            app_file = appstore.download_app(download_path)
 
         elif distribution_system == 'google_play':
             google_play = GooglePlay(arguments.google_play_package_name,
@@ -311,12 +314,11 @@ def main():
                     and not arguments.google_play_download_with_creds:
                 exit(0)  # just get token and exit
 
-            app_file = google_play.download_app()
+            app_file = google_play.download_app(download_path)
 
         elif distribution_system == 'rustore':
             package_name = arguments.rustore_package_name
-            rustore = Rustore(package_name)
-            app_file = rustore.download_app(package_name)
+            app_file = rustore_download_app(package_name, download_path)
     except Exception as e:
         logger.fatal(f'Cannot download application file: {e}')
         exit(4)
