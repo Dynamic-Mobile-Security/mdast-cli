@@ -85,6 +85,15 @@ class AppStore(DistributionSystem):
             'integration_type': 'app_store'
         }
 
+    def check_login(self):
+        try:
+            Store = StoreClient(self.sess)
+            _login_iTunes(Store, self.apple_id, self.pass2FA)
+        except StoreException:
+            return False
+
+        return True
+
     def download_app(self, download_path):
         try:
             Store = StoreClient(self.sess)

@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 class GooglePlay(DistributionSystem):
-    def __init__(self, app_identifier, file_name=None):
+    def __init__(self, app_identifier='', file_name=None):
         super().__init__(app_identifier, None)
         self.file_name = file_name or app_identifier
         self.gp_api = GooglePlayAPI()
@@ -33,6 +33,16 @@ class GooglePlay(DistributionSystem):
             'version_code': app_data['details']['appDetails']['versionCode'],
             'integration_type': 'google_play'
         }
+
+    def check_login(self, email=None, password=None):
+        try:
+            self.gp_api.login(email, password, None, None)
+        except RuntimeError:
+            return False
+        except TypeError:
+            return False
+
+        return True
 
     def download_app(self, download_path):
 

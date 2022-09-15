@@ -10,7 +10,7 @@ from distribution_systems.appstore import AppStore
 from distribution_systems.firebase import Firebase
 from distribution_systems.google_play import GooglePlay
 from distribution_systems.nexus import NexusRepository
-from distribution_systems.rustore import Rustore
+from distribution_systems.rustore import rustore_download_app
 from helpers.const import END_SCAN_TIMEOUT, SLEEP_TIMEOUT, TRY_COUNT, DastState, DastStateDict
 from helpers.helpers import check_app_md5
 
