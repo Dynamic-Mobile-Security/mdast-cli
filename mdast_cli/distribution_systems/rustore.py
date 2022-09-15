@@ -21,33 +21,25 @@ def get_app_info(package_name):
     }
 
 
-class Rustore():
-    """
-    Downloading application from Rustore
-    """
-    download_path = 'downloaded_apps'
+def rustore_download_app(package_name, download_path):
+    app_info = get_app_info(package_name)
+    logger.info('Rustore - Start downloading application')
+    r = requests.get(app_info['download_url'])
+    if r.status_code == 401:
+        raise RuntimeError(f'Rustore - Failed to download application. '
+                           f'Something goes wrong. Request return status code: {r.status_code}')
 
-    def __init__(self, package_name):
-        self.package_name = package_name
+    file_path = f"{download_path}/{app_info['package_name']}-{app_info['version']}.apk"
 
-    def download_app(self, package_name):
-        app_info = get_app_info(package_name)
-        logger.info('Rustore - Start downloading application')
-        r = requests.get(app_info['download_url'])
-        if r.status_code == 401:
-            raise RuntimeError(f'Rustore - Failed to download application. '
-                               f'Something goes wrong. Request return status code: {r.status_code}')
+    if not os.path.exists(download_path):
+        os.mkdir(download_path)
+        logger.info(f'Rustore - Creating directory {download_path} for downloading app from Rustore')
 
-        file_path = f"{self.download_path}/{app_info['package_name']}-{app_info['version']}.apk"
+    f = open(file_path, 'wb')
+    for chunk in r.iter_content(chunk_size=512 * 1024):
+        if chunk:
+            f.write(chunk)
+    f.close()
+    logger.info(f'Rustore - Apk was downloaded from rustore to {file_path}')
 
-        if not os.path.exists(self.download_path):
-            os.mkdir(self.download_path)
-            logger.info(f'Rustore - Creating directory {self.download_path} for downloading app from Rustore')
-
-        f = open(file_path, 'wb')
-        for chunk in r.iter_content(chunk_size=512 * 1024):
-            if chunk:
-                f.write(chunk)
-        f.close()
-        logger.info(f'Rustore - Apk was downloaded from rustore to {file_path}')
-        return file_path
+    return file_path

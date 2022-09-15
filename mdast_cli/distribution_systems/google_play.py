@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 class GooglePlay(DistributionSystem):
-    def __init__(self, app_identifier, file_name=None):
+    def __init__(self, app_identifier='', file_name=None):
         super().__init__(app_identifier, None)
         self.file_name = file_name or app_identifier
         self.gp_api = GooglePlayAPI()
@@ -34,8 +34,17 @@ class GooglePlay(DistributionSystem):
             'integration_type': 'google_play'
         }
 
-    def download_app(self):
-        download_path = 'downloaded_apps'
+    def check_login(self, email=None, password=None):
+        try:
+            self.gp_api.login(email, password, None, None)
+        except RuntimeError:
+            return False
+        except TypeError:
+            return False
+
+        return True
+
+    def download_app(self, download_path):
 
         downloaded_file, app_details = self.gp_api.download(self.app_identifier)
         app_version = app_details.get('versionString')
@@ -83,13 +92,12 @@ class GooglePlay(DistributionSystem):
                     for chunk in split.get('file').get('data'):
                         file.write(chunk)
 
-            if os.path.exists(download_apks_dir):
-                logger.info('Google Play - Application with split successfully downloaded!')
-                shutil.make_archive(download_apks_dir, 'zip', download_apks_dir)
-                logger.info(f'Google Play - Archive {download_apks_dir}.zip was successfully created!')
-                path_to_file = f'{download_apks_dir}.zip'
-            else:
-                raise RuntimeError('Google Play - Failed to download application. '
-                                   'Seems like something is wrong with your file path or app file is broken')
+            logger.info('Google Play - Application with split successfully downloaded!')
+
+            shutil.make_archive(download_apks_dir, 'zip', download_apks_dir)
+            logger.info(f'Google Play - Archive {download_apks_dir}.zip was successfully created!')
+            path_to_file = f'{download_apks_dir}.zip'
+            shutil.rmtree(download_apks_dir)
+            logger.info(f'Google Play -  Directory {download_apks_dir} was deleted')
 
         return path_to_file
