@@ -266,22 +266,25 @@ def main():
     try:
         if distribution_system == 'file':
             app_file = arguments.file_path
+
         elif distribution_system == 'appcenter':
             appcenter = AppCenter(arguments.appcenter_token,
-                                  arguments.appcenter_app_name,
-                                  arguments.appcenter_owner_name,
-                                  arguments.appcenter_app_version,
-                                  arguments.appcenter_release_id)
-            app_file = appcenter.download_app(download_path)
+                                  arguments.appcenter_owner_name)
+            app_file = appcenter.download_app(download_path,
+                                              arguments.appcenter_app_name,
+                                              arguments.appcenter_app_version,
+                                              arguments.appcenter_release_id)
+
         elif distribution_system == 'nexus':
             nexus_repository = NexusRepository(arguments.nexus_url,
                                                arguments.nexus_login,
-                                               arguments.nexus_password,
-                                               arguments.nexus_repo_name,
-                                               arguments.nexus_group_id,
-                                               arguments.nexus_artifact_id,
-                                               arguments.nexus_version)
-            app_file = nexus_repository.download_app(download_path)
+                                               arguments.nexus_password)
+            app_file = nexus_repository.download_app(download_path,
+                                                     arguments.nexus_repo_name,
+                                                     arguments.nexus_group_id,
+                                                     arguments.nexus_artifact_id,
+                                                     arguments.nexus_version)
+
         elif distribution_system == 'firebase':
             firebase = Firebase(arguments.firebase_project_id,
                                 arguments.firebase_app_id,
@@ -291,34 +294,37 @@ def main():
                                 arguments.firebase_HSID_cookie,
                                 arguments.firebase_SSID_cookie,
                                 arguments.firebase_APISID_cookie,
-                                arguments.firebase_SAPISID_cookie,
-                                arguments.firebase_file_extension,
-                                arguments.firebase_file_name)
-            app_file = firebase.download_app(download_path)
+                                arguments.firebase_SAPISID_cookie)
+            app_file = firebase.download_app(download_path,
+                                             arguments.firebase_file_extension,
+                                             arguments.firebase_file_name)
+
         elif distribution_system == 'appstore':
             appstore = AppStore(arguments.appstore_apple_id,
-                                arguments.appstore_password2FA,
-                                arguments.appstore_app_id,
-                                arguments.appstore_bundle_id,
-                                arguments.appstore_file_name)
-            app_file = appstore.download_app(download_path)
+                                arguments.appstore_password2FA)
+            app_file = appstore.download_app(download_path,
+                                             arguments.appstore_app_id,
+                                             arguments.appstore_bundle_id,
+                                             arguments.appstore_file_name)
 
         elif distribution_system == 'google_play':
-            google_play = GooglePlay(arguments.google_play_package_name,
-                                     arguments.google_play_file_name)
-            google_play.login(arguments.google_play_email,
-                              arguments.google_play_password,
-                              arguments.google_play_gsfid,
-                              arguments.google_play_auth_token)
+            google_play = GooglePlay(arguments.google_play_email,
+                                     arguments.google_play_password,
+                                     arguments.google_play_gsfid,
+                                     arguments.google_play_auth_token)
+            google_play.login()
             if arguments.google_play_email and arguments.google_play_password \
                     and not arguments.google_play_download_with_creds:
                 exit(0)  # just get token and exit
 
-            app_file = google_play.download_app(download_path)
+            app_file = google_play.download_app(arguments.google_play_package_name,
+                                                download_path,
+                                                arguments.google_play_file_name)
 
         elif distribution_system == 'rustore':
             package_name = arguments.rustore_package_name
             app_file = rustore_download_app(package_name, download_path)
+
     except Exception as e:
         logger.fatal(f'Cannot download application file: {e}')
         exit(4)

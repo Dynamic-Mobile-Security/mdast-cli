@@ -9,7 +9,6 @@ from requests.adapters import HTTPAdapter
 from urllib3 import Retry
 
 from .appstore_client.store import StoreClient, StoreException
-from .base import DistributionSystem
 
 logger = logging.getLogger(__name__)
 
@@ -39,44 +38,37 @@ def download_file(url, download_path, file_path):
     return file_path
 
 
-def _login_iTunes(Store, apple_id, pass2FA):
-    logger.info('Logging into iTunes')
-    Store.authenticate(apple_id, pass2FA)
-    logger.info(f'Successfully logged in as {Store.account_name}')
-
-
-class AppStore(DistributionSystem):
+class AppStore(object):
     """
     Downloading application(.ipa file) from AppStore
     """
 
-    def __init__(self, appstore_apple_id, appstore_password2FA,
-                 appstore_app_id=None, appstore_bundle_id=None, appstore_file_name=None):
+    def __init__(self, appstore_apple_id, appstore_password2FA):
         self.apple_id = appstore_apple_id
         self.pass2FA = appstore_password2FA
-        self.app_id = appstore_app_id
-        self.bundle_id = appstore_bundle_id
-        self.appstore_file_name = appstore_file_name
-
-        super().__init__(appstore_app_id, '')
-        self.sess = requests.Session()
+        sess = requests.Session()
+        self.store = StoreClient(sess)
 
         retry_strategy = Retry(
             connect=4,
             read=2,
             total=8,
         )
-        self.sess.mount("https://", HTTPAdapter(max_retries=retry_strategy))
-        self.sess.mount("http://", HTTPAdapter(max_retries=retry_strategy))
+        sess.mount("https://", HTTPAdapter(max_retries=retry_strategy))
+        sess.mount("http://", HTTPAdapter(max_retries=retry_strategy))
+
+    def login(self):
+        try:
+            logger.info('Logging into iTunes')
+            self.store.authenticate(self.apple_id, self.pass2FA)
+            logger.info(f'Successfully logged in as {self.store.account_name}')
+        except StoreException as e:
+            raise RuntimeError(f'Failed to download application. Seems like your credentials are incorrect '
+                               f'or your 2FA code expired. Message: {e.req} {e.err_msg} {e.err_type}')
 
     def get_app_info(self, bundle_id):
-        try:
-            Store = StoreClient(self.sess)
-            _login_iTunes(Store, self.apple_id, self.pass2FA)
-        except StoreException as e:
-            raise RuntimeError(f'Failed to login. Seems like your credentials are incorrect '
-                               f'or your 2FA code expired. Message: {e.req} {e.err_msg} {e.err_type}')
-        resp_info = Store.find_app_by_bundle(bundle_id).json()
+        self.login()
+        resp_info = self.store.find_app_by_bundle(bundle_id).json()
         app_info = resp_info['results'][0]
         return {
             'bundle_id': bundle_id,
@@ -85,45 +77,33 @@ class AppStore(DistributionSystem):
             'integration_type': 'app_store'
         }
 
-    def check_login(self):
-        try:
-            Store = StoreClient(self.sess)
-            _login_iTunes(Store, self.apple_id, self.pass2FA)
-        except StoreException:
-            return False
+    def download_app(self, download_path, app_id=None, bundle_id=None, file_name=None):
+        if not app_id and not bundle_id:
+            raise 'One of properties ApplicationID or BundleID should be set'
 
-        return True
-
-    def download_app(self, download_path):
+        self.login()
         try:
-            Store = StoreClient(self.sess)
-            _login_iTunes(Store, self.apple_id, self.pass2FA)
-        except StoreException as e:
-            raise RuntimeError(f'Failed to download application. Seems like your credentials are incorrect '
-                               f'or your 2FA code expired. Message: {e.req} {e.err_msg} {e.err_type}')
-
-        try:
-            if self.app_id is None:
-                logger.info(f'Trying to find app in App Store with bundle id {self.bundle_id}')
-                found_by_bundle_resp = Store.find_app_by_bundle(self.bundle_id)
+            if not app_id:
+                logger.info(f'Trying to find app in App Store with bundle id {bundle_id}')
+                found_by_bundle_resp = self.store.find_app_by_bundle(bundle_id)
                 resp_info = found_by_bundle_resp.json()
                 if found_by_bundle_resp.status_code != 200 or resp_info['resultCount'] != 1:
                     raise RuntimeError('Application with your bundle id not found, probably you enter invalid bundle')
 
                 app_info = resp_info['results'][0]
-                logger.info(f'Successfully found application by bundle id ({self.bundle_id}) '
+                logger.info(f'Successfully found application by bundle id ({bundle_id}) '
                             f'with name: "{app_info["trackName"]}", version: {app_info["version"]},'
                             f' app_id: {app_info["trackId"]}')
-                self.app_id = app_info["trackId"]
+                app_id = app_info["trackId"]
 
-            logger.info(f'Trying to purchase app with id {self.app_id}')
-            purchase_resp = Store.purchase(self.app_id)
+            logger.info(f'Trying to purchase app with id {app_id}')
+            purchase_resp = self.store.purchase(app_id)
             if purchase_resp.status_code == 200:
                 logger.info(f'App was successfully purchased for {self.apple_id} account')
             elif purchase_resp.status_code == 500:
                 logger.info(f'This app was purchased before for {self.apple_id} account')
-            logger.info(f'Retrieving download info for app with id: {self.app_id}')
-            download_resp = Store.download(self.app_id)
+            logger.info(f'Retrieving download info for app with id: {app_id}')
+            download_resp = self.store.download(app_id)
             if not download_resp.songList:
                 raise RuntimeError('Failed to get app download info! Check your parameters')
 
@@ -137,10 +117,10 @@ class AppStore(DistributionSystem):
             logger.info(
                 f'Downloading app is {app_name} ({app_bundle_id}) with app_id {app_id} and version {app_version}')
 
-            if self.appstore_file_name is None:
+            if not file_name:
                 file_name = '%s-%s.ipa' % (app_name, app_version)
             else:
-                file_name = '%s-%s.ipa' % (self.appstore_file_name, app_version)
+                file_name = '%s-%s.ipa' % (file_name, app_version)
 
             file_path = os.path.join(download_path, file_name)
             logger.info(f'Downloading ipa to {file_path}')

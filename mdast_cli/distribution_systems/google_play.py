@@ -2,21 +2,22 @@ import logging
 import os
 import shutil
 
-from .base import DistributionSystem
 from .gpapi.googleplay import GooglePlayAPI
 
 logger = logging.getLogger(__name__)
 
 
-class GooglePlay(DistributionSystem):
-    def __init__(self, app_identifier='', file_name=None):
-        super().__init__(app_identifier, None)
-        self.file_name = file_name or app_identifier
+class GooglePlay(object):
+    def __init__(self, email=None, password=None, gsfId=None, authSubToken=None):
         self.gp_api = GooglePlayAPI()
+        self.email = email
+        self.password = password
+        self.gsfId = gsfId
+        self.authSubToken = authSubToken
 
-    def login(self, email=None, password=None, gsfId=None, authSubToken=None):
+    def login(self):
         logger.info('Google Play - Google Play integration, trying to login')
-        self.gp_api.login(email, password, gsfId, authSubToken)
+        self.gp_api.login(self.email, self.password, self.gsfId, self.authSubToken)
 
     def get_gsf_id(self):
         return self.gp_api.gsfId
@@ -24,9 +25,9 @@ class GooglePlay(DistributionSystem):
     def get_auth_subtoken(self):
         return self.gp_api.authSubToken
 
-    def get_app_info(self, email=None, password=None, gsfId=None, authSubToken=None):
-        self.gp_api.login(email, password, gsfId, authSubToken)
-        app_data = self.gp_api.details(self.app_identifier)
+    def get_app_info(self, package_name):
+        self.login()
+        app_data = self.gp_api.details(package_name)
         return {
             'package_name': app_data['details']['appDetails']['packageName'],
             'version': app_data['details']['appDetails']['versionString'],
@@ -34,25 +35,15 @@ class GooglePlay(DistributionSystem):
             'integration_type': 'google_play'
         }
 
-    def check_login(self, email=None, password=None):
-        try:
-            self.gp_api.login(email, password, None, None)
-        except RuntimeError:
-            return False
-        except TypeError:
-            return False
-
-        return True
-
-    def download_app(self, download_path):
-
-        downloaded_file, app_details = self.gp_api.download(self.app_identifier)
+    def download_app(self, download_path, package_name, file_name=None):
+        file_name = file_name or package_name
+        downloaded_file, app_details = self.gp_api.download(package_name)
         app_version = app_details.get('versionString')
 
         if not downloaded_file['splits']:
-            path_to_file = f'{download_path}/{self.file_name}-v{app_version}.apk'
+            path_to_file = f'{download_path}/{file_name}-v{app_version}.apk'
             logger.info('Google Play - Successfully logged in Play Store')
-            logger.info(f'Google Play - Downloading {self.app_identifier} apk to {path_to_file}')
+            logger.info(f'Google Play - Downloading {package_name} apk to {path_to_file}')
 
             if not os.path.exists(download_path):
                 os.mkdir(download_path)
@@ -69,9 +60,9 @@ class GooglePlay(DistributionSystem):
                 raise RuntimeError('Google Play - Failed to download application. '
                                    'Seems like something is wrong with your file path or app file is broken')
         else:
-            download_apks_dir = f'{download_path}/{self.app_identifier}-v{app_version}'
+            download_apks_dir = f'{download_path}/{package_name}-v{app_version}'
             logger.info('Google Play - Successfully logged in Play Store')
-            logger.info(f'Google Play - Downloading {self.app_identifier} app with split apks to {download_apks_dir}')
+            logger.info(f'Google Play - Downloading {package_name} app with split apks to {download_apks_dir}')
 
             if not os.path.exists(download_path):
                 os.mkdir(download_path)

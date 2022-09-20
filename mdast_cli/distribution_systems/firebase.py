@@ -5,24 +5,18 @@ from time import time
 
 import requests
 
-from .base import DistributionSystem
-
 logger = logging.getLogger(__name__)
 
 
-class Firebase(DistributionSystem):
+class Firebase(object):
     """
     Downloading application from Firebase
     """
     url = 'https://console.firebase.google.com'
 
-    def __init__(self, project_id, app_id, app_code, api_key, SID, HSID, SSID, APISID, SAPISID,
+    def __init__(self, project_id, api_key, SID, HSID, SSID, APISID, SAPISID,
                  file_extension, file_name=None):
-        super().__init__(app_id, app_code)
-
         self.project_id = project_id
-        self.app_id = app_id
-        self.app_code = app_code
         self.api_key = api_key
         self.SID = SID
         self.HSID = HSID
@@ -39,11 +33,11 @@ class Firebase(DistributionSystem):
         sha = sha1(sha_str.encode())
         return f'SAPISIDHASH {int(epoch)}_{sha.hexdigest()}'
 
-    def download_app(self, download_path):
+    def download_app(self, download_path, app_id, app_code):
         SAPISIDHASH = self.calculate_sapisid_hash()
 
         url_template = f'https://firebaseappdistribution-pa.clients6.google.com/v1/projects/{self.project_id}' \
-                       f'/apps/{self.app_id}/releases/{self.app_code}:getLatestBinary?alt=json&key={self.api_key}'
+                       f'/apps/{app_id}/releases/{app_code}:getLatestBinary?alt=json&key={self.api_key}'
 
         headers = {'Origin': self.url,
                    'X-Goog-Authuser': '0',
@@ -78,7 +72,7 @@ class Firebase(DistributionSystem):
         app_file = requests.get(file_url, allow_redirects=True)
 
         if self.file_name is None:
-            self.file_name = self.app_code
+            self.file_name = app_code
 
         path_to_file = f'{download_path}/{self.file_name}.{self.file_extension}'
 
