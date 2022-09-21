@@ -3,6 +3,7 @@ import os
 import plistlib
 import time
 import zipfile
+from functools import lru_cache
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -57,6 +58,7 @@ class AppStore(object):
         sess.mount("https://", HTTPAdapter(max_retries=retry_strategy))
         sess.mount("http://", HTTPAdapter(max_retries=retry_strategy))
 
+    @lru_cache
     def login(self):
         try:
             logger.info('Logging into iTunes')
