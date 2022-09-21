@@ -55,25 +55,25 @@ class StoreClient(object):
         self.account_name = resp.accountInfo.address.firstName + " " + resp.accountInfo.address.lastName
         return resp
 
-    def find_app_by_bundle(self, bundleId, appId=None, term=None, country="US", limit=1, media="software"):
+    def find_app(self, app_id=None,  bundle_id=None, country="US"):
         return self.sess.get("https://itunes.apple.com/lookup?",
                              params={
-                                 "bundleId": bundleId,
-                                 "id": appId,
-                                 "term": term,
+                                 "bundleId": bundle_id,
+                                 "id": app_id,
+                                 "term": None,
                                  "country": country,
-                                 "limit": limit,
-                                 "media": media,
+                                 "limit": 1,
+                                 "media": "software",
                              },
                              headers={
                                  "Content-Type": "application/x-www-form-urlencoded",
                              })
 
-    def purchase(self, appId, productType='C'):
+    def purchase(self, app_id, productType='C'):
         url = "https://buy.itunes.apple.com/WebObjects/MZBuy.woa/wa/buyProduct"
         req = StoreBuyproductReq(
             guid=self.guid,
-            salableAdamId=str(appId),
+            salableAdamId=str(app_id),
             appExtVrsId='0',
 
             price='0',
