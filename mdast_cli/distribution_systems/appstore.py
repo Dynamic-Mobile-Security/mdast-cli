@@ -3,6 +3,7 @@ import os
 import plistlib
 import time
 import zipfile
+from functools import lru_cache
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -57,6 +58,7 @@ class AppStore(object):
         sess.mount("https://", HTTPAdapter(max_retries=retry_strategy))
         sess.mount("http://", HTTPAdapter(max_retries=retry_strategy))
 
+    @lru_cache
     def login(self):
         try:
             logger.info('Logging into iTunes')
@@ -66,9 +68,12 @@ class AppStore(object):
             raise RuntimeError(f'Failed to download application. Seems like your credentials are incorrect '
                                f'or your 2FA code expired. Message: {e.req} {e.err_msg} {e.err_type}')
 
-    def get_app_info(self, bundle_id):
+    def get_app_info(self, app_id=None, bundle_id=None, country='US'):
+        if not app_id and not bundle_id:
+            raise 'One of properties ApplicationID or BundleID should be set'
+
         self.login()
-        resp_info = self.store.find_app_by_bundle(bundle_id).json()
+        resp_info = self.store.find_app(app_id=app_id, bundle_id=bundle_id, country=country).json()
         app_info = resp_info['results'][0]
         return {
             'bundle_id': bundle_id,
@@ -77,7 +82,7 @@ class AppStore(object):
             'integration_type': 'app_store'
         }
 
-    def download_app(self, download_path, app_id=None, bundle_id=None, file_name=None):
+    def download_app(self, download_path, app_id=None, bundle_id=None, country='US', file_name=None):
         if not app_id and not bundle_id:
             raise 'One of properties ApplicationID or BundleID should be set'
 
@@ -85,7 +90,7 @@ class AppStore(object):
         try:
             if not app_id:
                 logger.info(f'Trying to find app in App Store with bundle id {bundle_id}')
-                found_by_bundle_resp = self.store.find_app_by_bundle(bundle_id)
+                found_by_bundle_resp = self.store.find_app(bundle_id=bundle_id, country=country)
                 resp_info = found_by_bundle_resp.json()
                 if found_by_bundle_resp.status_code != 200 or resp_info['resultCount'] != 1:
                     raise RuntimeError('Application with your bundle id not found, probably you enter invalid bundle')

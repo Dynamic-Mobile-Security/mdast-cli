@@ -14,17 +14,13 @@ class Firebase(object):
     """
     url = 'https://console.firebase.google.com'
 
-    def __init__(self, project_id, api_key, SID, HSID, SSID, APISID, SAPISID,
-                 file_extension, file_name=None):
-        self.project_id = project_id
+    def __init__(self, api_key, SID, HSID, SSID, APISID, SAPISID):
         self.api_key = api_key
         self.SID = SID
         self.HSID = HSID
         self.SSID = SSID
         self.APISID = APISID
         self.SAPISID = SAPISID
-        self.file_extension = file_extension
-        self.file_name = file_name
 
     def calculate_sapisid_hash(self):
         """Calculates SAPISIDHASH based on cookies. Required in authorization to download app from firebase"""
@@ -33,11 +29,8 @@ class Firebase(object):
         sha = sha1(sha_str.encode())
         return f'SAPISIDHASH {int(epoch)}_{sha.hexdigest()}'
 
-    def download_app(self, download_path, app_id, app_code):
+    def get_with_auth(self, url):
         SAPISIDHASH = self.calculate_sapisid_hash()
-
-        url_template = f'https://firebaseappdistribution-pa.clients6.google.com/v1/projects/{self.project_id}' \
-                       f'/apps/{app_id}/releases/{app_code}:getLatestBinary?alt=json&key={self.api_key}'
 
         headers = {'Origin': self.url,
                    'X-Goog-Authuser': '0',
@@ -51,8 +44,15 @@ class Firebase(object):
             'SAPISID': self.SAPISID
         }
 
-        req = requests.get(url_template, headers=headers, cookies=cookies)
+        req = requests.get(url, headers=headers, cookies=cookies)
+        return req
 
+
+    def download_app(self, download_path, project_id, app_id, app_code, file_name=None, file_extension=None):
+        url_template = f'https://firebaseappdistribution-pa.clients6.google.com/v1/projects/{project_id}' \
+                       f'/apps/{app_id}/releases/{app_code}:getLatestBinary?alt=json&key={self.api_key}'
+
+        req = self.get_with_auth(url_template)
         if req.status_code == 200:
             logger.info('Firebase - Start downloading application')
         elif req.status_code == 401:
@@ -71,10 +71,10 @@ class Firebase(object):
 
         app_file = requests.get(file_url, allow_redirects=True)
 
-        if self.file_name is None:
-            self.file_name = app_code
+        if file_name is None:
+            file_name = app_code
 
-        path_to_file = f'{download_path}/{self.file_name}.{self.file_extension}'
+        path_to_file = f'{download_path}/{file_name}.{file_extension}'
 
         if not os.path.exists(download_path):
             os.mkdir(download_path)

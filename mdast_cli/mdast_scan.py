@@ -286,16 +286,16 @@ def main():
                                                      arguments.nexus_version)
 
         elif distribution_system == 'firebase':
-            firebase = Firebase(arguments.firebase_project_id,
-                                arguments.firebase_app_id,
-                                arguments.firebase_app_code,
-                                arguments.firebase_api_key,
+            firebase = Firebase(arguments.firebase_api_key,
                                 arguments.firebase_SID_cookie,
                                 arguments.firebase_HSID_cookie,
                                 arguments.firebase_SSID_cookie,
                                 arguments.firebase_APISID_cookie,
                                 arguments.firebase_SAPISID_cookie)
             app_file = firebase.download_app(download_path,
+                                             arguments.firebase_project_id,
+                                             arguments.firebase_app_id,
+                                             arguments.firebase_app_code,
                                              arguments.firebase_file_extension,
                                              arguments.firebase_file_name)
 
