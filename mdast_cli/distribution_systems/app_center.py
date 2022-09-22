@@ -16,11 +16,14 @@ class AppCenter(object):
         self.owner_name = owner_name
         self.auth_header = {'X-API-Token': token}
 
-    def get_version_info(self, app_identifier, app_version, app_id=None):
+    def get_version_info(self, app_identifier, app_version=None, app_id=None):
+        if not app_version and not app_id:
+            raise 'One of properties AppVersion or AppID should be set'
+
         if app_id:
             return self.get_version_info_by_id(app_identifier, app_id)
 
-        return self.get_version_info_by_version(app_identifier, app_id, app_version)
+        return self.get_version_info_by_version(app_identifier, app_version)
 
     def get_version_info_by_id(self, app_identifier, app_id):
         logger.info('AppCenter - Get information about application')
@@ -34,7 +37,7 @@ class AppCenter(object):
         version_info = response.json()
         return version_info
 
-    def get_version_info_by_version(self, app_identifier, app_id, app_version):
+    def get_version_info_by_version(self, app_identifier, app_version):
         url = f'{self.url}/apps/{self.owner_name}/{app_identifier}/releases?scope=tester'
         response = requests.get(url, headers=self.auth_header)
         if response.status_code != 200:
@@ -47,13 +50,12 @@ class AppCenter(object):
             if version['version'] != app_version:
                 continue
 
-            self.id = version['id']
-            version_info = self.get_version_info_by_id(app_identifier, app_id)
+            version_info = self.get_version_info_by_id(app_identifier, version['id'])
             return version_info
 
         return None
 
-    def download_app(self, download_path, app_identifier, app_version, app_id=None):
+    def download_app(self, download_path, app_identifier, app_version=None, app_id=None):
         version_info = self.get_version_info(app_identifier, app_version, app_id)
         if not version_info:
             logger.error('AppCenter - Failed to get app version information.'
