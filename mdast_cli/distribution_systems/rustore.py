@@ -7,11 +7,14 @@ logger = logging.getLogger(__name__)
 
 
 def get_app_info(package_name):
-    app_info = requests.get(f'https://backapi.rustore.ru/applicationData/overallInfo/{package_name}')
-    if app_info.status_code == 200:
-        body_info = app_info.json()['body']
+    req = requests.get(f'https://backapi.rustore.ru/applicationData/overallInfo/{package_name}')
+    if req.status_code == 200:
+        body_info = req.json()['body']
         logger.info(f"Rustore - Successfully found app with package name: {package_name},"
                     f" version:{body_info['versionName']}, company: {body_info['companyName']}")
+    else:
+        raise RuntimeError(f'Rustore - Failed to get application info. Request return status code: {req.status_code}')
+
     apk_uid = body_info['apkUid']
     return {
         'package_name': body_info['packageName'],
