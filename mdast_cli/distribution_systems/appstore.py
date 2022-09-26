@@ -78,7 +78,7 @@ class AppStore(object):
         return {
             'integration_type': 'app_store',
             'appstore_id': app_info['trackId'],
-            'package_name': bundle_id,
+            'package_name': app_info['bundleId'],
             'version_name': app_info['version'],
             'min_sdk_version': app_info['minimumOsVersion'],
             'file_size': app_info['fileSizeBytes'],
