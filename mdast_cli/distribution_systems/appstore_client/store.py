@@ -55,7 +55,7 @@ class StoreClient(object):
         self.account_name = resp.accountInfo.address.firstName + " " + resp.accountInfo.address.lastName
         return resp
 
-    def find_app(self, app_id=None,  bundle_id=None, country="US"):
+    def find_app_by_bundle(self, bundleId, appId=None, term=None, country="US", limit=1, media="software"):
         return self.sess.get("https://itunes.apple.com/lookup?",
                              params={
                                  "bundleId": bundle_id,

@@ -9,7 +9,7 @@ def get_app_path(test_app_path):
 
 
 def check_app_md5(file_path):
-    with open(f'./{file_path}', "rb") as f:
+    with open(f'{file_path}', "rb") as f:
         file_hash = hashlib.md5()
         while chunk := f.read(8192):
             file_hash.update(chunk)
