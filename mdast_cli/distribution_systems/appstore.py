@@ -3,13 +3,13 @@ import os
 import plistlib
 import time
 import zipfile
-from functools import lru_cache
 
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3 import Retry
 
 from .appstore_client.store import StoreClient, StoreException
+from .base import DistributionSystem
 
 logger = logging.getLogger(__name__)
 
@@ -82,9 +82,14 @@ class AppStore(object):
             'integration_type': 'app_store'
         }
 
-    def download_app(self, download_path, app_id=None, bundle_id=None, country='US', file_name=None):
-        if not app_id and not bundle_id:
-            raise 'One of properties ApplicationID or BundleID should be set'
+    def check_login(self):
+        try:
+            Store = StoreClient(self.sess)
+            _login_iTunes(Store, self.apple_id, self.pass2FA)
+        except StoreException:
+            return False
+
+        return True
 
         self.login()
         try:

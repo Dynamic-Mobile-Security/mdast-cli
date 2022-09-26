@@ -146,7 +146,8 @@ class GooglePlayAPI(object):
             raise RuntimeError('Google Play - You need to login before executing any request')
 
         if versionCode is None:
-            appDetails = self.details(packageName).get('details').get('appDetails')
+            # appDetails = self.details(packageName).get('details').get('appDetails')
+            appDetails = self.details(packageName)
             versionCode = appDetails.get('versionCode')
 
         headers = self.getHeaders()
