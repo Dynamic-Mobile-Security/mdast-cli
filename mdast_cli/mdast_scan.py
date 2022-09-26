@@ -317,8 +317,8 @@ def main():
                     and not arguments.google_play_download_with_creds:
                 exit(0)  # just get token and exit
 
-            app_file = google_play.download_app(arguments.google_play_package_name,
-                                                download_path,
+            app_file = google_play.download_app(download_path,
+                                                arguments.google_play_package_name,
                                                 arguments.google_play_file_name)
 
         elif distribution_system == 'rustore':
