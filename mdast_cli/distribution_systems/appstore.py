@@ -76,10 +76,13 @@ class AppStore(object):
         resp_info = self.store.find_app(app_id=app_id, bundle_id=bundle_id, country=country).json()
         app_info = resp_info['results'][0]
         return {
-            'bundle_id': bundle_id,
-            'version': app_info['version'],
+            'integration_type': 'app_store',
             'appstore_id': app_info['trackId'],
-            'integration_type': 'app_store'
+            'package_name': bundle_id,
+            'version_name': app_info['version'],
+            'min_sdk_version': app_info['minimumOsVersion'],
+            'file_size': app_info['fileSizeBytes'],
+            'icon_url': app_info['artworkUrl100']
         }
 
     def download_app(self, download_path, app_id=None, bundle_id=None, country='US', file_name=None):

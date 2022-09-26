@@ -17,10 +17,16 @@ def get_app_info(package_name):
 
     apk_uid = body_info['apkUid']
     return {
-        'package_name': body_info['packageName'],
-        'version': body_info['versionName'],
+        'integration_type': 'rustore',
         'download_url': f'https://static.rustore.ru/{apk_uid}',
-        'integration_type': 'rustore'
+        'package_name': body_info['packageName'],
+        'version_name': body_info['versionName'],
+        'version_code': body_info['versionCode'],
+        'min_sdk_version': body_info['minSdkVersion'],
+        'max_sdk_version': body_info['maxSdkVersion'],
+        'target_sdk_version': body_info['targetSdkVersion'],
+        'file_size': body_info['fileSize'],
+        'icon_url': body_info['iconUrl']
     }
 
 
