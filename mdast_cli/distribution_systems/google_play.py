@@ -29,10 +29,12 @@ class GooglePlay(object):
         self.login()
         app_data = self.gp_api.details(package_name)
         return {
+            'integration_type': 'google_play',
             'package_name': app_data['details']['appDetails']['packageName'],
-            'version': app_data['details']['appDetails']['versionString'],
+            'version_name':  app_data['details']['appDetails']['versionString'],
             'version_code': app_data['details']['appDetails']['versionCode'],
-            'integration_type': 'google_play'
+            'file_size': app_data['details']['appDetails']['installationSize'],
+            'icon_url': app_data['image'][0]['imageUrl']
         }
 
     def download_app(self, download_path, package_name, file_name=None):
