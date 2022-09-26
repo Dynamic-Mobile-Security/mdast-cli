@@ -82,14 +82,9 @@ class AppStore(object):
             'integration_type': 'app_store'
         }
 
-    def check_login(self):
-        try:
-            Store = StoreClient(self.sess)
-            _login_iTunes(Store, self.apple_id, self.pass2FA)
-        except StoreException:
-            return False
-
-        return True
+    def download_app(self, download_path, app_id=None, bundle_id=None, country='US', file_name=None):
+        if not app_id and not bundle_id:
+            raise 'One of properties ApplicationID or BundleID should be set'
 
         self.login()
         try:
