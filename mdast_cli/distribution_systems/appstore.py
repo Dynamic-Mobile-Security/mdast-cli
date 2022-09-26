@@ -3,13 +3,13 @@ import os
 import plistlib
 import time
 import zipfile
+from functools import lru_cache
 
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3 import Retry
 
 from .appstore_client.store import StoreClient, StoreException
-from .base import DistributionSystem
 
 logger = logging.getLogger(__name__)
 
