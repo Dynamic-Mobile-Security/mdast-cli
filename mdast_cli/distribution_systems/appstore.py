@@ -4,7 +4,6 @@ import plistlib
 import time
 import zipfile
 from functools import lru_cache
-from zipfile import ZipFile
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -13,11 +12,6 @@ from urllib3 import Retry
 from .appstore_client.store import StoreClient, StoreException
 
 logger = logging.getLogger(__name__)
-
-
-def get_zipinfo_datetime(timestamp=None):
-    timestamp = int(timestamp or time.time())
-    return time.gmtime(timestamp)[0:6]
 
 
 def download_file(url, download_path, file_path):
@@ -122,6 +116,7 @@ class AppStore(object):
             app_id = downloaded_app_info.songId
             app_bundle_id = downloaded_app_info.metadata.softwareVersionBundleId
             app_version = downloaded_app_info.metadata.bundleShortVersionString
+            md5 = downloaded_app_info.md5
 
             logger.info(
                 f'Downloading app is {app_name} ({app_bundle_id}) with app_id {app_id} and version {app_version}')
@@ -140,10 +135,7 @@ class AppStore(object):
                 metadata = downloaded_app_info.metadata.as_dict()
                 metadata["apple-id"] = self.apple_id
                 metadata["userName"] = self.apple_id
-                a = get_zipinfo_datetime(1647167857)
-                b = 1647167857
-                ipa_file.writestr(zipfile.ZipInfo("iTunesMetadata.plist", get_zipinfo_datetime(1647167857)),
-                                  plistlib.dumps(metadata))
+                ipa_file.writestr("iTunesMetadata.plist", plistlib.dumps(metadata))
 
                 appContentDir = [c for c in ipa_file.namelist() if
                                  c.startswith('Payload/') and len(c.strip('/').split('/')) == 2][0]
@@ -155,15 +147,10 @@ class AppStore(object):
                 sinfs = {c.id: c.sinf for c in downloaded_app_info.sinfs}
                 for i, sinfPath in enumerate(scManifest['SinfPaths']):
                     ipa_file.writestr(appContentDir + '/' + sinfPath, sinfs[i])
-            os.utime(file_path, (1647167857, 1647167857))
-            # with ZipFile(file_path, 'r') as zip:
-            #     files_list = zip.namelist()
-            #     for f in files_list:
-            #         os.utime(f'{file_path}/{f}', (1647167857, 1647167857))
 
         except StoreException as e:
             raise RuntimeError(f'Failed to download application. Seems like your app_id does not exist '
                                f'or you did not purchase this app from apple account before. '
                                f'Message: {e.req} {e.err_msg} {e.err_type}')
 
-        return file_path
+        return file_path, md5

@@ -302,10 +302,10 @@ def main():
         elif distribution_system == 'appstore':
             appstore = AppStore(arguments.appstore_apple_id,
                                 arguments.appstore_password2FA)
-            app_file = appstore.download_app(download_path,
-                                             arguments.appstore_app_id,
-                                             arguments.appstore_bundle_id,
-                                             arguments.appstore_file_name)
+            app_file, _ = appstore.download_app(download_path,
+                                                arguments.appstore_app_id,
+                                                arguments.appstore_bundle_id,
+                                                arguments.appstore_file_name)
 
         elif distribution_system == 'google_play':
             google_play = GooglePlay(arguments.google_play_email,

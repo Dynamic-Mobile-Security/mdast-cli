@@ -47,7 +47,6 @@ class Firebase(object):
         req = requests.get(url, headers=headers, cookies=cookies)
         return req
 
-
     def download_app(self, download_path, project_id, app_id, app_code, file_name=None, file_extension=None):
         url_template = f'https://firebaseappdistribution-pa.clients6.google.com/v1/projects/{project_id}' \
                        f'/apps/{app_id}/releases/{app_code}:getLatestBinary?alt=json&key={self.api_key}'

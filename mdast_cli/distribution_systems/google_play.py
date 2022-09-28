@@ -1,6 +1,7 @@
 import logging
 import os
 import shutil
+from datetime import datetime
 
 from .gpapi.googleplay import GooglePlayAPI
 
@@ -41,6 +42,7 @@ class GooglePlay(object):
         file_name = file_name or package_name
         downloaded_file, app_details = self.gp_api.download(package_name)
         app_version = app_details.get('versionString')
+        app_release_ts = self._get_upload_timestamp(app_details)
 
         if not downloaded_file['splits']:
             path_to_file = f'{download_path}/{file_name}-v{app_version}.apk'
@@ -55,7 +57,7 @@ class GooglePlay(object):
             with open(path_to_file, 'wb') as file:
                 for chunk in downloaded_file.get('file').get('data'):
                     file.write(chunk)
-            os.utime(path_to_file, (1647167857, 1647167857))
+
             if os.path.exists(path_to_file):
                 logger.info('Google Play - Application successfully downloaded!')
             else:
@@ -78,22 +80,35 @@ class GooglePlay(object):
             with open(f'{download_apks_dir}/base-master.apk', 'wb') as file:
                 for chunk in downloaded_file.get('file').get('data'):
                     file.write(chunk)
-                os.utime(f'{download_apks_dir}/base-master.apk', (1647167857, 1647167857))
+
+                os.utime(f'{download_apks_dir}/base-master.apk', (app_release_ts, app_release_ts))
 
             for split in downloaded_file['splits']:
                 split_apk_name = split['name']
                 with open(f'{download_apks_dir}/{split_apk_name}.apk', 'wb') as file:
                     for chunk in split.get('file').get('data'):
                         file.write(chunk)
-                    os.utime(f'{download_apks_dir}/{split_apk_name}.apk', (1647167857, 1647167857))
+
+                    os.utime(f'{download_apks_dir}/{split_apk_name}.apk', (app_release_ts, app_release_ts))
 
             logger.info('Google Play - Application with split successfully downloaded!')
 
             shutil.make_archive(download_apks_dir, 'zip', download_apks_dir)
             logger.info(f'Google Play - Archive {download_apks_dir}.zip was successfully created!')
             path_to_file = f'{download_apks_dir}.zip'
-            os.utime(path_to_file, (1647167857, 1647167857))
             shutil.rmtree(download_apks_dir)
             logger.info(f'Google Play -  Directory {download_apks_dir} was deleted')
 
         return path_to_file
+
+    @staticmethod
+    def _get_upload_timestamp(info):
+        try:
+            upload_date = info.get('uploadDate')
+            dt = datetime.strptime(upload_date, '%b %d, %Y')  # Try to parse upload date
+        except Exception:
+            # We cannot get upload date, let's use 1st day of current month
+            now = datetime.now()
+            dt = datetime(year=now.year, month=now.month, day=1)
+
+        return int(dt.timestamp())
