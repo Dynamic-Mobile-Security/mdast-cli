@@ -314,6 +314,17 @@ class mDastBase:
                              data=json.dumps(data),
                              verify=False)
 
+    def create_manual_scan_autocreate_profile(self, app_id, arch_id):
+        data = {
+            'application_id': app_id,
+            'architecture_id': arch_id,
+            'type': 0
+        }
+        return requests.post(f'{self.url}/organizations/{self.current_context["company"]}/dasts/',
+                             headers=self.headers,
+                             data=json.dumps(data),
+                             verify=False)
+
     def create_auto_scan(self, profile_id, app_id, arch_id, test_case_id):
         data = {
             'profile_id': profile_id,
