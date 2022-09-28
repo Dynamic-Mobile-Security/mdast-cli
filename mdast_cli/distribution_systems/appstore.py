@@ -14,11 +14,6 @@ from .appstore_client.store import StoreClient, StoreException
 logger = logging.getLogger(__name__)
 
 
-def get_zipinfo_datetime(timestamp=None):
-    timestamp = int(timestamp or time.time())
-    return time.gmtime(timestamp)[0:6]
-
-
 def download_file(url, download_path, file_path):
     with requests.get(url, stream=True) as r:
         if r.status_code != 200:
@@ -121,6 +116,7 @@ class AppStore(object):
             app_id = downloaded_app_info.songId
             app_bundle_id = downloaded_app_info.metadata.softwareVersionBundleId
             app_version = downloaded_app_info.metadata.bundleShortVersionString
+            md5 = downloaded_app_info.md5
 
             logger.info(
                 f'Downloading app is {app_name} ({app_bundle_id}) with app_id {app_id} and version {app_version}')
@@ -139,8 +135,7 @@ class AppStore(object):
                 metadata = downloaded_app_info.metadata.as_dict()
                 metadata["apple-id"] = self.apple_id
                 metadata["userName"] = self.apple_id
-                ipa_file.writestr(zipfile.ZipInfo("iTunesMetadata.plist", get_zipinfo_datetime()),
-                                  plistlib.dumps(metadata))
+                ipa_file.writestr("iTunesMetadata.plist", plistlib.dumps(metadata))
 
                 appContentDir = [c for c in ipa_file.namelist() if
                                  c.startswith('Payload/') and len(c.strip('/').split('/')) == 2][0]
@@ -158,4 +153,4 @@ class AppStore(object):
                                f'or you did not purchase this app from apple account before. '
                                f'Message: {e.req} {e.err_msg} {e.err_type}')
 
-        return file_path
+        return file_path, md5
