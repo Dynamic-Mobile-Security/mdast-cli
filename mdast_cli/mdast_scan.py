@@ -403,9 +403,13 @@ def main():
                                                       test_case_id=testcase_id)
             scan_type = 'auto'
     elif 'iOS' in architecture_type.get('name', ''):
-        create_dast_resp = mdast.create_manual_scan(profile_id=profile_id,
-                                                    app_id=application['id'],
-                                                    arch_id=architecture)
+        if profile_id:
+            create_dast_resp = mdast.create_manual_scan(profile_id=profile_id,
+                                                        app_id=application['id'],
+                                                        arch_id=architecture)
+        else:
+            create_dast_resp = mdast.create_manual_scan_autocreate_profile(app_id=application['id'],
+                                                                           arch_id=architecture)
         scan_type = 'manual'
     else:
         logger.error("Cannot create scan - unknown architecture")
