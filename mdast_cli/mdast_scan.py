@@ -166,8 +166,8 @@ def parse_args():
     parser.add_argument('--architecture_id', type=int, help='Architecture id to perform scan', required=(not '-d'))
     parser.add_argument('--token', type=str, help='CI/CD Token for start scan and get results',
                         required=(not '-d'))
-    parser.add_argument('--profile_id', type=int, help='Project id for scan', required=(not '-d'))
-    parser.add_argument('--testcase_id', type=int, help='Testcase Id')
+    parser.add_argument('--profile_id', type=int, help='Project id for scan')
+    parser.add_argument('--testcase_id', type=int, help='Testcase Id. If not set - autocreate project and profile')
     parser.add_argument('--summary_report_json_file_name', type=str,
                         help='Name for the json file with summary results in structured format')
     parser.add_argument('--pdf_report_file_name', type=str, help='Name for the pdf report file.')
@@ -388,9 +388,13 @@ def main():
 
     if 'Android' in architecture_type.get('name', ''):
         if not testcase_id:
-            create_dast_resp = mdast.create_manual_scan(profile_id=profile_id,
-                                                        app_id=application['id'],
-                                                        arch_id=architecture)
+            if profile_id:
+                create_dast_resp = mdast.create_manual_scan(profile_id=profile_id,
+                                                            app_id=application['id'],
+                                                            arch_id=architecture)
+            else:
+                create_dast_resp = mdast.create_manual_scan_autocreate_profile(app_id=application['id'],
+                                                                               arch_id=architecture)
             scan_type = 'manual'
         else:
             create_dast_resp = mdast.create_auto_scan(profile_id=profile_id,
