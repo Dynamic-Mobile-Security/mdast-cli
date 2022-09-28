@@ -4,6 +4,7 @@ import plistlib
 import time
 import zipfile
 from functools import lru_cache
+from zipfile import ZipFile
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -139,7 +140,9 @@ class AppStore(object):
                 metadata = downloaded_app_info.metadata.as_dict()
                 metadata["apple-id"] = self.apple_id
                 metadata["userName"] = self.apple_id
-                ipa_file.writestr(zipfile.ZipInfo("iTunesMetadata.plist", get_zipinfo_datetime()),
+                a = get_zipinfo_datetime(1647167857)
+                b = 1647167857
+                ipa_file.writestr(zipfile.ZipInfo("iTunesMetadata.plist", get_zipinfo_datetime(1647167857)),
                                   plistlib.dumps(metadata))
 
                 appContentDir = [c for c in ipa_file.namelist() if
@@ -152,6 +155,11 @@ class AppStore(object):
                 sinfs = {c.id: c.sinf for c in downloaded_app_info.sinfs}
                 for i, sinfPath in enumerate(scManifest['SinfPaths']):
                     ipa_file.writestr(appContentDir + '/' + sinfPath, sinfs[i])
+            os.utime(file_path, (1647167857, 1647167857))
+            # with ZipFile(file_path, 'r') as zip:
+            #     files_list = zip.namelist()
+            #     for f in files_list:
+            #         os.utime(f'{file_path}/{f}', (1647167857, 1647167857))
 
         except StoreException as e:
             raise RuntimeError(f'Failed to download application. Seems like your app_id does not exist '

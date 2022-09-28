@@ -55,7 +55,7 @@ class GooglePlay(object):
             with open(path_to_file, 'wb') as file:
                 for chunk in downloaded_file.get('file').get('data'):
                     file.write(chunk)
-
+            os.utime(path_to_file, (1647167857, 1647167857))
             if os.path.exists(path_to_file):
                 logger.info('Google Play - Application successfully downloaded!')
             else:
@@ -78,18 +78,21 @@ class GooglePlay(object):
             with open(f'{download_apks_dir}/base-master.apk', 'wb') as file:
                 for chunk in downloaded_file.get('file').get('data'):
                     file.write(chunk)
+                os.utime(f'{download_apks_dir}/base-master.apk', (1647167857, 1647167857))
 
             for split in downloaded_file['splits']:
                 split_apk_name = split['name']
                 with open(f'{download_apks_dir}/{split_apk_name}.apk', 'wb') as file:
                     for chunk in split.get('file').get('data'):
                         file.write(chunk)
+                    os.utime(f'{download_apks_dir}/{split_apk_name}.apk', (1647167857, 1647167857))
 
             logger.info('Google Play - Application with split successfully downloaded!')
 
             shutil.make_archive(download_apks_dir, 'zip', download_apks_dir)
             logger.info(f'Google Play - Archive {download_apks_dir}.zip was successfully created!')
             path_to_file = f'{download_apks_dir}.zip'
+            os.utime(path_to_file, (1647167857, 1647167857))
             shutil.rmtree(download_apks_dir)
             logger.info(f'Google Play -  Directory {download_apks_dir} was deleted')
 

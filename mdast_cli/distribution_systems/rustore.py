@@ -1,5 +1,6 @@
 import logging
 import os
+from datetime import datetime
 
 import requests
 
@@ -38,7 +39,7 @@ def rustore_download_app(package_name, download_path):
         raise RuntimeError(f'Rustore - Failed to download application. '
                            f'Something goes wrong. Request return status code: {r.status_code}')
 
-    file_path = f"{download_path}/{app_info['package_name']}-{app_info['version']}.apk"
+    file_path = f"{download_path}/{app_info['package_name']}-{app_info['version_name']}.apk"
 
     if not os.path.exists(download_path):
         os.mkdir(download_path)
@@ -49,6 +50,7 @@ def rustore_download_app(package_name, download_path):
         if chunk:
             f.write(chunk)
     f.close()
+    os.utime(file_path, (1647167857, 1647167857))
     logger.info(f'Rustore - Apk was downloaded from rustore to {file_path}')
 
     return file_path

@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>MacUIRequiredDeviceCapabilities</key>
+	<dict>
+		<key>arm64</key>
+		<true/>
+	</dict>
+	<key>UIRequiredDeviceCapabilities</key>
+	<dict>
+		<key>arm64</key>
+		<true/>
+	</dict>
+	<key>apple-id</key>
+	<string>sting.ios.apple@gmail.com</string>
+	<key>artistId</key>
+	<integer>455652441</integer>
+	<key>artistName</key>
+	<string>Tinkoff Bank</string>
+	<key>bundleDisplayName</key>
+	<string>Tinkoff Journal</string>
+	<key>bundleShortVersionString</key>
+	<string>2.1.18</string>
+	<key>bundleVersion</key>
+	<string>21071646</string>
+	<key>copyright</key>
+	<string>© Tinkoff Bank</string>
+	<key>drmVersionNumber</key>
+	<integer>0</integer>
+	<key>fileExtension</key>
+	<string>.app</string>
+	<key>gameCenterEnabled</key>
+	<false/>
+	<key>gameCenterEverEnabled</key>
+	<false/>
+	<key>genre</key>
+	<string>Education</string>
+	<key>genreId</key>
+	<integer>6017</integer>
+	<key>itemId</key>
+	<integer>1518001692</integer>
+	<key>itemName</key>
+	<string>Тинькофф Журнал</string>
+	<key>kind</key>
+	<string>software</string>
+	<key>playlistName</key>
+	<string>Tinkoff Bank</string>
+	<key>product-type</key>
+	<string>ios-app</string>
+	<key>rating</key>
+	<dict>
+		<key>content</key>
+		<string>Unrestricted Web Access , Infrequent/Mild Profanity or Crude Humour , Infrequent/Mild Cartoon or Fantasy Violence , Infrequent/Mild Mature/Suggestive Themes , Advisory.NO.TRUE_GAMBLING and Advisory.NO.GAMBLING_CONTESTS</string>
+		<key>label</key>
+		<string>17+</string>
+		<key>rank</key>
+		<integer>600</integer>
+		<key>system</key>
+		<string>itunes-games</string>
+	</dict>
+	<key>releaseDate</key>
+	<string>2020-08-07T07:00:00Z</string>
+	<key>requiresRosetta</key>
+	<false/>
+	<key>runsOnAppleSilicon</key>
+	<true/>
+	<key>runsOnIntel</key>
+	<false/>
+	<key>s</key>
+	<integer>143469</integer>
+	<key>software-platform</key>
+	<string>ios</string>
+	<key>softwareIcon57x57URL</key>
+	<string>https://is1-ssl.mzstatic.com/image/thumb/Purple112/v4/c4/da/0d/c4da0d14-5143-9ed5-d18c-c35dd7152321/AppIcon-0-0-1x_U007emarketing-0-0-0-7-0-0-sRGB-0-0-0-GLES2_U002c0-512MB-85-220-0-0.png/114x114bb.jpg</string>
+	<key>softwareIconNeedsShine</key>
+	<false/>
+	<key>softwareSupportedDeviceIds</key>
+	<array>
+		<integer>2</integer>
+		<integer>9</integer>
+		<integer>4</integer>
+	</array>
+	<key>softwareVersionBundleId</key>
+	<string>ru.tcsbank.uchebnik</string>
+	<key>softwareVersionExternalIdentifier</key>
+	<integer>851838421</integer>
+	<key>softwareVersionExternalIdentifiers</key>
+	<array>
+		<integer>836372143</integer>
+		<integer>837219688</integer>
+		<integer>837353975</integer>
+		<integer>837425396</integer>
+		<integer>837992431</integer>
+		<integer>838787232</integer>
+		<integer>839646317</integer>
+		<integer>840189701</integer>
+		<integer>841756967</integer>
+		<integer>841823311</integer>
+		<integer>841944698</integer>
+		<integer>842243337</integer>
+		<integer>842325843</integer>
+		<integer>843208050</integer>
+		<integer>844025152</integer>
+		<integer>846229739</integer>
+		<integer>846932144</integer>
+		<integer>847188787</integer>
+		<integer>847331653</integer>
+		<integer>848020990</integer>
+		<integer>848369639</integer>
+		<integer>850339388</integer>
+		<integer>851088292</integer>
+		<integer>851838421</integer>
+	</array>
+	<key>userName</key>
+	<string>sting.ios.apple@gmail.com</string>
+	<key>vendorId</key>
+	<integer>657373</integer>
+	<key>versionRestrictions</key>
+	<integer>0</integer>
+</dict>
+</plist>
