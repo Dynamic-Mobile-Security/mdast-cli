@@ -5,14 +5,14 @@ import sys
 import time
 
 import urllib3
-from distribution_systems.app_center import AppCenter
-from distribution_systems.appstore import AppStore
-from distribution_systems.firebase import Firebase
-from distribution_systems.google_play import GooglePlay
-from distribution_systems.nexus import NexusRepository
-from distribution_systems.rustore import rustore_download_app
-from helpers.const import END_SCAN_TIMEOUT, SLEEP_TIMEOUT, TRY_COUNT, DastState, DastStateDict
-from helpers.helpers import check_app_md5
+from mdast_cli.distribution_systems.app_center import AppCenter
+from mdast_cli.distribution_systems.appstore import AppStore
+from mdast_cli.distribution_systems.firebase import Firebase
+from mdast_cli.distribution_systems.google_play import GooglePlay
+from mdast_cli.distribution_systems.nexus import NexusRepository
+from mdast_cli.distribution_systems.rustore import rustore_download_app
+from mdast_cli.helpers.const import END_SCAN_TIMEOUT, SLEEP_TIMEOUT, TRY_COUNT, DastState, DastStateDict
+from mdast_cli.helpers.helpers import check_app_md5
 
 from mdast_cli_core.token import mDastToken as mDast
 

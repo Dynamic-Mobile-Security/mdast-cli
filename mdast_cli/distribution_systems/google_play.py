@@ -2,7 +2,7 @@ import logging
 import os
 import shutil
 
-from .gpapi.googleplay import GooglePlayAPI
+from mdast_cli.distribution_systems.gpapi.googleplay import GooglePlayAPI
 
 logger = logging.getLogger(__name__)
 

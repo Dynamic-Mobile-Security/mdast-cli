@@ -2,7 +2,7 @@ import configparser
 from os import path
 from time import time
 
-from . import googleplay_pb2
+from mdast_cli.distribution_systems.gpapi import googleplay_pb2
 
 DFE_TARGETS = "CAEScFfqlIEG6gUYogFWrAISK1WDAg+hAZoCDgIU1gYEOIACFkLMAeQBnASLATlASUuyAyqCAjY5igOMBQzfA/IClwFbApUC4ANbt" \
               "gKVAS7OAX8YswHFBhgDwAOPAmGEBt4OfKkB5weSB5AFASkiN68akgMaxAMSAQEBA9kBO7UBFE1KVwIDBGs3go6BBgEBAgMECQgJAQI" \

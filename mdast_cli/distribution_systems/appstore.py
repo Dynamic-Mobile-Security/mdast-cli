@@ -9,7 +9,7 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3 import Retry
 
-from .appstore_client.store import StoreClient, StoreException
+from mdast_cli.distribution_systems.appstore_client.store import StoreClient, StoreException
 
 logger = logging.getLogger(__name__)
 

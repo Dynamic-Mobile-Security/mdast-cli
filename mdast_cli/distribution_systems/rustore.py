@@ -38,7 +38,7 @@ def rustore_download_app(package_name, download_path):
         raise RuntimeError(f'Rustore - Failed to download application. '
                            f'Something goes wrong. Request return status code: {r.status_code}')
 
-    file_path = f"{download_path}/{app_info['package_name']}-{app_info['version']}.apk"
+    file_path = f"{download_path}/{app_info['package_name']}-{app_info['version_name']}.apk"
 
     if not os.path.exists(download_path):
         os.mkdir(download_path)
