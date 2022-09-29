@@ -88,7 +88,7 @@ If you want to integrate security analysis of downloaded application in the CI/C
 
 The launch options depend on the location of the apk file sent for analysis. Also, there are required parameters that must be specified for launch:
  * `url` - network address for system (the path to the root without the final /)
- * `profile_id` - ID of the profile to be analyzed
+ * `profile_id` - optional parameter, ID of the profile to be analyzed, If not set - project and profile will be created automatically
  * `testcase_id` - ID of the test case to be executed. This is an optional parameter, if not set - manual scan with 20 seconds delay until finish will be executed;
  * `token` - CI/CD access token (refer to our documentation for ways to retrieve the token)
  * `company_id` - identifier of the company within which the scan will be performed

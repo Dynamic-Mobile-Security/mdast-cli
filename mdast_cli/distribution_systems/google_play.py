@@ -3,7 +3,7 @@ import os
 import shutil
 from datetime import datetime
 
-from .gpapi.googleplay import GooglePlayAPI
+from mdast_cli.distribution_systems.gpapi.googleplay import GooglePlayAPI
 
 logger = logging.getLogger(__name__)
 
