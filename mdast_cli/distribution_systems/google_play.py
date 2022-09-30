@@ -64,7 +64,7 @@ class GooglePlay(object):
                 raise RuntimeError('Google Play - Failed to download application. '
                                    'Seems like something is wrong with your file path or app file is broken')
         else:
-            download_apks_dir = f'{download_path}/{package_name}-v{app_version}'
+            download_apks_dir = f'{download_path}/{file_name}-v{app_version}'
             logger.info('Google Play - Successfully logged in Play Store')
             logger.info(f'Google Play - Downloading {package_name} app with split apks to {download_apks_dir}')
 
@@ -81,7 +81,7 @@ class GooglePlay(object):
                 for chunk in downloaded_file.get('file').get('data'):
                     file.write(chunk)
 
-                os.utime(f'{download_apks_dir}/base-master.apk', (app_release_ts, app_release_ts))
+            os.utime(f'{download_apks_dir}/base-master.apk', (app_release_ts, app_release_ts))
 
             for split in downloaded_file['splits']:
                 split_apk_name = split['name']
@@ -89,13 +89,14 @@ class GooglePlay(object):
                     for chunk in split.get('file').get('data'):
                         file.write(chunk)
 
-                    os.utime(f'{download_apks_dir}/{split_apk_name}.apk', (app_release_ts, app_release_ts))
+                os.utime(f'{download_apks_dir}/{split_apk_name}.apk', (app_release_ts, app_release_ts))
 
             logger.info('Google Play - Application with split successfully downloaded!')
 
             shutil.make_archive(download_apks_dir, 'zip', download_apks_dir)
             logger.info(f'Google Play - Archive {download_apks_dir}.zip was successfully created!')
             path_to_file = f'{download_apks_dir}.zip'
+            os.utime(path_to_file, (app_release_ts, app_release_ts))
             shutil.rmtree(download_apks_dir)
             logger.info(f'Google Play -  Directory {download_apks_dir} was deleted')
 

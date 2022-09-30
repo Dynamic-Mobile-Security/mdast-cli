@@ -3,6 +3,7 @@ import json
 import logging
 import sys
 import time
+import os
 
 import urllib3
 from mdast_cli.distribution_systems.app_center import AppCenter
@@ -11,7 +12,7 @@ from mdast_cli.distribution_systems.firebase import Firebase
 from mdast_cli.distribution_systems.google_play import GooglePlay
 from mdast_cli.distribution_systems.nexus import NexusRepository
 from mdast_cli.distribution_systems.rustore import rustore_download_app
-from mdast_cli.helpers.const import END_SCAN_TIMEOUT, SLEEP_TIMEOUT, TRY_COUNT, DastState, DastStateDict
+from mdast_cli.helpers.const import END_SCAN_TIMEOUT, SLEEP_TIMEOUT, TRY_COUNT, DastState, DastStateDict, ANDROID_EXTENSIONS
 from mdast_cli.helpers.helpers import check_app_md5
 
 from mdast_cli_core.token import mDastToken as mDast
@@ -163,11 +164,10 @@ def parse_args():
     # Main arguments
     parser.add_argument('--url', type=str, help='System url', required=(not '-d'))
     parser.add_argument('--company_id', type=int, help='Company id for starting scan', required=(not '-d'))
-    parser.add_argument('--architecture_id', type=int, help='Architecture id to perform scan', required=(not '-d'))
-    parser.add_argument('--token', type=str, help='CI/CD Token for start scan and get results',
-                        required=(not '-d'))
-    parser.add_argument('--profile_id', type=int, help='Project id for scan')
-    parser.add_argument('--testcase_id', type=int, help='Testcase Id. If not set - autocreate project and profile')
+    parser.add_argument('--token', type=str, help='CI/CD Token for start scan and get results', required=(not '-d'))
+    parser.add_argument('--architecture_id', type=int, help='Architecture id to perform scan')
+    parser.add_argument('--profile_id', type=int, help='Profile id for scan. If not set - autocreate project and profile')
+    parser.add_argument('--testcase_id', type=int, help='Testcase id. If not set - manual scan')
     parser.add_argument('--summary_report_json_file_name', type=str,
                         help='Name for the json file with summary results in structured format')
     parser.add_argument('--pdf_report_file_name', type=str, help='Name for the pdf report file.')
@@ -342,6 +342,19 @@ def main():
 
     architectures = get_architectures_resp.json()
 
+    _, file_extension = os.path.splitext(app_file)
+
+    if architecture is None:
+        if file_extension in ANDROID_EXTENSIONS:
+            architecture = next(arch['id'] for arch in architectures if arch.get('name', '') == 'Android 11')
+        if file_extension == '.ipa':
+            architecture = next(arch['id'] for arch in architectures if arch.get('name', '') == 'iOS 14')
+        if architecture is None:
+            logger.error("Cannot create scan - no suitable architecture fot this app, try to set it manually")
+            sys.exit(1)
+        architecture_type = next(arch for arch in architectures if arch.get('id', '') == architecture)
+        logger.info(f'Architecture type is {architecture_type}')
+
     if testcase_id is not None:
         get_testcase_resp = mdast.get_testcase(testcase_id)
         if get_testcase_resp.status_code == 200:
@@ -349,23 +362,13 @@ def main():
         else:
             logger.warning("Testcase with this id does not exist or you use old version of system. Trying to use "
                            "architecture from command line params.")
-        if architecture is not None:
-            pass
-        else:
-            logger.error("No architecture was specified")
-            sys.exit(1)
-
-    architecture_type = next(arch for arch in architectures if arch.get('id', '') == architecture)
-    if architecture_type is None:
-        logger.error("No suitable architecture find for this app")
-        sys.exit(1)
 
     if testcase_id is None:
-        logger.info(f'Start manual scan with profile id: {profile_id} and file located in {app_file},'
+        logger.info(f'Manual scan with profile id: {profile_id} and file located in {app_file},'
                     f' architecture id is {architecture}')
     else:
-        logger.info(f'Start auto scan with test case Id: '
-                    f'{testcase_id}, profile Id: {profile_id} and file: {app_file}, architecture id is {architecture}')
+        logger.info(f'Auto scan with test case id: '
+                    f'{testcase_id}, profile id: {profile_id} and file: {app_file}, architecture id is {architecture}')
 
     logger.info('Check if this version of application was already uploaded..')
     check_app_already_uploaded = mdast.check_app_md5(mdast.company_id, check_app_md5(app_file)).json()
