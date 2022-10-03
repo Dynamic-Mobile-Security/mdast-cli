@@ -98,7 +98,7 @@ class GooglePlay(object):
             path_to_file = f'{download_apks_dir}.zip'
             os.utime(path_to_file, (app_release_ts, app_release_ts))
             shutil.rmtree(download_apks_dir)
-            logger.info(f'Google Play -  Directory {download_apks_dir} was deleted')
+            logger.info(f'Google Play - Directory {download_apks_dir} was deleted')
 
         return path_to_file
 

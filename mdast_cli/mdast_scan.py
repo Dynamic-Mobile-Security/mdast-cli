@@ -352,8 +352,8 @@ def main():
         if architecture is None:
             logger.error("Cannot create scan - no suitable architecture fot this app, try to set it manually")
             sys.exit(1)
-        architecture_type = next(arch for arch in architectures if arch.get('id', '') == architecture)
-        logger.info(f'Architecture type is {architecture_type}')
+    architecture_type = next(arch for arch in architectures if arch.get('id', '') == architecture)
+    logger.info(f'Architecture type is {architecture_type}')
 
     if testcase_id is not None:
         get_testcase_resp = mdast.get_testcase(testcase_id)
