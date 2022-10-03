@@ -398,6 +398,9 @@ def main():
             else:
                 create_dast_resp = mdast.create_manual_scan_autocreate_profile(app_id=application['id'],
                                                                                arch_id=architecture)
+                dast_info = create_dast_resp.json()
+                logger.info(f"Project and profile was created/found successfully."
+                            f" Project id: {dast_info['project']['id']}, profile id: {dast_info['profile']['id']}")
             scan_type = 'manual'
         else:
             create_dast_resp = mdast.create_auto_scan(profile_id=profile_id,
@@ -413,6 +416,9 @@ def main():
         else:
             create_dast_resp = mdast.create_manual_scan_autocreate_profile(app_id=application['id'],
                                                                            arch_id=architecture)
+            dast_info = create_dast_resp.json()
+            logger.info(f"Project and profile was created/found successfully."
+                        f" Project id: {dast_info['project']['id']}, profile id: {dast_info['profile']['id']}")
         scan_type = 'manual'
     else:
         logger.error("Cannot create scan - unknown architecture")
