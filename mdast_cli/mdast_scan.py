@@ -12,7 +12,8 @@ from mdast_cli.distribution_systems.firebase import Firebase
 from mdast_cli.distribution_systems.google_play import GooglePlay
 from mdast_cli.distribution_systems.nexus import NexusRepository
 from mdast_cli.distribution_systems.rustore import rustore_download_app
-from mdast_cli.helpers.const import END_SCAN_TIMEOUT, SLEEP_TIMEOUT, TRY_COUNT, DastState, DastStateDict, ANDROID_EXTENSIONS
+from mdast_cli.helpers.const import END_SCAN_TIMEOUT, SLEEP_TIMEOUT, TRY_COUNT, DastState, DastStateDict, \
+    ANDROID_EXTENSIONS
 from mdast_cli.helpers.helpers import check_app_md5
 
 from mdast_cli_core.token import mDastToken as mDast
@@ -166,7 +167,8 @@ def parse_args():
     parser.add_argument('--company_id', type=int, help='Company id for starting scan', required=(not '-d'))
     parser.add_argument('--token', type=str, help='CI/CD Token for start scan and get results', required=(not '-d'))
     parser.add_argument('--architecture_id', type=int, help='Architecture id to perform scan')
-    parser.add_argument('--profile_id', type=int, help='Profile id for scan. If not set - autocreate project and profile')
+    parser.add_argument('--profile_id', type=int,
+                        help='Profile id for scan. If not set - autocreate project and profile')
     parser.add_argument('--testcase_id', type=int, help='Testcase id. If not set - manual scan')
     parser.add_argument('--summary_report_json_file_name', type=str,
                         help='Name for the json file with summary results in structured format')
@@ -262,6 +264,7 @@ def main():
         url = url if url.endswith('rest/') else f'{url}rest'
 
     app_file = ''
+    appstore_app_md5 = None
 
     try:
         if distribution_system == 'file':
@@ -302,10 +305,10 @@ def main():
         elif distribution_system == 'appstore':
             appstore = AppStore(arguments.appstore_apple_id,
                                 arguments.appstore_password2FA)
-            app_file, _ = appstore.download_app(download_path,
-                                                arguments.appstore_app_id,
-                                                arguments.appstore_bundle_id,
-                                                arguments.appstore_file_name)
+            app_file, appstore_app_md5 = appstore.download_app(download_path,
+                                                               arguments.appstore_app_id,
+                                                               arguments.appstore_bundle_id,
+                                                               arguments.appstore_file_name)
 
         elif distribution_system == 'google_play':
             google_play = GooglePlay(arguments.google_play_email,
@@ -371,7 +374,10 @@ def main():
                     f'{testcase_id}, profile id: {profile_id} and file: {app_file}, architecture id is {architecture}')
 
     logger.info('Check if this version of application was already uploaded..')
-    check_app_already_uploaded = mdast.check_app_md5(mdast.company_id, check_app_md5(app_file)).json()
+    if appstore_app_md5:
+        check_app_already_uploaded = mdast.check_app_md5(mdast.company_id, appstore_app_md5).json()
+    else:
+        check_app_already_uploaded = mdast.check_app_md5(mdast.company_id, check_app_md5(app_file)).json()
     if check_app_already_uploaded:
         application = check_app_already_uploaded[0]
         logger.info(f"This app was uploaded before, application id is: {application['id']}, "
