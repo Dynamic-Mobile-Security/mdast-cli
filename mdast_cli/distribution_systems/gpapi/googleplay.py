@@ -337,7 +337,7 @@ class GooglePlayAPI(object):
 
         message = googleplay_pb2.ResponseWrapper.FromString(response.content)
         if message.commands.displayErrorMessage != "":
-            raise ConnectionError(message.commands.displayErrorMessage)
+            raise RuntimeError(f'Google Play - Connection error during request: {message.commands.displayErrorMessage}')
 
         return message
 

@@ -69,7 +69,10 @@ class AppStore(object):
 
         self.login()
         resp_info = self.store.find_app(app_id=app_id, bundle_id=bundle_id, country=country).json()
-        app_info = resp_info['results'][0]
+        try:
+            app_info = resp_info['results'][0]
+        except IndexError:
+            raise RuntimeError('App Store - Application not found') from None
         return {
             'integration_type': 'app_store',
             'appstore_id': app_info['trackId'],
