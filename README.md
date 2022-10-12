@@ -86,16 +86,21 @@ If you want to integrate security analysis of downloaded application in the CI/C
 
 #### Scan parameters
 
-The launch options depend on the location of the apk file sent for analysis. Also, there are required parameters that must be specified for launch:
+The launch options depend on the location of the apk file sent for analysis. Also, there are parameters that must be specified for launch:
+
+Required parameters:
  * `url` - network address for system (the path to the root without the final /)
- * `profile_id` - optional parameter, ID of the profile to be analyzed, If not set - project and profile will be created automatically
- * `testcase_id` - ID of the test case to be executed. This is an optional parameter, if not set - manual scan with 20 seconds delay until finish will be executed;
  * `token` - CI/CD access token (refer to our documentation for ways to retrieve the token)
  * `company_id` - identifier of the company within which the scan will be performed
- * `architecture_id` - identifier of the operating system architecture on which the scan will be performed
+
+Optional parameters:
+ * `profile_id` - optional parameter, ID of the profile to be analyzed, If not set - project and profile will be created automatically
+ * `testcase_id` - ID of the test case to be executed. This is an optional parameter, if not set - manual scan with 20 seconds delay until finish will be executed;
+ * `architecture_id` - optional parameter, identifier of the operating system architecture on which the scan will be performed. If not set - architecture will be selected automatically (Android 11/iOS 14)
  * `nowait` - an optional parameter specifying whether to wait for the scan to complete. If this flag is set, the script will not wait for the scan to complete but will exit immediately after starting. If the flag is not selected, the script will wait for the completion of the analysis process and generate a report.
  * `summary_report_json_file_name` - an optional parameter defining the name of the json file into which the scanning information in json format is uploaded. If the parameter is absent, the information will not be saved.
  * `pdf_report_file_name` - an optional parameter that specifies the name of the pdf file into which information on scanning in pdf format is uploaded. If the parameter is absent, the report will not be saved.
+ * `download_path` - an optional parameter that specifies the path to folder with downloaded apps. Default value: *downloaded_apps*
 
 ## Distribution systems
 
@@ -172,7 +177,7 @@ Using these parameters you will have all parameters for successful downloading a
  * `google_play_gsfid` - The Google Services Framework Identifier (GSF ID)
  * `google_play_auth_token` - Google auth token for access to Google Play API
 
-If your app is published in **split apk format** you will get a directory with all split apks downloaded, the main app will be called *base-master.apk*. Also there will be a zip archive with all splits, that can be used for DAST analysis.
+If your app is published in **split apk format** you will get a zip archive with all splits, that can be used for DAST analysis.
 
 You can also specify downloaded app file name with an optional parameter
 
