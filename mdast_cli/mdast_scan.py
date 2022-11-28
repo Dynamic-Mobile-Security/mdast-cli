@@ -11,6 +11,7 @@ from mdast_cli.distribution_systems.appstore import AppStore
 from mdast_cli.distribution_systems.firebase import Firebase
 from mdast_cli.distribution_systems.google_play import GooglePlay
 from mdast_cli.distribution_systems.nexus import NexusRepository
+from mdast_cli.distribution_systems.nexus2 import Nexus2Repository
 from mdast_cli.distribution_systems.rustore import rustore_download_app
 from mdast_cli.helpers.const import END_SCAN_TIMEOUT, SLEEP_TIMEOUT, TRY_COUNT, DastState, DastStateDict, \
     ANDROID_EXTENSIONS
@@ -31,7 +32,8 @@ def parse_args():
     parser.add_argument('--distribution_system', '-ds', type=str, help='Select how to download file: '
                                                                        'file/appcenter/nexus'
                                                                        '/firebase/appstore/google_play/rustore',
-                        choices=['file', 'appcenter', 'nexus', 'firebase', 'appstore', 'google_play', 'rustore'],
+                        choices=['file', 'appcenter', 'nexus', 'nexus2', 'firebase', 'appstore', 'google_play',
+                                 'rustore'],
                         required=True)
 
     # Arguments used for distribution_system = file
@@ -162,6 +164,35 @@ def parse_args():
                         help='Application package name from Rustore. This argument is required if '
                              'distribution system set to "rustore"')
 
+    # Arguments for Nexus2
+    parser.add_argument('--nexus2_url', type=str,
+                        help='Http url for Nexus server where mobile application is located.'
+                             ' This argument is required if distribution system set to "appcenter"')
+    parser.add_argument('--nexus2_login', type=str,
+                        help='Login for Nexus server where mobile application is located.'
+                             ' This argument is required if distribution system set to "appcenter"')
+    parser.add_argument('--nexus2_password', type=str,
+                        help='Password for Nexus server where mobile application is located.'
+                             'This argument is required if distribution system set to "appcenter"')
+    parser.add_argument('--nexus2_repo_name', type=str,
+                        help='Repository name in Nexus where mobile application is located. '
+                             'This argument is required if distribution system set to "appcenter"')
+    parser.add_argument('--nexus2_group_id', type=str,
+                        help='Group_id for mobile application. '
+                             'This argument is required if distribution system set to "appcenter"')
+    parser.add_argument('--nexus2_artifact_id', type=str,
+                        help='Artifact id for mobile application. '
+                             'This argument is required if distribution system set to "appcenter"')
+    parser.add_argument('--nexus2_version', type=str,
+                        help='Version to download from Nexus. '
+                             'This argument is required if distribution system set to "appcenter"')
+    parser.add_argument('--nexus2_extension', type=str,
+                        help='File extension. '
+                             'This argument is required if distribution system set to "appcenter"')
+    parser.add_argument('--nexus2_file_name', type=str,
+                        help='File name to be saved as. '
+                             'This argument is optional if distribution system set to "appcenter"')
+
     # Main arguments
     parser.add_argument('--url', type=str, help='System url', required=(not '-d'))
     parser.add_argument('--company_id', type=int, help='Company id for starting scan', required=(not '-d'))
@@ -203,6 +234,19 @@ def parse_args():
             args.nexus_version is None):
         parser.error('"--distribution_system nexus" requires "--nexus_url", "--nexus_login", "--nexus_password",'
                      ' "--nexus_repo_name" arguments to be set')
+
+    elif args.distribution_system == 'nexus2' and (
+            args.nexus2_url is None or
+            args.nexus2_login is None or
+            args.nexus2_password is None or
+            args.nexus2_repo_name is None or
+            args.nexus2_group_id is None or
+            args.nexus2_artifact_id is None or
+            args.nexus2_version is None or
+            args.nexus2_extension is None):
+        parser.error('"--distribution_system nexus2" requires "--nexus2_url", "--nexus2_login", "--nexus2_password",'
+                     ' "--nexus2_repo_name", "--nexus2_group_id", "--nexus2_artifact_id", "--nexus2_extension" '
+                     'arguments to be set')
 
     elif args.distribution_system == 'firebase' and (
             args.firebase_project_id is None or
@@ -287,6 +331,17 @@ def main():
                                                      arguments.nexus_group_id,
                                                      arguments.nexus_artifact_id,
                                                      arguments.nexus_version)
+        elif distribution_system == 'nexus2':
+            nexus2_repository = Nexus2Repository(arguments.nexus2_url,
+                                                 arguments.nexus2_login,
+                                                 arguments.nexus2_password)
+            app_file = nexus2_repository.download_app(download_path,
+                                                      arguments.nexus2_repo_name,
+                                                      arguments.nexus2_group_id,
+                                                      arguments.nexus2_artifact_id,
+                                                      arguments.nexus2_version,
+                                                      arguments.nexus2_extension,
+                                                      arguments.nexus2_file_name)
 
         elif distribution_system == 'firebase':
             firebase = Firebase(arguments.firebase_api_key,
