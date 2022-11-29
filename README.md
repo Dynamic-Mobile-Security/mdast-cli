@@ -29,7 +29,8 @@ During the execution of the script, the application is sent for the dynamic anal
   * [Firebase](#firebase)
   * [AppCenter](#appcenter)
   * [Nexus](#nexus)
-  *  [Rustore](#rustore)
+  * [Nexus2](#nexus2)
+  * [Rustore](#rustore)
 * [Scan types](#scan-types)
 
 
@@ -70,6 +71,8 @@ Currently, several distribution systems are supported:
  * Applications from [Firebase](https://firebase.google.com/)
  * Applications from [AppCenter](https://appcenter.ms)
  * Applications from [Nexus Repository 3.x](https://help.sonatype.com/repomanager3) from maven repo.
+ * Applications from [Nexus2](https://help.sonatype.com/repomanager2)
+ * Applications from [Rustore](https://rustore.ru/)
 
 ## Launch parameters
 
@@ -79,7 +82,7 @@ If you just want to download the application without scanning, specify `--downlo
 After that you will need to specify the distribution system and mandatory parameters for specified system
 
 * `distribution_system` - distribution method for the application   
-_possible values_ `file`/`google_play`/`appstore`/`firebase`/`appcenter`/`nexus`   
+_possible values_ `file`/`google_play`/`appstore`/`firebase`/`appcenter`/`nexus`/`nexus2`/`rustore`   
 For detailed information refer to the respective sections below.
 
 If you want to integrate security analysis of downloaded application in the CI/CD you should specify these parameters.  
@@ -375,6 +378,32 @@ Also, you need to select the `distribution_system nexus` and specify the followi
  * `nexus_group_id` - group_id of the uploaded mobile application from maven data.
  * `nexus_artifact_id` - artifact_id of the uploaded mobile application from maven data.
  * `nexus_version` - version of the uploaded mobile application from maven data.
+
+### Nexus 2
+To download the application from nexus 2 repository you need to know the repository where the mobile application is stored and its group_id, artifact_id and version. To upload mobile application to Nexus you can use [this snippet](https://gist.github.com/Dynamic-Mobile-Security/9730e8eaa1b5d5f7f21e28beb63561a8) for android apk and [this one](https://gist.github.com/Dynamic-Mobile-Security/66daaf526e0109636d8bcdc21fd10779) for iOS ipa.  
+
+Also, you need to select the `distribution_system nexus` and specify the following mandatory parameters:
+ * `nexus2_url` - http(s) url for Nexus 2 server where the mobile application is located.
+ * `nexus2_login` - username for Nexus 2 server with permissions to the repository where mobile application is located.
+ * `nexus2_password` - password for the Nexus 2 server with permissions to the repository where mobile application is located.
+ * `nexus2_repo_name` - repository name in Nexus 2 where mobile application is located.
+ * `nexus2_group_id` - group_id of the uploaded mobile application from maven data.
+ * `nexus2_artifact_id` - artifact_id of the uploaded mobile application from maven data.
+ * `nexus2_version` - version of the uploaded mobile application from maven data.
+ * `nexus2_extension` - extension of the uploaded mobile application.
+
+
+You can specify the downloaded app file name with an optional parameter
+
+ * `nexus2_file_name` - file name for app to be saved with
+
+#### Launch example
+
+To download the application from Nexus 2 you need to run the following command:
+```
+python mdast_cli/mdast_scan.py -d -ds nexus2 --nexus2_url http://nexus:8081/nexus/ --nexus2_login login --nexus2_password password --nexus2_repo_name repo --nexus2_group_id com.swdf.buggen --nexus2_artifact_id app-prod-debug --nexus2_version 1.337 --nexus2_extension apk --nexus2_file_name b3st_file_fr0m_nexus2
+```
+
 
 ### Rustore
 To download the application from rustore you need to know the package name of apk.  
