@@ -15,7 +15,7 @@ from mdast_cli.distribution_systems.gpapi import config, googleplay_pb2, utils
 
 logger = logging.getLogger(__name__)
 
-ssl_verify = True
+ssl_verify = False
 
 BASE = "https://android.clients.google.com/"
 FDFE = BASE + "fdfe/"
