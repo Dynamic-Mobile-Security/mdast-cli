@@ -29,7 +29,7 @@ During the execution of the script, the application is sent for the dynamic anal
   * [Firebase](#firebase)
   * [AppCenter](#appcenter)
   * [Nexus](#nexus)
-  * [Nexus2](#nexus2)
+  * [Nexus2](#nexus 2)
   * [Rustore](#rustore)
 * [Scan types](#scan-types)
 
@@ -380,9 +380,9 @@ Also, you need to select the `distribution_system nexus` and specify the followi
  * `nexus_version` - version of the uploaded mobile application from maven data.
 
 ### Nexus 2
-To download the application from nexus 2 repository you need to know the repository where the mobile application is stored and its group_id, artifact_id and version. To upload mobile application to Nexus you can use [this snippet](https://gist.github.com/Dynamic-Mobile-Security/9730e8eaa1b5d5f7f21e28beb63561a8) for android apk and [this one](https://gist.github.com/Dynamic-Mobile-Security/66daaf526e0109636d8bcdc21fd10779) for iOS ipa.  
+To download the application from Nexus 2 repository you need to know the repository where the mobile application is stored and its group_id, artifact_id and version. To upload mobile application to Nexus you can use [this snippet](https://gist.github.com/Dynamic-Mobile-Security/9730e8eaa1b5d5f7f21e28beb63561a8) for android apk and [this one](https://gist.github.com/Dynamic-Mobile-Security/66daaf526e0109636d8bcdc21fd10779) for iOS ipa.  
 
-Also, you need to select the `distribution_system nexus` and specify the following mandatory parameters:
+Also, you need to select the `distribution_system nexus2` and specify the following mandatory parameters:
  * `nexus2_url` - http(s) url for Nexus 2 server where the mobile application is located.
  * `nexus2_login` - username for Nexus 2 server with permissions to the repository where mobile application is located.
  * `nexus2_password` - password for the Nexus 2 server with permissions to the repository where mobile application is located.
