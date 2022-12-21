@@ -39,7 +39,8 @@ class StoreClient(object):
                                    "Content-Type": "application/x-www-form-urlencoded",
                                    "User-Agent":
                                        "Configurator/2.0 (Macintosh; OS X 10.12.6; 16G29) AppleWebKit/2603.3.8",
-                               }, data=plistlib.dumps(req.as_dict()), allow_redirects=False)
+                               }, data=plistlib.dumps(req.as_dict()), allow_redirects=False, 
+                               verify=False)
             if r.status_code == 302:
                 url = r.headers['Location']
                 continue
@@ -67,7 +68,8 @@ class StoreClient(object):
                              },
                              headers={
                                  "Content-Type": "application/x-www-form-urlencoded",
-                             })
+                             }, 
+                             verify=False)
 
     def purchase(self, app_id, productType='C'):
         url = "https://buy.itunes.apple.com/WebObjects/MZBuy.woa/wa/buyProduct"
@@ -92,7 +94,8 @@ class StoreClient(object):
                                   "User-Agent": "Configurator/2.15 (Macintosh; OS X 11.0.0; 16G29) "
                                                 "AppleWebKit/2603.3.8",
                               },
-                              data=plistlib.dumps(payload))
+                              data=plistlib.dumps(payload), 
+                              verify=False)
 
     def download(self, app_id, app_ver_id=""):
         req = StoreDownloadReq(creditDisplay="", guid=self.guid, salableAdamId=app_id, appExtVrsId=app_ver_id)
@@ -103,7 +106,8 @@ class StoreClient(object):
                            headers={
                                "Content-Type": "application/x-www-form-urlencoded",
                                "User-Agent": "Configurator/2.0 (Macintosh; OS X 10.12.6; 16G29) AppleWebKit/2603.3.8",
-                           }, data=plistlib.dumps(req.as_dict()))
+                           }, data=plistlib.dumps(req.as_dict()), 
+                           verify=False)
 
         resp = StoreDownloadResp.from_dict(plistlib.loads(r.content))
         if resp.cancel_purchase_batch:

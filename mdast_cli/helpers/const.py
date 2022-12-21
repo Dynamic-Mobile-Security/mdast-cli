@@ -28,6 +28,7 @@ DastStateDict = {
     11: "CANCELLING"
 }
 
+ANDROID_EXTENSIONS = ['.apk', '.apks', '.zip', '.aab']
 
 TRY_COUNT = 360
 END_SCAN_TIMEOUT = 30

@@ -29,7 +29,8 @@ During the execution of the script, the application is sent for the dynamic anal
   * [Firebase](#firebase)
   * [AppCenter](#appcenter)
   * [Nexus](#nexus)
-  *  [Rustore](#rustore)
+  * [Nexus2](#nexus 2)
+  * [Rustore](#rustore)
 * [Scan types](#scan-types)
 
 
@@ -70,6 +71,8 @@ Currently, several distribution systems are supported:
  * Applications from [Firebase](https://firebase.google.com/)
  * Applications from [AppCenter](https://appcenter.ms)
  * Applications from [Nexus Repository 3.x](https://help.sonatype.com/repomanager3) from maven repo.
+ * Applications from [Nexus2](https://help.sonatype.com/repomanager2)
+ * Applications from [Rustore](https://rustore.ru/)
 
 ## Launch parameters
 
@@ -79,23 +82,28 @@ If you just want to download the application without scanning, specify `--downlo
 After that you will need to specify the distribution system and mandatory parameters for specified system
 
 * `distribution_system` - distribution method for the application   
-_possible values_ `file`/`google_play`/`appstore`/`firebase`/`appcenter`/`nexus`   
+_possible values_ `file`/`google_play`/`appstore`/`firebase`/`appcenter`/`nexus`/`nexus2`/`rustore`   
 For detailed information refer to the respective sections below.
 
 If you want to integrate security analysis of downloaded application in the CI/CD you should specify these parameters.  
 
 #### Scan parameters
 
-The launch options depend on the location of the apk file sent for analysis. Also, there are required parameters that must be specified for launch:
+The launch options depend on the location of the apk file sent for analysis. Also, there are parameters that must be specified for launch:
+
+Required parameters:
  * `url` - network address for system (the path to the root without the final /)
- * `profile_id` - optional parameter, ID of the profile to be analyzed, If not set - project and profile will be created automatically
- * `testcase_id` - ID of the test case to be executed. This is an optional parameter, if not set - manual scan with 20 seconds delay until finish will be executed;
  * `token` - CI/CD access token (refer to our documentation for ways to retrieve the token)
  * `company_id` - identifier of the company within which the scan will be performed
- * `architecture_id` - identifier of the operating system architecture on which the scan will be performed
+
+Optional parameters:
+ * `profile_id` - optional parameter, ID of the profile to be analyzed, If not set - project and profile will be created automatically
+ * `testcase_id` - ID of the test case to be executed. This is an optional parameter, if not set - manual scan with 20 seconds delay until finish will be executed;
+ * `architecture_id` - optional parameter, identifier of the operating system architecture on which the scan will be performed. If not set - architecture will be selected automatically (Android 11/iOS 14)
  * `nowait` - an optional parameter specifying whether to wait for the scan to complete. If this flag is set, the script will not wait for the scan to complete but will exit immediately after starting. If the flag is not selected, the script will wait for the completion of the analysis process and generate a report.
  * `summary_report_json_file_name` - an optional parameter defining the name of the json file into which the scanning information in json format is uploaded. If the parameter is absent, the information will not be saved.
  * `pdf_report_file_name` - an optional parameter that specifies the name of the pdf file into which information on scanning in pdf format is uploaded. If the parameter is absent, the report will not be saved.
+ * `download_path` - an optional parameter that specifies the path to folder with downloaded apps. Default value: *downloaded_apps*
 
 ## Distribution systems
 
@@ -172,7 +180,7 @@ Using these parameters you will have all parameters for successful downloading a
  * `google_play_gsfid` - The Google Services Framework Identifier (GSF ID)
  * `google_play_auth_token` - Google auth token for access to Google Play API
 
-If your app is published in **split apk format** you will get a directory with all split apks downloaded, the main app will be called *base-master.apk*. Also there will be a zip archive with all splits, that can be used for DAST analysis.
+If your app is published in **split apk format** you will get a zip archive with all splits, that can be used for DAST analysis.
 
 You can also specify downloaded app file name with an optional parameter
 
@@ -370,6 +378,32 @@ Also, you need to select the `distribution_system nexus` and specify the followi
  * `nexus_group_id` - group_id of the uploaded mobile application from maven data.
  * `nexus_artifact_id` - artifact_id of the uploaded mobile application from maven data.
  * `nexus_version` - version of the uploaded mobile application from maven data.
+
+### Nexus 2
+To download the application from Nexus 2 repository you need to know the repository where the mobile application is stored and its group_id, artifact_id and version. To upload mobile application to Nexus you can use [this snippet](https://gist.github.com/Dynamic-Mobile-Security/9730e8eaa1b5d5f7f21e28beb63561a8) for android apk and [this one](https://gist.github.com/Dynamic-Mobile-Security/66daaf526e0109636d8bcdc21fd10779) for iOS ipa.  
+
+Also, you need to select the `distribution_system nexus2` and specify the following mandatory parameters:
+ * `nexus2_url` - http(s) url for Nexus 2 server where the mobile application is located.
+ * `nexus2_login` - username for Nexus 2 server with permissions to the repository where mobile application is located.
+ * `nexus2_password` - password for the Nexus 2 server with permissions to the repository where mobile application is located.
+ * `nexus2_repo_name` - repository name in Nexus 2 where mobile application is located.
+ * `nexus2_group_id` - group_id of the uploaded mobile application from maven data.
+ * `nexus2_artifact_id` - artifact_id of the uploaded mobile application from maven data.
+ * `nexus2_version` - version of the uploaded mobile application from maven data.
+ * `nexus2_extension` - extension of the uploaded mobile application.
+
+
+You can specify the downloaded app file name with an optional parameter
+
+ * `nexus2_file_name` - file name for app to be saved with
+
+#### Launch example
+
+To download the application from Nexus 2 you need to run the following command:
+```
+python mdast_cli/mdast_scan.py -d -ds nexus2 --nexus2_url http://nexus:8081/nexus/ --nexus2_login login --nexus2_password password --nexus2_repo_name repo --nexus2_group_id com.swdf.buggen --nexus2_artifact_id app-prod-debug --nexus2_version 1.337 --nexus2_extension apk --nexus2_file_name b3st_file_fr0m_nexus2
+```
+
 
 ### Rustore
 To download the application from rustore you need to know the package name of apk.  

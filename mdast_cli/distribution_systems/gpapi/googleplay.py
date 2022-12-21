@@ -15,7 +15,7 @@ from mdast_cli.distribution_systems.gpapi import config, googleplay_pb2, utils
 
 logger = logging.getLogger(__name__)
 
-ssl_verify = True
+ssl_verify = False
 
 BASE = "https://android.clients.google.com/"
 FDFE = BASE + "fdfe/"
@@ -337,7 +337,7 @@ class GooglePlayAPI(object):
 
         message = googleplay_pb2.ResponseWrapper.FromString(response.content)
         if message.commands.displayErrorMessage != "":
-            raise ConnectionError(message.commands.displayErrorMessage)
+            raise RuntimeError(f'Google Play - Connection error during request: {message.commands.displayErrorMessage}')
 
         return message
 

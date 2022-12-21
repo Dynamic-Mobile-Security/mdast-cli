@@ -3,6 +3,7 @@ import json
 import logging
 import sys
 import time
+import os
 
 import urllib3
 from mdast_cli.distribution_systems.app_center import AppCenter
@@ -10,8 +11,10 @@ from mdast_cli.distribution_systems.appstore import AppStore
 from mdast_cli.distribution_systems.firebase import Firebase
 from mdast_cli.distribution_systems.google_play import GooglePlay
 from mdast_cli.distribution_systems.nexus import NexusRepository
+from mdast_cli.distribution_systems.nexus2 import Nexus2Repository
 from mdast_cli.distribution_systems.rustore import rustore_download_app
-from mdast_cli.helpers.const import END_SCAN_TIMEOUT, SLEEP_TIMEOUT, TRY_COUNT, DastState, DastStateDict
+from mdast_cli.helpers.const import END_SCAN_TIMEOUT, SLEEP_TIMEOUT, TRY_COUNT, DastState, DastStateDict, \
+    ANDROID_EXTENSIONS
 from mdast_cli.helpers.helpers import check_app_md5
 
 from mdast_cli_core.token import mDastToken as mDast
@@ -29,7 +32,8 @@ def parse_args():
     parser.add_argument('--distribution_system', '-ds', type=str, help='Select how to download file: '
                                                                        'file/appcenter/nexus'
                                                                        '/firebase/appstore/google_play/rustore',
-                        choices=['file', 'appcenter', 'nexus', 'firebase', 'appstore', 'google_play', 'rustore'],
+                        choices=['file', 'appcenter', 'nexus', 'nexus2', 'firebase', 'appstore', 'google_play',
+                                 'rustore'],
                         required=True)
 
     # Arguments used for distribution_system = file
@@ -160,14 +164,43 @@ def parse_args():
                         help='Application package name from Rustore. This argument is required if '
                              'distribution system set to "rustore"')
 
+    # Arguments for Nexus2
+    parser.add_argument('--nexus2_url', type=str,
+                        help='Http url for Nexus server where mobile application is located.'
+                             ' This argument is required if distribution system set to "appcenter"')
+    parser.add_argument('--nexus2_login', type=str,
+                        help='Login for Nexus server where mobile application is located.'
+                             ' This argument is required if distribution system set to "appcenter"')
+    parser.add_argument('--nexus2_password', type=str,
+                        help='Password for Nexus server where mobile application is located.'
+                             'This argument is required if distribution system set to "appcenter"')
+    parser.add_argument('--nexus2_repo_name', type=str,
+                        help='Repository name in Nexus where mobile application is located. '
+                             'This argument is required if distribution system set to "appcenter"')
+    parser.add_argument('--nexus2_group_id', type=str,
+                        help='Group_id for mobile application. '
+                             'This argument is required if distribution system set to "appcenter"')
+    parser.add_argument('--nexus2_artifact_id', type=str,
+                        help='Artifact id for mobile application. '
+                             'This argument is required if distribution system set to "appcenter"')
+    parser.add_argument('--nexus2_version', type=str,
+                        help='Version to download from Nexus. '
+                             'This argument is required if distribution system set to "appcenter"')
+    parser.add_argument('--nexus2_extension', type=str,
+                        help='File extension. '
+                             'This argument is required if distribution system set to "appcenter"')
+    parser.add_argument('--nexus2_file_name', type=str,
+                        help='File name to be saved as. '
+                             'This argument is optional if distribution system set to "appcenter"')
+
     # Main arguments
     parser.add_argument('--url', type=str, help='System url', required=(not '-d'))
     parser.add_argument('--company_id', type=int, help='Company id for starting scan', required=(not '-d'))
-    parser.add_argument('--architecture_id', type=int, help='Architecture id to perform scan', required=(not '-d'))
-    parser.add_argument('--token', type=str, help='CI/CD Token for start scan and get results',
-                        required=(not '-d'))
-    parser.add_argument('--profile_id', type=int, help='Project id for scan')
-    parser.add_argument('--testcase_id', type=int, help='Testcase Id. If not set - autocreate project and profile')
+    parser.add_argument('--token', type=str, help='CI/CD Token for start scan and get results', required=(not '-d'))
+    parser.add_argument('--architecture_id', type=int, help='Architecture id to perform scan')
+    parser.add_argument('--profile_id', type=int,
+                        help='Profile id for scan. If not set - autocreate project and profile')
+    parser.add_argument('--testcase_id', type=int, help='Testcase id. If not set - manual scan')
     parser.add_argument('--summary_report_json_file_name', type=str,
                         help='Name for the json file with summary results in structured format')
     parser.add_argument('--pdf_report_file_name', type=str, help='Name for the pdf report file.')
@@ -201,6 +234,19 @@ def parse_args():
             args.nexus_version is None):
         parser.error('"--distribution_system nexus" requires "--nexus_url", "--nexus_login", "--nexus_password",'
                      ' "--nexus_repo_name" arguments to be set')
+
+    elif args.distribution_system == 'nexus2' and (
+            args.nexus2_url is None or
+            args.nexus2_login is None or
+            args.nexus2_password is None or
+            args.nexus2_repo_name is None or
+            args.nexus2_group_id is None or
+            args.nexus2_artifact_id is None or
+            args.nexus2_version is None or
+            args.nexus2_extension is None):
+        parser.error('"--distribution_system nexus2" requires "--nexus2_url", "--nexus2_login", "--nexus2_password",'
+                     ' "--nexus2_repo_name", "--nexus2_group_id", "--nexus2_artifact_id", "--nexus2_extension" '
+                     'arguments to be set')
 
     elif args.distribution_system == 'firebase' and (
             args.firebase_project_id is None or
@@ -262,6 +308,7 @@ def main():
         url = url if url.endswith('rest/') else f'{url}rest'
 
     app_file = ''
+    appstore_app_md5 = None
 
     try:
         if distribution_system == 'file':
@@ -284,6 +331,17 @@ def main():
                                                      arguments.nexus_group_id,
                                                      arguments.nexus_artifact_id,
                                                      arguments.nexus_version)
+        elif distribution_system == 'nexus2':
+            nexus2_repository = Nexus2Repository(arguments.nexus2_url,
+                                                 arguments.nexus2_login,
+                                                 arguments.nexus2_password)
+            app_file = nexus2_repository.download_app(download_path,
+                                                      arguments.nexus2_repo_name,
+                                                      arguments.nexus2_group_id,
+                                                      arguments.nexus2_artifact_id,
+                                                      arguments.nexus2_version,
+                                                      arguments.nexus2_extension,
+                                                      arguments.nexus2_file_name)
 
         elif distribution_system == 'firebase':
             firebase = Firebase(arguments.firebase_api_key,
@@ -302,10 +360,10 @@ def main():
         elif distribution_system == 'appstore':
             appstore = AppStore(arguments.appstore_apple_id,
                                 arguments.appstore_password2FA)
-            app_file, _ = appstore.download_app(download_path,
-                                                arguments.appstore_app_id,
-                                                arguments.appstore_bundle_id,
-                                                arguments.appstore_file_name)
+            app_file, appstore_app_md5 = appstore.download_app(download_path,
+                                                               arguments.appstore_app_id,
+                                                               arguments.appstore_bundle_id,
+                                                               arguments.appstore_file_name)
 
         elif distribution_system == 'google_play':
             google_play = GooglePlay(arguments.google_play_email,
@@ -342,6 +400,19 @@ def main():
 
     architectures = get_architectures_resp.json()
 
+    _, file_extension = os.path.splitext(app_file)
+
+    if architecture is None:
+        if file_extension in ANDROID_EXTENSIONS:
+            architecture = next(arch['id'] for arch in architectures if arch.get('name', '') == 'Android 11')
+        if file_extension == '.ipa':
+            architecture = next(arch['id'] for arch in architectures if arch.get('name', '') == 'iOS 14')
+        if architecture is None:
+            logger.error("Cannot create scan - no suitable architecture fot this app, try to set it manually")
+            sys.exit(1)
+    architecture_type = next(arch for arch in architectures if arch.get('id', '') == architecture)
+    logger.info(f'Architecture type is {architecture_type}')
+
     if testcase_id is not None:
         get_testcase_resp = mdast.get_testcase(testcase_id)
         if get_testcase_resp.status_code == 200:
@@ -349,26 +420,19 @@ def main():
         else:
             logger.warning("Testcase with this id does not exist or you use old version of system. Trying to use "
                            "architecture from command line params.")
-        if architecture is not None:
-            pass
-        else:
-            logger.error("No architecture was specified")
-            sys.exit(1)
-
-    architecture_type = next(arch for arch in architectures if arch.get('id', '') == architecture)
-    if architecture_type is None:
-        logger.error("No suitable architecture find for this app")
-        sys.exit(1)
 
     if testcase_id is None:
-        logger.info(f'Start manual scan with profile id: {profile_id} and file located in {app_file},'
+        logger.info(f'Manual scan with profile id: {profile_id} and file located in {app_file},'
                     f' architecture id is {architecture}')
     else:
-        logger.info(f'Start auto scan with test case Id: '
-                    f'{testcase_id}, profile Id: {profile_id} and file: {app_file}, architecture id is {architecture}')
+        logger.info(f'Auto scan with test case id: '
+                    f'{testcase_id}, profile id: {profile_id} and file: {app_file}, architecture id is {architecture}')
 
     logger.info('Check if this version of application was already uploaded..')
-    check_app_already_uploaded = mdast.check_app_md5(mdast.company_id, check_app_md5(app_file)).json()
+    if appstore_app_md5:
+        check_app_already_uploaded = mdast.check_app_md5(mdast.company_id, appstore_app_md5).json()
+    else:
+        check_app_already_uploaded = mdast.check_app_md5(mdast.company_id, check_app_md5(app_file)).json()
     if check_app_already_uploaded:
         application = check_app_already_uploaded[0]
         logger.info(f"This app was uploaded before, application id is: {application['id']}, "
@@ -395,6 +459,9 @@ def main():
             else:
                 create_dast_resp = mdast.create_manual_scan_autocreate_profile(app_id=application['id'],
                                                                                arch_id=architecture)
+                dast_info = create_dast_resp.json()
+                logger.info(f"Project and profile was created/found successfully."
+                            f" Project id: {dast_info['project']['id']}, profile id: {dast_info['profile']['id']}")
             scan_type = 'manual'
         else:
             create_dast_resp = mdast.create_auto_scan(profile_id=profile_id,
@@ -410,6 +477,9 @@ def main():
         else:
             create_dast_resp = mdast.create_manual_scan_autocreate_profile(app_id=application['id'],
                                                                            arch_id=architecture)
+            dast_info = create_dast_resp.json()
+            logger.info(f"Project and profile was created/found successfully."
+                        f" Project id: {dast_info['project']['id']}, profile id: {dast_info['profile']['id']}")
         scan_type = 'manual'
     else:
         logger.error("Cannot create scan - unknown architecture")

@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 def download_file(url, download_path, file_path):
-    with requests.get(url, stream=True) as r:
+    with requests.get(url, stream=True, verify=False) as r:
         if r.status_code != 200:
             raise RuntimeError(f'Failed to download application. Request return status code: {r.status_code}"')
         if not os.path.exists(download_path):
@@ -69,7 +69,10 @@ class AppStore(object):
 
         self.login()
         resp_info = self.store.find_app(app_id=app_id, bundle_id=bundle_id, country=country).json()
-        app_info = resp_info['results'][0]
+        try:
+            app_info = resp_info['results'][0]
+        except IndexError:
+            raise RuntimeError('App Store - Application not found') from None
         return {
             'integration_type': 'app_store',
             'appstore_id': app_info['trackId'],
