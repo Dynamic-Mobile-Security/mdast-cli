@@ -21,6 +21,6 @@ rsa==4.6
 six>=1.15.0
 soupsieve==2.3.1
 uritemplate==3.0.1
-urllib3==1.25.11
+urllib3==1.26.13
 altgraph==0.17
 certifi==2022.5.18.1
