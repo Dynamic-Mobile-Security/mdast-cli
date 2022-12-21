@@ -6,7 +6,7 @@ with open("README.md", "r") as fh:
 setup(
     name="mdast_cli",
 
-    version='2022.08.7',
+    version='2022.12.0',
 
     author="Dynamic-Mobile-Security",
     description="Dynamic-Mobile-Security",
@@ -42,7 +42,7 @@ setup(
         'six>=1.15.0',
         'soupsieve==2.3.1',
         'uritemplate==3.0.1',
-        'urllib3==1.25.11',
+        'urllib3==1.26.13',
         'certifi==2022.5.18.1',
         'altgraph==0.17'
     ],
