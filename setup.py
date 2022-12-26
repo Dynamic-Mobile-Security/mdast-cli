@@ -6,7 +6,7 @@ with open("README.md", "r") as fh:
 setup(
     name="mdast_cli",
 
-    version='2022.12.0',
+    version='2022.12.1',
 
     author="Dynamic-Mobile-Security",
     description="Dynamic-Mobile-Security",
@@ -17,9 +17,10 @@ setup(
     include_package_data=True,
     package_data={'': ['device.properties']},
     install_requires=[
+        'altgraph==0.17',
         'beautifulsoup4==4.10.0',
         'cachetools==4.1.1',
-        'certifi==2022.5.18.1',
+        'certifi==2022.12.7',
         'cffi==1.15.0',
         'chardet>=3.0.4',
         'charset-normalizer==2.0.12',
@@ -30,9 +31,9 @@ setup(
         'google-auth==1.22.1',
         'google-auth-httplib2==0.0.4',
         'googleapis-common-protos==1.52.0',
-        'httplib2==0.18.1',
+        'httplib2==0.21.0',
         'idna==2.10',
-        'protobuf==4.21.1',
+        'protobuf==4.21.6',
         'pyasn1==0.4.8',
         'pyasn1-modules==0.2.8',
         'pycparser==2.21',
@@ -43,8 +44,6 @@ setup(
         'soupsieve==2.3.1',
         'uritemplate==3.0.1',
         'urllib3==1.26.13',
-        'certifi==2022.5.18.1',
-        'altgraph==0.17'
     ],
     entry_points={
         'console_scripts': [
