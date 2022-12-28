@@ -49,7 +49,6 @@ def rustore_download_app(package_name, download_path):
         if chunk:
             f.write(chunk)
     f.close()
-    os.utime(file_path, (1647167857, 1647167857))
     logger.info(f'Rustore - Apk was downloaded from rustore to {file_path}')
 
     return file_path
