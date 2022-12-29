@@ -424,10 +424,10 @@ You can specify the downloaded app file name with an optional parameter
 
  * `appgallery_file_name` - file name for app to be saved with
 
-To get the app_id, go to the app page in the AppStore in your browser, you can extract the required parameter from the url:
+To get the app_id, go to the app page in the Appgallery in your browser, you can extract the required parameter from the url:
 ![app_id_example](https://user-images.githubusercontent.com/46852358/209744381-66bd117a-c16e-40d2-9d24-fc0b694a912d.png)  
 
-`appstore_app_id С101184875` in this example.  
+`appgallery_app_id С101184875` in this example.  
 
  
 
