@@ -13,6 +13,7 @@ from mdast_cli.distribution_systems.google_play import GooglePlay
 from mdast_cli.distribution_systems.nexus import NexusRepository
 from mdast_cli.distribution_systems.nexus2 import Nexus2Repository
 from mdast_cli.distribution_systems.rustore import rustore_download_app
+from mdast_cli.distribution_systems.appgallery import appgallery_download_app
 from mdast_cli.helpers.const import END_SCAN_TIMEOUT, SLEEP_TIMEOUT, TRY_COUNT, DastState, DastStateDict, \
     ANDROID_EXTENSIONS
 from mdast_cli.helpers.helpers import check_app_md5
@@ -33,7 +34,7 @@ def parse_args():
                                                                        'file/appcenter/nexus'
                                                                        '/firebase/appstore/google_play/rustore',
                         choices=['file', 'appcenter', 'nexus', 'nexus2', 'firebase', 'appstore', 'google_play',
-                                 'rustore'],
+                                 'rustore', 'appgallery'],
                         required=True)
 
     # Arguments used for distribution_system = file
@@ -164,6 +165,15 @@ def parse_args():
                         help='Application package name from Rustore. This argument is required if '
                              'distribution system set to "rustore"')
 
+    # Arguments for Appgallery
+    parser.add_argument('--appgallery_app_id', type=str,
+                        help='Application id from Appgallery. This argument is required if '
+                             'distribution system set to "appgallery".'
+                             ' You can get it on app page from url, format: .../id{APP_ID}. example: C13371337')
+    parser.add_argument('--appgallery_file_name', type=str,
+                        help='File name for downloaded application.'
+                             ' This argument is optional if distribution system set to "appgallery"')
+
     # Arguments for Nexus2
     parser.add_argument('--nexus2_url', type=str,
                         help='Http url for Nexus server where mobile application is located.'
@@ -282,6 +292,9 @@ def parse_args():
     elif args.distribution_system == 'rustore' and args.rustore_package_name is None:
         parser.error('"--distribution_system rustore" requires "--rustore_package_name" to be set')
 
+    elif args.distribution_system == 'appgallery' and args.appgallery_app_id is None:
+        parser.error('"--distribution_system appgallery" requires "--appgallery_app_id" to be set')
+
     return args
 
 
@@ -382,6 +395,11 @@ def main():
         elif distribution_system == 'rustore':
             package_name = arguments.rustore_package_name
             app_file = rustore_download_app(package_name, download_path)
+
+        elif distribution_system == 'appgallery':
+            app_file = appgallery_download_app(arguments.appgallery_app_id,
+                                               download_path,
+                                               arguments.appgallery_file_name)
 
     except Exception as e:
         logger.fatal(f'Cannot download application file: {e}')

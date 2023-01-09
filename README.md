@@ -31,6 +31,7 @@ During the execution of the script, the application is sent for the dynamic anal
   * [Nexus](#nexus)
   * [Nexus2](#nexus 2)
   * [Rustore](#rustore)
+  * [Appgallery](#appgallery)
 * [Scan types](#scan-types)
 
 
@@ -73,6 +74,7 @@ Currently, several distribution systems are supported:
  * Applications from [Nexus Repository 3.x](https://help.sonatype.com/repomanager3) from maven repo.
  * Applications from [Nexus2](https://help.sonatype.com/repomanager2)
  * Applications from [Rustore](https://rustore.ru/)
+ * Applications from [Appgallery](https://appgallery.huawei.com/)
 
 ## Launch parameters
 
@@ -82,7 +84,7 @@ If you just want to download the application without scanning, specify `--downlo
 After that you will need to specify the distribution system and mandatory parameters for specified system
 
 * `distribution_system` - distribution method for the application   
-_possible values_ `file`/`google_play`/`appstore`/`firebase`/`appcenter`/`nexus`/`nexus2`/`rustore`   
+_possible values_ `file`/`google_play`/`appstore`/`firebase`/`appcenter`/`nexus`/`nexus2`/`rustore`/`appgallery`  
 For detailed information refer to the respective sections below.
 
 If you want to integrate security analysis of downloaded application in the CI/CD you should specify these parameters.  
@@ -410,6 +412,22 @@ To download the application from rustore you need to know the package name of ap
 
 Also, you need to select the `distribution_system rustore` and specify the following mandatory parameter:
  * `rustore_package_name` -  package name of application you want to download
+
+
+### Appgallery
+To download the application from Appgallery you need to know the id from app page url.  
+
+Also, you need to select the `distribution_system appgallery` and specify the following mandatory parameter:
+ * `appgallery_app_id` -  package name of application you want to download
+
+You can specify the downloaded app file name with an optional parameter
+
+ * `appgallery_file_name` - file name for app to be saved with
+
+To get the app_id, go to the app page in the Appgallery in your browser, you can extract the required parameter from the url:
+![app_id_example](https://user-images.githubusercontent.com/46852358/209744381-66bd117a-c16e-40d2-9d24-fc0b694a912d.png)  
+
+`appgallery_app_id С101184875` in this example.  
 
  
 
