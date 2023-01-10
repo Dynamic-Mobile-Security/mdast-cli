@@ -29,7 +29,7 @@ During the execution of the script, the application is sent for the dynamic anal
   * [Firebase](#firebase)
   * [AppCenter](#appcenter)
   * [Nexus](#nexus)
-  * [Nexus2](#nexus 2)
+  * [Nexus2](#nexus2)
   * [Rustore](#rustore)
   * [Appgallery](#appgallery)
 * [Scan types](#scan-types)
@@ -381,7 +381,7 @@ Also, you need to select the `distribution_system nexus` and specify the followi
  * `nexus_artifact_id` - artifact_id of the uploaded mobile application from maven data.
  * `nexus_version` - version of the uploaded mobile application from maven data.
 
-### Nexus 2
+### Nexus2
 To download the application from Nexus 2 repository you need to know the repository where the mobile application is stored and its group_id, artifact_id and version. To upload mobile application to Nexus you can use [this snippet](https://gist.github.com/Dynamic-Mobile-Security/9730e8eaa1b5d5f7f21e28beb63561a8) for android apk and [this one](https://gist.github.com/Dynamic-Mobile-Security/66daaf526e0109636d8bcdc21fd10779) for iOS ipa.  
 
 Also, you need to select the `distribution_system nexus2` and specify the following mandatory parameters:
