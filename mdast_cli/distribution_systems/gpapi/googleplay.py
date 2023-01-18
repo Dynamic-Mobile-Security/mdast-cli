@@ -105,6 +105,7 @@ class GooglePlayAPI(object):
             headers = self.deviceBuilder.getAuthHeaders(self.gsfId)
             headers['app'] = 'com.google.android.gsm'
             with requests.Session() as s:
+                s.mount('https://', AuthHTTPAdapter())
                 s.headers = {'User-Agent': 'GoogleAuth/1.4'}
                 response = s.post(AUTH_URL,
                                   data=params,
@@ -260,6 +261,7 @@ class GooglePlayAPI(object):
         headers = self.deviceBuilder.getAuthHeaders(self.gsfId)
         headers['app'] = 'com.android.vending'
         with requests.Session() as s:
+            s.mount('https://', AuthHTTPAdapter())
             s.headers = {'User-Agent': 'GoogleAuth/1.4', 'device': "{0:x}".format(self.gsfId)}
             response = s.post(AUTH_URL,
                               data=requestParams,
