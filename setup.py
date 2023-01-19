@@ -7,7 +7,7 @@ setup(
     name="mdast_cli",
 
 
-    version='2022.12.5',
+    version='2022.12.6',
 
 
     author="Dynamic-Mobile-Security",
@@ -40,7 +40,7 @@ setup(
         'pyasn1-modules==0.2.8',
         'pycparser==2.21',
         'pyparsing==3.0.7',
-        'pytz==2022.7.1',
+        'pytz>=2021.1',
         'requests>=2.23.0',
         'rsa==4.8',
         'six>=1.15.0',
