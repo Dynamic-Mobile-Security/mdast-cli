@@ -14,13 +14,13 @@ from mdast_cli.distribution_systems.nexus import NexusRepository
 from mdast_cli.distribution_systems.nexus2 import Nexus2Repository
 from mdast_cli.distribution_systems.rustore import rustore_download_app
 from mdast_cli.distribution_systems.appgallery import appgallery_download_app
-from mdast_cli.helpers.const import END_SCAN_TIMEOUT, SLEEP_TIMEOUT, TRY_COUNT, DastState, DastStateDict, \
+from mdast_cli.helpers.const import END_SCAN_TIMEOUT, SLEEP_TIMEOUT, TRY_COUNT, LONG_TRY, DastState, DastStateDict, \
     ANDROID_EXTENSIONS
 from mdast_cli.helpers.helpers import check_app_md5
 
 from mdast_cli_core.token import mDastToken as mDast
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s %(message)s', datefmt='%d/%m/%Y %H:%M:%S')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s %(message)s', datefmt='%d/%m/%Y %H:%M:%S')
 
 logger = logging.getLogger(__name__)
 
@@ -219,6 +219,7 @@ def parse_args():
                              'and exit')
     parser.add_argument('--download_path', '-p', type=str, help='Path to folder with downloaded apps',
                         default='downloaded_apps')
+    parser.add_argument('--long_wait', action='store_true', help='Time limit - 1 week for scan finish')
 
     args = parser.parse_args()
 
@@ -316,6 +317,7 @@ def main():
         json_summary_file_name = arguments.summary_report_json_file_name
         pdf_report_file_name = arguments.pdf_report_file_name
         not_wait_scan_end = arguments.nowait
+        long_wait = arguments.long_wait
 
         url = url if url.endswith('/') else f'{url}/'
         url = url if url.endswith('rest/') else f'{url}rest'
@@ -538,6 +540,9 @@ def main():
     dast_status = dast['state']
     logger.info(f"Current scan status: {DastStateDict.get(dast_status)}")
     count = 0
+
+    if long_wait:
+        TRY_COUNT = LONG_TRY
 
     while dast_status in (DastState.CREATED, DastState.INITIALIZING, DastState.STARTING) and count < TRY_COUNT:
         logger.info(f"Try to get scan status for scan id {dast['id']}. Count number {count}")
