@@ -31,5 +31,6 @@ DastStateDict = {
 ANDROID_EXTENSIONS = ['.apk', '.apks', '.zip', '.aab']
 
 TRY_COUNT = 360
+LONG_TRY = 20160
 END_SCAN_TIMEOUT = 30
 SLEEP_TIMEOUT = 10

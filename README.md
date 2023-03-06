@@ -106,6 +106,7 @@ Optional parameters:
  * `summary_report_json_file_name` - an optional parameter defining the name of the json file into which the scanning information in json format is uploaded. If the parameter is absent, the information will not be saved.
  * `pdf_report_file_name` - an optional parameter that specifies the name of the pdf file into which information on scanning in pdf format is uploaded. If the parameter is absent, the report will not be saved.
  * `download_path` - an optional parameter that specifies the path to folder with downloaded apps. Default value: *downloaded_apps*
+ * `long_wait` - increase wait time for scan to 1 week, boolean parameter
 
 ## Distribution systems
 
