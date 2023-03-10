@@ -1,6 +1,6 @@
 import logging
 import os
-from base64 import b64encode, b64decode
+from base64 import b64encode
 
 import requests
 import urllib3
@@ -24,14 +24,17 @@ class Nexus2Repository(object):
         self.password = str(password)
 
     def download_app(self, download_path, repo_name, group_id, artifact_id, version, extension, file_name=''):
-        download_url = f'{self.nexus_url}/service/local/artifact/maven/content?r={repo_name}&g={group_id}&a={artifact_id}&v={version}&p={extension}'
+        download_url = f'{self.nexus_url}/service/local/artifact/maven/content?r={repo_name}&g={group_id}&a=' \
+                       f'{artifact_id}&v={version}&p={extension}'
         if file_name == '':
             file_name = f'{artifact_id}-{version}.{extension}'
         headers = {
             'DNT': '1',
             'Upgrade-Insecure-Requests': '1',
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) '
+                          'Chrome/107.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;'
+                      'q=0.8,application/signed-exchange;v=b3;q=0.9',
             'Accept-Encoding': 'gzip, deflate',
             'Accept-Language': 'en-US,en;q=0.9,ru;q=0.8',
             'Authorization': basic_auth(self.login, self.password),
@@ -55,6 +58,6 @@ class Nexus2Repository(object):
                     f.write(chunk)
             f.close()
 
-        logger.info(f'Nexus 2 - Application was successfully downloaded!')
+        logger.info('Nexus 2 - Application was successfully downloaded!')
 
         return path_to_save

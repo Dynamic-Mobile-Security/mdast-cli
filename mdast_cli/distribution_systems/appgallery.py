@@ -41,7 +41,6 @@ def get_app_info(app_id):
                         f"package name: {app_info['package_name']},"
                         f" version:{app_info['version_name']},"
                         f" name: {app_info['name']}")
-            
             return app_info
 
 
