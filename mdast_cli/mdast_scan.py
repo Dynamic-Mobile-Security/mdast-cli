@@ -1,23 +1,23 @@
 import argparse
 import json
 import logging
+import os
 import sys
 import time
-import os
 
 import urllib3
+
 from mdast_cli.distribution_systems.app_center import AppCenter
+from mdast_cli.distribution_systems.appgallery import appgallery_download_app
 from mdast_cli.distribution_systems.appstore import AppStore
 from mdast_cli.distribution_systems.firebase import Firebase
 from mdast_cli.distribution_systems.google_play import GooglePlay
 from mdast_cli.distribution_systems.nexus import NexusRepository
 from mdast_cli.distribution_systems.nexus2 import Nexus2Repository
 from mdast_cli.distribution_systems.rustore import rustore_download_app
-from mdast_cli.distribution_systems.appgallery import appgallery_download_app
-from mdast_cli.helpers.const import END_SCAN_TIMEOUT, SLEEP_TIMEOUT, TRY, LONG_TRY, DastState, DastStateDict, \
-    ANDROID_EXTENSIONS
+from mdast_cli.helpers.const import (ANDROID_EXTENSIONS, END_SCAN_TIMEOUT, LONG_TRY, SLEEP_TIMEOUT, TRY, DastState,
+                                     DastStateDict)
 from mdast_cli.helpers.helpers import check_app_md5
-
 from mdast_cli_core.token import mDastToken as mDast
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s %(message)s', datefmt='%d/%m/%Y %H:%M:%S')
