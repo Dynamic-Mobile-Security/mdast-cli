@@ -1,7 +1,6 @@
 import logging
 import os
 import plistlib
-import time
 import zipfile
 from functools import lru_cache
 

@@ -14,7 +14,7 @@ from mdast_cli.distribution_systems.nexus import NexusRepository
 from mdast_cli.distribution_systems.nexus2 import Nexus2Repository
 from mdast_cli.distribution_systems.rustore import rustore_download_app
 from mdast_cli.distribution_systems.appgallery import appgallery_download_app
-from mdast_cli.helpers.const import END_SCAN_TIMEOUT, SLEEP_TIMEOUT, TRY_COUNT, LONG_TRY, DastState, DastStateDict, \
+from mdast_cli.helpers.const import END_SCAN_TIMEOUT, SLEEP_TIMEOUT, TRY, LONG_TRY, DastState, DastStateDict, \
     ANDROID_EXTENSIONS
 from mdast_cli.helpers.helpers import check_app_md5
 
@@ -553,9 +553,11 @@ def main():
     count = 0
 
     if long_wait:
-        TRY_COUNT = LONG_TRY
+        try_count = LONG_TRY
+    else:
+        try_count = TRY
 
-    while dast_status in (DastState.CREATED, DastState.INITIALIZING, DastState.STARTING) and count < TRY_COUNT:
+    while dast_status in (DastState.CREATED, DastState.INITIALIZING, DastState.STARTING) and count < try_count:
         logger.info(f"Try to get scan status for scan id {dast['id']}. Count number {count}")
         get_dast_info_resp = mdast.get_scan_info(dast['id'])
         if get_dast_info_resp.status_code != 200:
@@ -583,7 +585,7 @@ def main():
         sys.exit(1)
     count = 0
 
-    while dast_status in (DastState.STARTED, DastState.STOPPING, DastState.ANALYZING) and count < TRY_COUNT:
+    while dast_status in (DastState.STARTED, DastState.STOPPING, DastState.ANALYZING) and count < try_count:
         if count == 0 and scan_type == 'manual':
             if dast_status not in (DastState.ANALYZING, DastState.SUCCESS):
                 logger.info(f"This is manual scan with dynamic modules,"
