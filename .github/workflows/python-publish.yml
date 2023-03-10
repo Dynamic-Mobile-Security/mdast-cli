@@ -26,7 +26,7 @@ jobs:
     - name: Linter isort
       uses: isort/isort-action@v1.1.0
       with:
-        configuration: "--skip ./docker --skip ./venv --skip check_mdast_cli --line-legth 120 . --check-only"
+        configuration: "--skip ./docker --skip ./venv --skip ./check_mdast_cli --line-length 120 --check-only"
         requirements-files: "requirements.txt"
 
     - name: Install pypa/build
