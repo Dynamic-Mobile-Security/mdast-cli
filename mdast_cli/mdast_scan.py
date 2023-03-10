@@ -129,7 +129,13 @@ def parse_args():
                              'if distribution system set to "appstore"')
     parser.add_argument('--appstore_password2FA', type=str,
                         help='Your password and 2FA code for iTunes login, format: password2FA_code (password1337)'
-                             'This argument is required if distribution system set to "appstore"')
+                             'DEPRECATED, will be deleted on 01.05.2023')
+    parser.add_argument('--appstore_password', type=str,
+                        help='Your password for iTunes login. This argument is required '
+                             'if distribution system set to "appstore"')
+    parser.add_argument('--appstore_2FA', type=str, help='Your 2FA code for iTunes login(6 numbers). '
+                                                         'This argument is required '
+                                                         'if distribution system set to "appstore"')
     parser.add_argument('--appstore_file_name', type=str,
                         help='File name for downloaded application.'
                              ' This argument is optional if distribution system set to "appstore"')
@@ -278,9 +284,10 @@ def parse_args():
     elif args.distribution_system == 'appstore' and (
             (args.appstore_app_id is None and args.appstore_bundle_id is None) or
             args.appstore_apple_id is None or
-            args.appstore_password2FA is None):
+            (args.appstore_password is None or args.appstore_2FA is None) and args.appstore_password2FA is None):
         parser.error('"--distribution_system appstore" requires either "--appstore_app_id" or "--appstore_bundle_id", '
-                     '"--appstore_apple_id", "--appstore_password2FA" arguments to be set')
+                     '"--appstore_apple_id" and ("--appstore_password" + "--appstore_2FA")/'
+                     '(deprecated "--appstore_password2FA") arguments to be set')
 
     elif args.distribution_system == 'google_play' and (
             args.google_play_package_name is None or
@@ -373,8 +380,12 @@ def main():
                                              arguments.firebase_file_name)
 
         elif distribution_system == 'appstore':
+            if arguments.appstore_password and arguments.appstore_2FA:
+                password2FA = arguments.appstore_password + arguments.appstore_2FA
+            else:
+                password2FA = arguments.appstore_password2FA
             appstore = AppStore(arguments.appstore_apple_id,
-                                arguments.appstore_password2FA)
+                                password2FA)
             app_file, appstore_app_md5 = appstore.download_app(download_path,
                                                                arguments.appstore_app_id,
                                                                arguments.appstore_bundle_id,

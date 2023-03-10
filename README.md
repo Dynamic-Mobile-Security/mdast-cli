@@ -238,7 +238,11 @@ To get the app_id, go to the app page in the AppStore in your browser, you can e
   * `appstore_app_id` - Application id from AppStore, you can get it on app page from url,   
 format: apps.apple.com/app/id{appstore_app_id}
 * `appstore_apple_id` - Your email for iTunes login.
-* `appstore_password2FA` - Your password and 2FA code for iTunes login, format: password2FA_code 
+* `appstore_password` - Your password for iTunes login
+* `appstore_2FA` - Your 2FA code for iTunes login
+
+**Deprecated parameter, will be removed on 01.05.2023:**
+* `appstore_password2FA` - Your password and 2FA code for iTunes login, format: password2FA_code, instead of --appstore_password and --appstore_2FA
 
 You can specify downloaded app file name with an optional parameter
 
@@ -248,7 +252,7 @@ You can specify downloaded app file name with an optional parameter
 
 To start the manual scan analysis of the application from AppStore, you need to run the following command:
 ```
- python mdast_cli/mdast_scan.py --architecture_id 3 --profile_id 1246 --distribution_system appstore --appstore_app_id 564177498 --appstore_apple_id ubet******@icloud.com --appstore_password2FA pass*******31******454  --url "https://saas.mobile.appsec.world" --company_id 2 --token 5d5f6****************2d9f --appstore_file_name my_b3st_4pp
+ python mdast_cli/mdast_scan.py --architecture_id 3 --profile_id 1246 --distribution_system appstore --appstore_app_id 564177498 --appstore_apple_id ubet******@icloud.com --appstore_password pass******* --appstore_2FA 123456  --url "https://saas.mobile.appsec.world" --company_id 2 --token 5d5f6****************2d9f --appstore_file_name my_b3st_4pp
 ```
 As a result in the `downloaded_apps` repository will be application with name `my_b3st_4pp.ipa` and manual scan will be started.
 
@@ -430,6 +434,12 @@ To get the app_id, go to the app page in the Appgallery in your browser, you can
 
 `appgallery_app_id С101184875` in this example.  
 
+#### Launch example
+
+To download the application from Appgallery you need to run the following command:
+```
+mdast_cli -d -ds appgallery --appgallery_app_id C123***** --appgallery_file_name apk_from_appgallery
+```
  
 
 ### Scan types
