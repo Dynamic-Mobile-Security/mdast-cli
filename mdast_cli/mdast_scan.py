@@ -214,8 +214,10 @@ def parse_args():
     parser.add_argument('--company_id', type=int, help='Company id for starting scan', required=(not '-d'))
     parser.add_argument('--token', type=str, help='CI/CD Token for start scan and get results', required=(not '-d'))
     parser.add_argument('--architecture_id', type=int, help='Architecture id to perform scan')
-    parser.add_argument('--profile_id', type=int,
-                        help='Profile id for scan. If not set - autocreate project and profile')
+    parser.add_argument('--profile_id', type=int, default=None,
+                        help='Profile id for scan. If not set - autocreate profile')
+    parser.add_argument('--project_id', type=int, default=None,
+                        help='Project id for scan. Only if you want to autocreate profile in existing project')
     parser.add_argument('--testcase_id', type=int, help='Testcase id. If not set - manual scan')
     parser.add_argument('--summary_report_json_file_name', type=str,
                         help='Name for the json file with summary results in structured format')
@@ -320,6 +322,7 @@ def main():
         architecture = arguments.architecture_id
         token = arguments.token
         profile_id = arguments.profile_id
+        project_id = arguments.project_id
         testcase_id = arguments.testcase_id
         json_summary_file_name = arguments.summary_report_json_file_name
         pdf_report_file_name = arguments.pdf_report_file_name
@@ -480,45 +483,19 @@ def main():
         logger.info(f"Application uploaded successfully. Application id: {application['id']}")
 
     logger.info(f"Creating scan for application {application['id']}")
-
-    if 'Android' in architecture_type.get('name', ''):
-        if not testcase_id:
-            if profile_id:
-                create_dast_resp = mdast.create_manual_scan(profile_id=profile_id,
-                                                            app_id=application['id'],
-                                                            arch_id=architecture)
-            else:
-                create_dast_resp = mdast.create_manual_scan_autocreate_profile(app_id=application['id'],
-                                                                               arch_id=architecture)
-                dast_info = create_dast_resp.json()
-                logger.info(f"Project and profile was created/found successfully."
-                            f" Project id: {dast_info['project']['id']}, profile id: {dast_info['profile']['id']}")
-            scan_type = 'manual'
-        else:
-            create_dast_resp = mdast.create_auto_scan(profile_id=profile_id,
-                                                      app_id=application['id'],
-                                                      arch_id=architecture,
-                                                      test_case_id=testcase_id)
-            scan_type = 'auto'
-    elif 'iOS' in architecture_type.get('name', ''):
-        if profile_id:
-            create_dast_resp = mdast.create_manual_scan(profile_id=profile_id,
-                                                        app_id=application['id'],
-                                                        arch_id=architecture)
-        else:
-            create_dast_resp = mdast.create_manual_scan_autocreate_profile(app_id=application['id'],
-                                                                           arch_id=architecture)
-            dast_info = create_dast_resp.json()
-            logger.info(f"Project and profile was created/found successfully."
-                        f" Project id: {dast_info['project']['id']}, profile id: {dast_info['profile']['id']}")
+    if not testcase_id:
+        create_dast_resp = mdast.create_manual_scan(project_id, profile_id, application['id'], architecture)
         scan_type = 'manual'
     else:
-        logger.error("Cannot create scan - unknown architecture")
-        sys.exit(1)
-
+        create_dast_resp = mdast.create_auto_scan(project_id, profile_id, application['id'], architecture, testcase_id)
+        scan_type = 'auto'
     if create_dast_resp.status_code != 201:
         logger.error(f'Error while creating scan: {create_dast_resp.text}')
         sys.exit(1)
+
+    dast_info = create_dast_resp.json()
+    logger.info(f"Project and profile was created/found successfully."
+                f" Project id: {dast_info['project']['id']}, profile id: {dast_info['profile']['id']}")
 
     dast = create_dast_resp.json()
     if 'id' not in dast and dast.get('id', '') != '':
