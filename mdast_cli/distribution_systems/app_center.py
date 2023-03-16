@@ -16,6 +16,17 @@ class AppCenter(object):
         self.owner_name = owner_name
         self.auth_header = {'X-API-Token': token}
 
+    def get_user(self):
+        url = f'{self.url}/user'
+        response = requests.get(url, headers=self.auth_header)
+        if response.status_code != 200:
+            raise RuntimeError(
+                f'AppCenter - Failed to get information about current user.'
+                f' Request return status code: {response.status_code}')
+
+        result = response.json()
+        return result
+
     def get_version_info(self, app_identifier, app_version=None, app_id=None):
         if not app_version and not app_id:
             raise 'One of properties AppVersion or AppID should be set'
