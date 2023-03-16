@@ -7,7 +7,7 @@ setup(
     name="mdast_cli",
 
 
-    version='2022.12.14',
+    version='2023.03.01',
 
 
     author="Dynamic-Mobile-Security",
