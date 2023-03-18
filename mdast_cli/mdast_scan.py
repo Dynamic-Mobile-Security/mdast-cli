@@ -219,6 +219,7 @@ def parse_args():
     parser.add_argument('--project_id', type=int, default=None,
                         help='Project id for scan. Only if you want to autocreate profile in existing project')
     parser.add_argument('--testcase_id', type=int, help='Testcase id. If not set - manual scan')
+    parser.add_argument('--appium_script_path', type=str, help='Appium script path for autoscan with Stingray appium')
     parser.add_argument('--summary_report_json_file_name', type=str,
                         help='Name for the json file with summary results in structured format')
     parser.add_argument('--pdf_report_file_name', type=str, help='Name for the pdf report file.')
@@ -324,6 +325,7 @@ def main():
         profile_id = arguments.profile_id
         project_id = arguments.project_id
         testcase_id = arguments.testcase_id
+        appium_script_path = arguments.appium_script_path
         json_summary_file_name = arguments.summary_report_json_file_name
         pdf_report_file_name = arguments.pdf_report_file_name
         not_wait_scan_end = arguments.nowait
@@ -455,12 +457,15 @@ def main():
             logger.warning("Testcase with this id does not exist or you use old version of system. Trying to use "
                            "architecture from command line params.")
 
-    if testcase_id is None:
-        logger.info(f'Manual scan with profile id: {profile_id} and file located in {app_file},'
+    if testcase_id:
+        logger.info(f'Autoscan(Stingray) with test case id: '
+                    f'{testcase_id}, profile id: {profile_id} and file: {app_file}, architecture id is {architecture}')
+    elif appium_script_path:
+        logger.info(f'Autoscan(Appium) with  profile id: {profile_id} and file: {app_file},'
                     f' architecture id is {architecture}')
     else:
-        logger.info(f'Auto scan with test case id: '
-                    f'{testcase_id}, profile id: {profile_id} and file: {app_file}, architecture id is {architecture}')
+        logger.info(f'Manual scan with profile id: {profile_id} and file located in {app_file},'
+                    f' architecture id is {architecture}')
 
     logger.info('Check if this version of application was already uploaded..')
     if appstore_app_md5:
@@ -483,12 +488,16 @@ def main():
         logger.info(f"Application uploaded successfully. Application id: {application['id']}")
 
     logger.info(f"Creating scan for application {application['id']}")
-    if not testcase_id:
+    if testcase_id:
+        create_dast_resp = mdast.create_auto_scan(project_id, profile_id, application['id'], architecture, testcase_id)
+        scan_type = 'auto_stingray'
+    elif appium_script_path:
+        create_dast_resp = mdast.create_appium_scan(project_id, profile_id, application['id'], architecture,
+                                                    appium_script_path)
+        scan_type = 'auto_appium'
+    else:
         create_dast_resp = mdast.create_manual_scan(project_id, profile_id, application['id'], architecture)
         scan_type = 'manual'
-    else:
-        create_dast_resp = mdast.create_auto_scan(project_id, profile_id, application['id'], architecture, testcase_id)
-        scan_type = 'auto'
     if create_dast_resp.status_code != 201:
         logger.error(f'Error while creating scan: {create_dast_resp.text}')
         sys.exit(1)
@@ -502,8 +511,10 @@ def main():
         logger.error(f'Something went wrong while creating scan: {dast}')
         sys.exit(1)
 
-    if scan_type == 'auto':
-        logger.info(f"Autoscan was created successfully. Scan id: {dast['id']}")
+    if scan_type == 'auto_stingray':
+        logger.info(f"Autoscan(Stingray) was created successfully. Scan id: {dast['id']}")
+    elif scan_type == 'auto_appium':
+        logger.info(f"Autoscan(Appium) was created successfully. Scan id: {dast['id']}")
     else:
         logger.info(f"Manual scan was created successfully. Scan id: {dast['id']}")
 

@@ -333,6 +333,28 @@ class mDastBase:
                              data=json.dumps(data),
                              verify=False)
 
+    def create_appium_scan(self, project_id, profile_id, app_id, arch_id, appium_script_path):
+        data = {
+            'application_id': app_id,
+            'architecture_id': arch_id,
+            'type': 2
+        }
+        headers = {
+            'Authorization': self.headers['Authorization']
+        }
+
+        if project_id:
+            data['project_id'] = project_id
+        if profile_id:
+            data['profile_id'] = profile_id
+        with open(appium_script_path, 'rb') as f:
+            files = {'script': f}
+            return requests.post(f'{self.url}/organizations/{self.current_context["company"]}/dasts/',
+                                 headers=headers,
+                                 data=data,
+                                 files=files,
+                                 verify=False)
+
     def start_scan(self, dast_id):
         """
         Start automated scan through REST API
