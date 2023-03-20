@@ -99,7 +99,8 @@ Required parameters:
  * `company_id` - identifier of the company within which the scan will be performed
 
 Optional parameters:
- * `profile_id` - optional parameter, ID of the profile to be analyzed, If not set - project and profile will be created automatically
+ * `project_id` - optional parameter, ID of the project for scan, Use only if you want to autocreate profile in existing project
+ * `profile_id` - optional parameter, ID of the profile to be analyzed, If not set - profile will be created automatically
  * `testcase_id` - ID of the test case to be executed. This is an optional parameter, if not set - manual scan with 20 seconds delay until finish will be executed;
  * `architecture_id` - optional parameter, identifier of the operating system architecture on which the scan will be performed. If not set - architecture will be selected automatically (Android 11/iOS 14)
  * `nowait` - an optional parameter specifying whether to wait for the scan to complete. If this flag is set, the script will not wait for the scan to complete but will exit immediately after starting. If the flag is not selected, the script will wait for the completion of the analysis process and generate a report.
