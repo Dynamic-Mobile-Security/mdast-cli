@@ -342,9 +342,9 @@ def main():
             app_file = arguments.file_path
 
         elif distribution_system == 'appcenter':
-            appcenter = AppCenter(arguments.appcenter_token,
-                                  arguments.appcenter_owner_name)
+            appcenter = AppCenter(arguments.appcenter_token)
             app_file = appcenter.download_app(download_path,
+                                              arguments.appcenter_owner_name,
                                               arguments.appcenter_app_name,
                                               arguments.appcenter_app_version,
                                               arguments.appcenter_release_id)

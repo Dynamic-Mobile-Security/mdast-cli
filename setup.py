@@ -10,6 +10,7 @@ setup(
     version='2022.03.02',
 
 
+
     author="Dynamic-Mobile-Security",
     description="Dynamic-Mobile-Security",
     long_description=long_description,
