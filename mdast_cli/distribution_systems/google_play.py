@@ -32,7 +32,7 @@ class GooglePlay(object):
         return {
             'integration_type': 'google_play',
             'package_name': app_data['details']['appDetails']['packageName'],
-            'version_name':  app_data['details']['appDetails']['versionString'],
+            'version_name': app_data['details']['appDetails']['versionString'],
             'version_code': app_data['details']['appDetails']['versionCode'],
             'file_size': app_data['details']['appDetails']['installationSize'],
             'icon_url': app_data['image'][0]['imageUrl']

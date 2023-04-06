@@ -61,7 +61,7 @@ class NexusRepository(object):
             if asset.get('contentType', '') in ('application/vnd.android.package-archive', 'application/x-itunes-ipa'):
                 download_url = asset.get('downloadUrl')
                 file_name = download_url.split('/')[-1] if download_url.split('/')[
-                                                                   -1] != '' else f'{group_id}-{version}.apk'
+                                                               -1] != '' else f'{group_id}-{version}.apk'
                 break
         if not download_url:
             logger.error(f'NexusRepo: Unable to find download URL: {len(component_search_result)}')

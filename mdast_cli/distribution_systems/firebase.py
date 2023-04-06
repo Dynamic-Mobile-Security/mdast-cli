@@ -1,91 +1,57 @@
 import logging
 import os
-from hashlib import sha1
-from time import time
 
+import google.auth
+import google.auth.transport.requests
 import requests
+from google.oauth2 import service_account
 
 logger = logging.getLogger(__name__)
 
 
-class Firebase(object):
-    """
-    Downloading application from Firebase
-    """
-    url = 'https://console.firebase.google.com'
+def firebase_download_app(download_path, project_number, app_id, account_json_path, file_name=None,
+                          file_extension='apk'):
+    logger.info(f'Firebase - Try to download {file_extension} from latest release in project - '
+                f'{project_number} with app id {app_id}')
+    try:
+        credentials = service_account.Credentials.from_service_account_file(account_json_path, scopes=[
+            'https://www.googleapis.com/auth/cloud-platform'])
+    except Exception:
+        raise RuntimeError('Firebase - service account json file does not exist')
+    try:
+        credentials.refresh(google.auth.transport.requests.Request())
+        google_id_token = credentials.token
+    except Exception:
+        raise RuntimeError('Firebase - incorrect data or no permissions for your account')
+    headers = {'Authorization': f'Bearer {google_id_token}'}
+    last_release_info_resp = requests.get(
+        f'https://firebaseappdistribution.googleapis.com/v1/projects/{project_number}/apps/'
+        f'{app_id}/releases?pageSize=1',
+        headers=headers)
+    if last_release_info_resp.status_code != 200:
+        raise RuntimeError('Firebase - no release found or incorrect project_number/app_id')
+    release = last_release_info_resp.json()['releases'][0]
+    app_download_link = release['binaryDownloadUri']
+    logger.info(f"Firebase - found release {release['name']} with version - {release['displayVersion']}")
 
-    def __init__(self, api_key, SID, HSID, SSID, APISID, SAPISID):
-        self.api_key = api_key
-        self.SID = SID
-        self.HSID = HSID
-        self.SSID = SSID
-        self.APISID = APISID
-        self.SAPISID = SAPISID
+    app_file = requests.get(app_download_link, allow_redirects=True)
 
-    def calculate_sapisid_hash(self):
-        """Calculates SAPISIDHASH based on cookies. Required in authorization to download app from firebase"""
-        epoch = int(time())
-        sha_str = ' '.join([str(int(epoch)), self.SAPISID, self.url])
-        sha = sha1(sha_str.encode())
-        return f'SAPISIDHASH {int(epoch)}_{sha.hexdigest()}'
+    if file_name is None:
+        file_name = release['displayVersion']
 
-    def get_with_auth(self, url):
-        SAPISIDHASH = self.calculate_sapisid_hash()
+    path_to_file = f'{download_path}/{file_name}.{file_extension}'
 
-        headers = {'Origin': self.url,
-                   'X-Goog-Authuser': '0',
-                   'Authorization': SAPISIDHASH}
+    if not os.path.exists(download_path):
+        os.mkdir(download_path)
+        logger.info(f'Firebase - Creating directory {download_path} for downloading app from Firebase')
 
-        cookies = {
-            'SID': self.SID,
-            'HSID': self.HSID,
-            'SSID': self.SSID,
-            'APISID': self.APISID,
-            'SAPISID': self.SAPISID
-        }
+    with open(path_to_file, 'wb') as file:
+        file.write(app_file.content)
 
-        req = requests.get(url, headers=headers, cookies=cookies)
-        return req
+    if os.path.exists(path_to_file):
+        logger.info(f'Firebase - Application successfully downloaded to {path_to_file}')
+    else:
+        logger.info('Firebase - Failed to download application. '
+                    'Seems like something is wrong with your file path or app file is broken')
 
-    def download_app(self, download_path, project_id, app_id, app_code, file_name=None, file_extension=None):
-        url_template = f'https://firebaseappdistribution-pa.clients6.google.com/v1/projects/{project_id}' \
-                       f'/apps/{app_id}/releases/{app_code}:getLatestBinary?alt=json&key={self.api_key}'
-
-        req = self.get_with_auth(url_template)
-        if req.status_code == 200:
-            logger.info('Firebase - Start downloading application')
-        elif req.status_code == 401:
-            raise RuntimeError(f'Firebase - Failed to download application. '
-                               f'Seems like you are not authorized. Request return status code: {req.status_code}')
-
-        elif req.status_code == 403:
-            raise RuntimeError(f'Firebase - Failed to download application. Seems like you dont have permissions '
-                               f'for downloading. Please contact your administrator. '
-                               f'Request return status code: {req.status_code}')
-
-        file_url = req.json().get('fileUrl', '')
-        if not file_url:
-            raise RuntimeError('It seems like Firebase API was changed or request was malformed. '
-                               'Please contact your administrator')
-
-        app_file = requests.get(file_url, allow_redirects=True)
-
-        if file_name is None:
-            file_name = app_code
-
-        path_to_file = f'{download_path}/{file_name}.{file_extension}'
-
-        if not os.path.exists(download_path):
-            os.mkdir(download_path)
-            logger.info(f'Firebase - Creating directory {download_path} for downloading app from Firebase')
-
-        with open(path_to_file, 'wb') as file:
-            file.write(app_file.content)
-
-        if os.path.exists(path_to_file):
-            logger.info('Firebase - Application successfully downloaded')
-        else:
-            logger.info('Firebase - Failed to download application. '
-                        'Seems like something is wrong with your file path or app file is broken')
-
-        return path_to_file
+    return path_to_file
