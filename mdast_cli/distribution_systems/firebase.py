@@ -32,6 +32,17 @@ def get_app_info(project_number, app_id, account_json_path):
     }
 
 
+def check_firebase_login(account_json_path):
+    credentials = service_account.Credentials.from_service_account_file(account_json_path, scopes=[
+        'https://www.googleapis.com/auth/cloud-platform'])
+    credentials.refresh(google.auth.transport.requests.Request())
+    google_id_token = credentials.token
+    if 'ya29' in google_id_token:
+        return True
+    else:
+        return False
+
+
 def firebase_download_app(download_path, project_number, app_id, account_json_path, file_name=None,
                           file_extension='apk'):
     logger.info(f'Firebase - Try to download {file_extension} from latest release in project - '
