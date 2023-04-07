@@ -22,7 +22,7 @@ def get_app_info(project_number, app_id, account_json_path):
             headers=headers)
         release = last_release_info_resp.json()['releases'][0]
     except Exception:
-        raise RuntimeError(f'Firebase - Failed to get application info.')
+        raise RuntimeError('Firebase - Failed to get application info.')
     return {
         'integration_type': 'firebase',
         'app_name': release['name'],
