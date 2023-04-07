@@ -9,6 +9,29 @@ from google.oauth2 import service_account
 logger = logging.getLogger(__name__)
 
 
+def get_app_info(project_number, app_id, account_json_path):
+    try:
+        credentials = service_account.Credentials.from_service_account_file(account_json_path, scopes=[
+            'https://www.googleapis.com/auth/cloud-platform'])
+        credentials.refresh(google.auth.transport.requests.Request())
+        google_id_token = credentials.token
+        headers = {'Authorization': f'Bearer {google_id_token}'}
+        last_release_info_resp = requests.get(
+            f'https://firebaseappdistribution.googleapis.com/v1/projects/{project_number}/apps/'
+            f'{app_id}/releases?pageSize=1',
+            headers=headers)
+        release = last_release_info_resp.json()['releases'][0]
+    except Exception:
+        raise RuntimeError(f'Firebase - Failed to get application info.')
+    return {
+        'integration_type': 'firebase',
+        'app_name': release['name'],
+        'version': release['buildVersion'],
+        'create_time': release['createTime'],
+        'download_link': release['binaryDownloadUri']
+    }
+
+
 def firebase_download_app(download_path, project_number, app_id, account_json_path, file_name=None,
                           file_extension='apk'):
     logger.info(f'Firebase - Try to download {file_extension} from latest release in project - '
