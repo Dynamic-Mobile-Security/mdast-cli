@@ -102,6 +102,7 @@ Optional parameters:
  * `project_id` - optional parameter, ID of the project for scan, Use only if you want to autocreate profile in existing project
  * `profile_id` - optional parameter, ID of the profile to be analyzed, If not set - profile will be created automatically
  * `testcase_id` - ID of the test case to be executed. This is an optional parameter, if not set - manual scan with 20 seconds delay until finish will be executed;
+ * `appium_script_path` - path to appium script to be executed for autoscan via appium.
  * `architecture_id` - optional parameter, identifier of the operating system architecture on which the scan will be performed. If not set - architecture will be selected automatically (Android 11/iOS 14)
  * `nowait` - an optional parameter specifying whether to wait for the scan to complete. If this flag is set, the script will not wait for the scan to complete but will exit immediately after starting. If the flag is not selected, the script will wait for the completion of the analysis process and generate a report.
  * `summary_report_json_file_name` - an optional parameter defining the name of the json file into which the scanning information in json format is uploaded. If the parameter is absent, the information will not be saved.
@@ -274,61 +275,33 @@ Then contact the support team to agree on an Apple ID, which will be used for Ap
 While creating AppStore integration [ipatool](https://github.com/majd/ipatool) helped a lot, huge thanks for everyone who contributed to this nice open-source tool.
 
 ### Firebase
-To download the application from firebase platform you need to know some cookies for Google SSO authentication and project_id, app_id, app_code, api_key and file_extension parameters from firebase project.  
-You need to select the `--distribution_system firebase` and specify mandatory parameters.  
+To download the application latest release from firebase platform you need to know project_number, app_id, app_code, api_key and file_extension parameters from firebase project.  
+You need to select the `--distribution_system firebase` and specify following mandatory parameters.  
 
-First, you should log in via Google SSO to [Firebase](https://console.firebase.google.com/u/0/) and get necessary cookies from your Chrome session local storage(F12 -> Application -> Cookies)  
-And copy SID, SSID, APISID, SAPISID, HSID to your launch command. The lifetime of them are 2 years, so you don't have to do it often :)  
-
-Screenshot of cookie storage:
-![cookie_storage](https://user-images.githubusercontent.com/46852358/149788352-d453dd78-547f-4989-8132-b94a6f020a81.png)
-
-#### Parameters
-
- * `firebase_SID_cookie` - SID
- * `firebase_HSID_cookie` - HSID
- * `firebase_SSID_cookie` - SSID
- * `firebase_APISID_cookie` - APISID
- * `firebase_SAPISID_cookie` - SAPISID
-
-Now you need project_id, app_id, app_code, api_key to complete parameters for the scan. To get them go to:
-
-App Project home page, url looks like this `https://console.firebase.google.com/u/0/project/{project_name}/overview` ->
-![app_project](https://user-images.githubusercontent.com/46852358/149789837-2787cb52-355d-4ef0-9440-89053764db78.png)
-
-to `Release & Monitor -> App Distribution` ->
-![distr_page](https://user-images.githubusercontent.com/46852358/149791304-2658f1be-9ee0-422e-94ce-59f1ba1858df.png)  
-
-Open network console(F12 -> Network -> Clear) and click `Download`
-
-You will get this request in DevTools:
-![download_req](https://user-images.githubusercontent.com/46852358/149792212-512d33ab-2323-45b6-a25c-6a8d817cde1f.png)  
-
-And url will be like:  
-
-`https://firebaseappdistribution-pa.clients6.google.com/v1/projects/{project_id}/apps/{app_id}/releases/{app_code}:getLatestBinary?alt=json&key={api_key}`  
-
-So, you just extract missing parameters from this request and your launch command for CI/CD mobile applications' security analysis is ready!
-Request url will match this pattern, you should extract 4 parameters from url.
-`/v1/projects/{project_id}/apps/{app_id}/releases/{app_code}:getLatestBinary?alt=json&key={api_key}`  
-
- * `firebase_project_id` - project id of your Firebase project
+ * `firebase_project_number` - project number of your Firebase project
  * `firebase_app_id` - application id
- * `firebase_app_code` - application code
- * `firebase_api_key` - your api key
+ * `firebase_account_json_path` - path to json key file that contains the credentials for the service account.
  * `firebase_app_extension` - your app extension, it can be `apk` for android and `ipa` for iOS
 
 You can specify the downloaded app file name with an optional parameter
 
  * `firebase_file_name` - file name for app to be saved with
 
+To find `project_number` from Firebase homepage(https://console.firebase.google.com/project/PROJECT_NAME/overview) go to `Project overview -> settings image ->Project settings` In general tab there will be project number in integer format.
+
+To find `app_id` scroll down to 'Your apps'. There will be your app id.
+
+You'll need to obtain an json file that can be used to authenticate request. To do so, you'll need to use a Service Account. A Service Account is a special type of account that is used by applications and services to access Google APIs. To create a Service Account, go to the `GCP Console` and navigate to the `IAM & admin > Service accounts` page. You should enable `scope /auth/cloud-platform` to this account. From there, you can create a new Service Account and download a JSON key file that contains the credentials for the account.
+
+Once you have a Service Account, you can use it to download apps from Firebase via mdast_cli. 
+
 #### Launch example
 
 To start the manual scan analysis of the application, that was downloaded from Firebase, you need to run the following command:
 ```
-python mdast_cli/mdast_scan.py --profile_id 468 --architecture_id 2 --distribution_system firebase --firebase_project_id 2834204**** --firebase_app_id 1:283***3642:android:8b0a0***56ac40c1a43 --firebase_app_code 2b***sltr0 --firebase_api_key AIzaSyDov*****qKdbj-geRWyzMTrg --firebase_SID_cookie FgiA*****ZiQakQ-_C-5ZaEHvbDMFGkrgriAByQ9P9fv7LfRrYJ5suXgrCwIQBoOjA. --firebase_HSID_cookie AsiL****OjPI --firebase_SSID_cookie A****dwcZk1Z-1pE --firebase_APISID_cookie Z-FmS1aPB****djK/AjmG0h2Hc-GG9g2Ac --firebase_SAPISID_cookie XYR2tnf****0zOt/AEvVZ8JVEuCnE6pxm --url "https://saas.mobile.appsec.world" --company_id 1 --token 2fac9652a2fbe4****9f44af59c3381772f --firebase_file_name your_app_file_name  --firebase_file_extension apk
+python mdast_cli/mdast_scan.py -d --distribution_system firebase --firebase_project_number 1231231337 --firebase_app_id 1:1337:android:123123 --firebase_account_json_path service_acc0unt_file.json --firebase_file_extension apk --firebase_file_name b3st_app
 ```
-As a result in the `downloaded_apps` repository will be application with name `your_app_file_name.apk` and manual scan will be started.
+As a result in the `downloaded_apps` repository will be application with name `b3st_app.apk`.
 
 ### AppCenter
 

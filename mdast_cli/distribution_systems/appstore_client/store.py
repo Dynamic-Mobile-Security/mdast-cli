@@ -39,7 +39,7 @@ class StoreClient(object):
                                    "Content-Type": "application/x-www-form-urlencoded",
                                    "User-Agent":
                                        "Configurator/2.0 (Macintosh; OS X 10.12.6; 16G29) AppleWebKit/2603.3.8",
-                                        },
+                               },
                                data=plistlib.dumps(req.as_dict()), allow_redirects=False,
                                verify=False)
             if r.status_code == 302:
@@ -57,7 +57,7 @@ class StoreClient(object):
         self.account_name = resp.accountInfo.address.firstName + " " + resp.accountInfo.address.lastName
         return resp
 
-    def find_app(self, app_id=None,  bundle_id=None, country="US"):
+    def find_app(self, app_id=None, bundle_id=None, country="US"):
         return self.sess.get("https://itunes.apple.com/lookup?",
                              params={
                                  "bundleId": bundle_id,
@@ -69,7 +69,7 @@ class StoreClient(object):
                              },
                              headers={
                                  "Content-Type": "application/x-www-form-urlencoded",
-                                     },
+                             },
                              verify=False)
 
     def purchase(self, app_id, productType='C'):

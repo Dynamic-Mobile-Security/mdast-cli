@@ -10,7 +10,7 @@ import urllib3
 from mdast_cli.distribution_systems.app_center import AppCenter
 from mdast_cli.distribution_systems.appgallery import appgallery_download_app
 from mdast_cli.distribution_systems.appstore import AppStore
-from mdast_cli.distribution_systems.firebase import Firebase
+from mdast_cli.distribution_systems.firebase import firebase_download_app
 from mdast_cli.distribution_systems.google_play import GooglePlay
 from mdast_cli.distribution_systems.nexus import NexusRepository
 from mdast_cli.distribution_systems.nexus2 import Nexus2Repository
@@ -82,33 +82,15 @@ def parse_args():
                              'This argument is required if distribution system set to "appcenter"')
 
     # Arguments for Firebase
-    parser.add_argument('--firebase_project_id', type=str,
-                        help='Project id for firebase where mobile application is located.'
+    parser.add_argument('--firebase_project_number', type=int,
+                        help='Project number for firebase where mobile application is located.'
                              ' This argument is required if distribution system set to "firebase"')
     parser.add_argument('--firebase_app_id', type=str,
                         help='Application id for firebase where mobile application is located.'
                              ' This argument is required if distribution system set to "firebase"')
-    parser.add_argument('--firebase_app_code', type=str,
-                        help='Application code for firebase where mobile application is located.'
+    parser.add_argument('--firebase_account_json_path', type=str,
+                        help='json.'
                              ' This argument is required if distribution system set to "firebase"')
-    parser.add_argument('--firebase_api_key', type=str,
-                        help='Api code for firebase where mobile application is located.'
-                             ' This argument is required if distribution system set to "firebase"')
-    parser.add_argument('--firebase_SID_cookie', type=str,
-                        help='SID cookie for firebase authentication  via google sso.'
-                             ' This argument is required if distribution system set to "firebase"')
-    parser.add_argument('--firebase_HSID_cookie', type=str,
-                        help='HSID cookie for firebase authentication  via google sso.'
-                             ' This argument is required if distribution system set to "firebase"')
-    parser.add_argument('--firebase_SSID_cookie', type=str,
-                        help='SSID cookie for firebase authentication  via google sso.'
-                             ' This argument is required if distribution system set to "firebase"')
-    parser.add_argument('--firebase_APISID_cookie', type=str,
-                        help='APISID cookie for firebase authentication  via google sso.'
-                             ' This argument is required if distribution system set to "firebase"')
-    parser.add_argument('--firebase_SAPISID_cookie', type=str,
-                        help='SAPISID cookie for firebase authentication  via google sso.'
-                             ' This argument required if distribution system set to "firebase"')
     parser.add_argument('--firebase_file_extension', type=str,
                         help='File extension(apk or ipa) for downloaded application.'
                              ' This argument is required if distribution system set to "firebase"',
@@ -269,20 +251,12 @@ def parse_args():
                      'arguments to be set')
 
     elif args.distribution_system == 'firebase' and (
-            args.firebase_project_id is None or
+            args.firebase_project_number is None or
             args.firebase_app_id is None or
-            args.firebase_app_code is None or
-            args.firebase_api_key is None or
-            args.firebase_SID_cookie is None or
-            args.firebase_HSID_cookie is None or
-            args.firebase_SSID_cookie is None or
-            args.firebase_APISID_cookie is None or
-            args.firebase_SAPISID_cookie is None or
+            args.firebase_account_json_path is None or
             args.firebase_file_extension is None):
-        parser.error('"--distribution_system nexus" requires "--firebase_project_id", "--firebase_app_id", '
-                     '"--firebase_app_code", "--firebase_api_key", "--firebase_api_key", "--firebase_SID_cookie", '
-                     '"--firebase_HSID_cookie", "--firebase_SSID_cookie", "--firebase_APISID_cookie", '
-                     '"--firebase_SAPISID_cookie", "--firebase_file_extension" arguments to be set')
+        parser.error('"--distribution_system firebase" requires "--firebase_project_number", "--firebase_app_id", '
+                     '"--firebase_account_json_path", "--firebase_file_extension" arguments to be set')
 
     elif args.distribution_system == 'appstore' and (
             (args.appstore_app_id is None and args.appstore_bundle_id is None) or
@@ -371,18 +345,12 @@ def main():
                                                       arguments.nexus2_file_name)
 
         elif distribution_system == 'firebase':
-            firebase = Firebase(arguments.firebase_api_key,
-                                arguments.firebase_SID_cookie,
-                                arguments.firebase_HSID_cookie,
-                                arguments.firebase_SSID_cookie,
-                                arguments.firebase_APISID_cookie,
-                                arguments.firebase_SAPISID_cookie)
-            app_file = firebase.download_app(download_path,
-                                             arguments.firebase_project_id,
+            app_file = firebase_download_app(download_path,
+                                             arguments.firebase_project_number,
                                              arguments.firebase_app_id,
-                                             arguments.firebase_app_code,
-                                             arguments.firebase_file_extension,
-                                             arguments.firebase_file_name)
+                                             arguments.firebase_account_json_path,
+                                             arguments.firebase_file_name,
+                                             arguments.firebase_file_extension)
 
         elif distribution_system == 'appstore':
             if arguments.appstore_password and arguments.appstore_2FA:
