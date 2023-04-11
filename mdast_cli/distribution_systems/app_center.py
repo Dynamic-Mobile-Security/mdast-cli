@@ -28,7 +28,7 @@ class AppCenter(object):
 
     def get_version_info(self, owner_name, app_identifier, app_version=None, app_id=None):
         if not app_version and not app_id:
-            raise 'One of properties AppVersion or AppID should be set'
+            raise ValueError('One of properties AppVersion or AppID should be set')
 
         if app_id:
             return self.get_version_info_by_id(owner_name, app_identifier, app_id)
@@ -63,14 +63,10 @@ class AppCenter(object):
             version_info = self.get_version_info_by_id(owner_name, app_identifier, version['id'])
             return version_info
 
-        return None
+        raise RuntimeError(f'AppCenter - Cannot find version {app_version}')
 
     def download_app(self, download_path, owner_name, app_identifier, app_version=None, app_id=None):
         version_info = self.get_version_info(owner_name, app_identifier, app_version, app_id)
-        if not version_info:
-            logger.error('AppCenter - Failed to get app version information.'
-                         ' Verify that you set up arguments correctly and try again')
-
         logger.info('AppCenter - Start download application')
         download_url = version_info.get('download_url')
 

@@ -43,6 +43,8 @@ def get_app_info(app_id):
                         f" name: {app_info['name']}")
             return app_info
 
+    raise RuntimeError(f'Appgallery - Cannot find application {app_id}')
+
 
 def appgallery_download_app(app_id, download_path, file_name=None):
     logger.info(f'Appgallery - Try to download application with id {app_id}')
