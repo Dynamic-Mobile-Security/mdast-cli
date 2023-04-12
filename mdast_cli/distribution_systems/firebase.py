@@ -41,8 +41,8 @@ def get_app_info(project_number, app_id, account_info):
     return {
         'integration_type': 'firebase',
         'app_name': release['name'],
-        'version': release['buildVersion'],
-        'display_version': release['displayVersion'],
+        'version_code': release['buildVersion'],
+        'version_name': release['displayVersion'],
         'create_time': release['createTime'],
         'download_link': release['binaryDownloadUri']
     }
@@ -57,7 +57,7 @@ def firebase_download_app(download_path, project_number, app_id, account_info, f
     app_file = requests.get(app_download_link, allow_redirects=True)
 
     if file_name is None:
-        file_name = app_info['display_version']
+        file_name = app_info['version_name']
 
     path_to_file = f'{download_path}/{file_name}.{file_extension}'
 
