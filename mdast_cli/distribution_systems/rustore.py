@@ -15,10 +15,24 @@ def get_app_info(package_name):
     else:
         raise RuntimeError(f'Rustore - Failed to get application info. Request return status code: {req.status_code}')
 
-    apk_uid = body_info['apkUid']
+    headers = {
+        'Content-Type': 'application/json; charset=utf-8'
+    }
+    body = {
+        'appId': body_info['appId'],
+        'firstInstall': True
+    }
+    download_link_resp = requests.post(f'https://backapi.rustore.ru/applicationData/download-link/',
+                                       headers=headers, json=body)
+    if req.status_code == 200:
+        download_link = download_link_resp.json()['body']['apkUrl']
+    else:
+        raise RuntimeError(f'Rustore - Failed to get application download link.'
+                           f' Request return status code: {req.status_code}')
+
     return {
         'integration_type': 'rustore',
-        'download_url': f'https://static.rustore.ru/{apk_uid}',
+        'download_url': download_link,
         'package_name': body_info['packageName'],
         'version_name': body_info['versionName'],
         'version_code': body_info['versionCode'],
