@@ -75,7 +75,8 @@ class AppCenter(object):
             raise RuntimeError(f'AppCenter - Failed to download application. '
                                f'Request return status code: {response.status_code}')
 
-        file_name = '{0}-{1}.apk'.format(app_identifier, version_info['version'])
+        file_name = f'{version_info["bundle_identifier"]}-{version_info["short_version"]}' \
+                    f'.{version_info["fileExtension"]}'
         path_to_save = os.path.join(download_path, file_name)
 
         if not os.path.exists(download_path):
