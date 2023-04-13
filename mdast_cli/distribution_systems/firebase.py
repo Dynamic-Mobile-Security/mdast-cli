@@ -9,69 +9,55 @@ from google.oauth2 import service_account
 logger = logging.getLogger(__name__)
 
 
-def get_app_info(project_number, app_id, account_json_path):
-    try:
-        credentials = service_account.Credentials.from_service_account_file(account_json_path, scopes=[
+def get_token(account_info):
+    if isinstance(account_info, dict):
+        credentials = service_account.Credentials.from_service_account_info(account_info, scopes=[
             'https://www.googleapis.com/auth/cloud-platform'])
-        credentials.refresh(google.auth.transport.requests.Request())
-        google_id_token = credentials.token
-        headers = {'Authorization': f'Bearer {google_id_token}'}
+    else:
+        credentials = service_account.Credentials.from_service_account_file(account_info, scopes=[
+            'https://www.googleapis.com/auth/cloud-platform'])
+
+    credentials.refresh(google.auth.transport.requests.Request())
+    google_id_token = credentials.token
+    if 'ya29' in google_id_token:
+        return google_id_token
+
+    raise RuntimeError(f'Incorrect token {google_id_token}')
+
+
+def get_app_info(project_number, app_id, account_info):
+    try:
+        token = get_token(account_info)
+        headers = {'Authorization': f'Bearer {token}'}
         last_release_info_resp = requests.get(
             f'https://firebaseappdistribution.googleapis.com/v1/projects/{project_number}/apps/'
             f'{app_id}/releases?pageSize=1',
             headers=headers)
         release = last_release_info_resp.json()['releases'][0]
-    except Exception:
-        raise RuntimeError('Firebase - Failed to get application info.')
+    except Exception as e:
+        raise RuntimeError(f'Firebase - Failed to get application info: {e}')
+
+    logger.info(f"Firebase - found release {release['name']} with version - {release['displayVersion']}")
     return {
         'integration_type': 'firebase',
         'app_name': release['name'],
-        'version': release['buildVersion'],
+        'version_code': release['buildVersion'],
+        'version_name': release['displayVersion'],
         'create_time': release['createTime'],
         'download_link': release['binaryDownloadUri']
     }
 
 
-def check_firebase_login(account_json_path):
-    credentials = service_account.Credentials.from_service_account_file(account_json_path, scopes=[
-        'https://www.googleapis.com/auth/cloud-platform'])
-    credentials.refresh(google.auth.transport.requests.Request())
-    google_id_token = credentials.token
-    if 'ya29' in google_id_token:
-        return True
-    else:
-        return False
-
-
-def firebase_download_app(download_path, project_number, app_id, account_json_path, file_name=None,
+def firebase_download_app(download_path, project_number, app_id, account_info, file_name=None,
                           file_extension='apk'):
     logger.info(f'Firebase - Try to download {file_extension} from latest release in project - '
                 f'{project_number} with app id {app_id}')
-    try:
-        credentials = service_account.Credentials.from_service_account_file(account_json_path, scopes=[
-            'https://www.googleapis.com/auth/cloud-platform'])
-    except Exception:
-        raise RuntimeError('Firebase - service account json file does not exist')
-    try:
-        credentials.refresh(google.auth.transport.requests.Request())
-        google_id_token = credentials.token
-    except Exception:
-        raise RuntimeError('Firebase - incorrect data or no permissions for your account')
-    headers = {'Authorization': f'Bearer {google_id_token}'}
-    last_release_info_resp = requests.get(
-        f'https://firebaseappdistribution.googleapis.com/v1/projects/{project_number}/apps/'
-        f'{app_id}/releases?pageSize=1',
-        headers=headers)
-    if last_release_info_resp.status_code != 200:
-        raise RuntimeError('Firebase - no release found or incorrect project_number/app_id')
-    release = last_release_info_resp.json()['releases'][0]
-    app_download_link = release['binaryDownloadUri']
-    logger.info(f"Firebase - found release {release['name']} with version - {release['displayVersion']}")
-
+    app_info = get_app_info(project_number, app_id, account_info)
+    app_download_link = app_info['download_link']
     app_file = requests.get(app_download_link, allow_redirects=True)
 
     if file_name is None:
-        file_name = release['displayVersion']
+        file_name = app_info['version_name']
 
     path_to_file = f'{download_path}/{file_name}.{file_extension}'
 
