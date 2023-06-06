@@ -22,7 +22,7 @@ def get_app_info(package_name):
         'appId': body_info['appId'],
         'firstInstall': True
     }
-    download_link_resp = requests.post('https://backapi.rustore.ru/applicationData/download-link/',
+    download_link_resp = requests.post('https://backapi.rustore.ru/applicationData/download-link',
                                        headers=headers, json=body)
     if req.status_code == 200:
         download_link = download_link_resp.json()['body']['apkUrl']
