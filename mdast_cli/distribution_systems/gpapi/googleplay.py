@@ -126,6 +126,8 @@ class GooglePlayAPI(object):
                     url = params.get('url') or 'https://accounts.google.com/b/0/DisplayUnlockCaptcha'
                     raise RuntimeError(f'Google Play - Error {params["error"]}. '
                                        f'Security check is needed, try to visit {url} to unlock.')
+                else:
+                    raise RuntimeError(f'Google Play - Error {params["error"]}.')
 
             self.gsfId = self.checkin(email, ac2dmToken)
             self.getAuthSubToken(email, encryptedPass)
