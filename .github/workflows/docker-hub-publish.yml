@@ -26,7 +26,7 @@ jobs:
       - name: Docker Hub push latest image
         run: docker push mobilesecurity/mdast_cli:latest
 
-      - name: Docker Hub push latest image
+      - name: Docker Hub push tagged image
         run: docker push mobilesecurity/mdast_cli:2023.07.01
 
 
