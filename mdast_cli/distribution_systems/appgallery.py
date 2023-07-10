@@ -8,9 +8,9 @@ logger = logging.getLogger(__name__)
 
 
 def get_app_info(app_id):
-    get_interface_code_resp = requests.post(f'https://web-drru.hispace.dbankcloud.ru/webedge/getInterfaceCode')
+    get_interface_code_resp = requests.post('https://web-drru.hispace.dbankcloud.ru/webedge/getInterfaceCode')
     if get_interface_code_resp.status_code != 200:
-        raise RuntimeError(f'Appgallery - Cannot get interface code, connection error')
+        raise RuntimeError('Appgallery - Cannot get interface code, connection error')
     interface_code = get_interface_code_resp.json()
     timestamp = time.time()
     timestamp = str(timestamp).replace('.', '')
