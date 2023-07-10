@@ -1,5 +1,6 @@
 import logging
 import os
+import time
 
 import requests
 
@@ -7,8 +8,17 @@ logger = logging.getLogger(__name__)
 
 
 def get_app_info(app_id):
-    req = requests.get(f'https://web-dre.hispace.dbankcloud.cn/uowap/index?method='
-                       f'internal.getTabDetail&serviceType=20&reqPageNum=1&maxResults=25&uri=app|{app_id}')
+    get_interface_code_resp = requests.post(f'https://web-drru.hispace.dbankcloud.ru/webedge/getInterfaceCode')
+    if get_interface_code_resp.status_code != 200:
+        raise RuntimeError(f'Appgallery - Cannot get interface code, connection error')
+    interface_code = get_interface_code_resp.json()
+    timestamp = time.time()
+    timestamp = str(timestamp).replace('.', '')
+    headers = {
+        'Interface-Code': f'{interface_code}_{timestamp}'
+    }
+    req = requests.get(f'https://web-drru.hispace.dbankcloud.ru/uowap/index?'
+                       f'method=internal.getTabDetail&uri=app%7C{app_id}', headers=headers)
     if req.status_code == 200:
         resp_info = req.json()
     else:
@@ -16,8 +26,8 @@ def get_app_info(app_id):
                            f'Request return status code: {req.status_code}')
     app_info = {}
 
-    layoutData = resp_info.get('layoutData', [])
-    for element in layoutData:
+    layout_data = resp_info.get('layoutData', [])
+    for element in layout_data:
         if 'dataList' not in element.keys():
             continue
 

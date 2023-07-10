@@ -54,7 +54,9 @@ def firebase_download_app(download_path, project_number, app_id, account_info, f
                 f'{project_number} with app id {app_id}')
     app_info = get_app_info(project_number, app_id, account_info)
     app_download_link = app_info['download_link']
-    app_file = requests.get(app_download_link, allow_redirects=True)
+    app_file_resp = requests.get(app_download_link, allow_redirects=True)
+    if app_file_resp != 200:
+        raise RuntimeError(f'Firebase - Failed to download application, status code - {app_file_resp.status_code} ')
 
     if file_name is None:
         file_name = app_info['version_name']
@@ -66,7 +68,7 @@ def firebase_download_app(download_path, project_number, app_id, account_info, f
         logger.info(f'Firebase - Creating directory {download_path} for downloading app from Firebase')
 
     with open(path_to_file, 'wb') as file:
-        file.write(app_file.content)
+        file.write(app_file_resp.content)
 
     if os.path.exists(path_to_file):
         logger.info(f'Firebase - Application successfully downloaded to {path_to_file}')
