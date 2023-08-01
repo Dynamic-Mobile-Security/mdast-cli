@@ -7,7 +7,7 @@ setup(
     name="mdast_cli",
 
 
-    version='2023.07.02',
+    version='2023.08.01',
 
 
 

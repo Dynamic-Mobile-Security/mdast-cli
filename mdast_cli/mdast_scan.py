@@ -425,6 +425,10 @@ def main():
             logger.warning("Testcase with this id does not exist or you use old version of system. Trying to use "
                            "architecture from command line params.")
 
+    if sum(e['architecture'] == architecture_type['id'] and e['state'] == 3 for e in mdast.get_engines().json()) == 0:
+        logger.error(f"Cannot create scan - Cannot find active engine for architecture {architecture_type['name']}")
+        sys.exit(1)
+
     if testcase_id:
         logger.info(f'Autoscan(Stingray) with test case id: '
                     f'{testcase_id}, profile id: {profile_id} and file: {app_file}, architecture id is {architecture}')
