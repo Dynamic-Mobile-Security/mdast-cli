@@ -14,6 +14,7 @@ from mdast_cli.distribution_systems.firebase import firebase_download_app
 from mdast_cli.distribution_systems.google_play import GooglePlay
 from mdast_cli.distribution_systems.nexus import NexusRepository
 from mdast_cli.distribution_systems.nexus2 import Nexus2Repository
+from mdast_cli.distribution_systems.rumarket import rumarket_download_app
 from mdast_cli.distribution_systems.rustore import rustore_download_app
 from mdast_cli.helpers.const import (ANDROID_EXTENSIONS, END_SCAN_TIMEOUT, LONG_TRY, SLEEP_TIMEOUT, TRY, DastState,
                                      DastStateDict)
@@ -31,10 +32,10 @@ def parse_args():
                                                                            'without scan.'
                                                                            ' This argument is optional')
     parser.add_argument('--distribution_system', '-ds', type=str, help='Select how to download file: '
-                                                                       'file/appcenter/nexus'
-                                                                       '/firebase/appstore/google_play/rustore',
+                                                                       'file/appcenter/nexus/firebase/'
+                                                                       'appstore/google_play/rustore/rumarket',
                         choices=['file', 'appcenter', 'nexus', 'nexus2', 'firebase', 'appstore', 'google_play',
-                                 'rustore', 'appgallery'],
+                                 'rustore', 'appgallery', 'rumarket'],
                         required=True)
 
     # Arguments used for distribution_system = file
@@ -152,6 +153,11 @@ def parse_args():
     parser.add_argument('--rustore_package_name', type=str,
                         help='Application package name from Rustore. This argument is required if '
                              'distribution system set to "rustore"')
+
+    # Arguments for Rustore
+    parser.add_argument('--rumarket_package_name', type=str,
+                        help='Application package name from Rumarket. This argument is required if '
+                             'distribution system set to "rumarket"')
 
     # Arguments for Appgallery
     parser.add_argument('--appgallery_app_id', type=str,
@@ -277,6 +283,9 @@ def parse_args():
     elif args.distribution_system == 'rustore' and args.rustore_package_name is None:
         parser.error('"--distribution_system rustore" requires "--rustore_package_name" to be set')
 
+    elif args.distribution_system == 'rumarket' and args.rumarket_package_name is None:
+        parser.error('"--distribution_system rumarket" requires "--rumarket_package_name" to be set')
+
     elif args.distribution_system == 'appgallery' and args.appgallery_app_id is None:
         parser.error('"--distribution_system appgallery" requires "--appgallery_app_id" to be set')
 
@@ -382,6 +391,10 @@ def main():
             package_name = arguments.rustore_package_name
             app_file = rustore_download_app(package_name, download_path)
 
+        elif distribution_system == 'rumarket':
+            package_name = arguments.rumarket_package_name
+            app_file = rumarket_download_app(package_name, download_path)
+
         elif distribution_system == 'appgallery':
             app_file = appgallery_download_app(arguments.appgallery_app_id,
                                                download_path,
@@ -460,10 +473,10 @@ def main():
         logger.info(f"Application uploaded successfully. Application id: {application['id']}")
 
     logger.info(f"Creating scan for application {application['id']}")
-    if testcase_id:
+    if testcase_id is not None:
         create_dast_resp = mdast.create_auto_scan(project_id, profile_id, application['id'], architecture, testcase_id)
         scan_type = 'auto_stingray'
-    elif appium_script_path:
+    elif appium_script_path is not None:
         create_dast_resp = mdast.create_appium_scan(project_id, profile_id, application['id'], architecture,
                                                     appium_script_path)
         scan_type = 'auto_appium'

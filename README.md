@@ -32,6 +32,7 @@ During the execution of the script, the application is sent for the dynamic anal
   * [Nexus2](#nexus2)
   * [Rustore](#rustore)
   * [Appgallery](#appgallery)
+  * [Rumarket](#rumarket)
 * [Scan types](#scan-types)
 
 
@@ -75,6 +76,7 @@ Currently, several distribution systems are supported:
  * Applications from [Nexus2](https://help.sonatype.com/repomanager2)
  * Applications from [Rustore](https://rustore.ru/)
  * Applications from [Appgallery](https://appgallery.huawei.com/)
+ * Applications from [Rumarket](https://ruplay.market/apps/)
 
 ## Launch parameters
 
@@ -84,7 +86,7 @@ If you just want to download the application without scanning, specify `--downlo
 After that you will need to specify the distribution system and mandatory parameters for specified system
 
 * `distribution_system` - distribution method for the application   
-_possible values_ `file`/`google_play`/`appstore`/`firebase`/`appcenter`/`nexus`/`nexus2`/`rustore`/`appgallery`  
+_possible values_ `file`/`google_play`/`appstore`/`firebase`/`appcenter`/`nexus`/`nexus2`/`rustore`/`appgallery`/`rumarket`
 For detailed information refer to the respective sections below.
 
 If you want to integrate security analysis of downloaded application in the CI/CD you should specify these parameters.  
@@ -414,7 +416,20 @@ To download the application from Appgallery you need to run the following comman
 ```
 mdast_cli -d -ds appgallery --appgallery_app_id C123***** --appgallery_file_name apk_from_appgallery
 ```
- 
+
+### Rumarket
+To download the application from Rumarket you need to know the package name of apk.  
+
+Also, you need to select the `distribution_system rumarket` and specify the following mandatory parameter:
+ * `rumarket_package_name` -  package name of application you want to download
+
+#### Launch example
+
+To download the application from Rumarket you need to run the following command:
+```
+mdast_cli -d -ds rumarket --rumarket_package_name packagename.example.com
+```
+
 
 ### Scan types
 There are several ways to start scan for android applications: with previously recorded testcase or without it.
