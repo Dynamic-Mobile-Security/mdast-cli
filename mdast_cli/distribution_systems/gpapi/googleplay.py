@@ -157,7 +157,7 @@ class GooglePlayAPI(object):
         params = {'ot': str(offerType),
                   'doc': packageName}
         
-        if versionCode != "None"
+        if str(versionCode) != "None":
             params['vc'] = str(versionCode)
             
         response = requests.post(PURCHASE_URL, headers=headers,
