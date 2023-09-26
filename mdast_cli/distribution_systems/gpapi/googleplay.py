@@ -155,8 +155,11 @@ class GooglePlayAPI(object):
 
         headers = self.getHeaders()
         params = {'ot': str(offerType),
-                  'doc': packageName,
-                  'vc': str(versionCode)}
+                  'doc': packageName}
+        
+        if versionCode != "None"
+            params['vc'] = str(versionCode)
+            
         response = requests.post(PURCHASE_URL, headers=headers,
                                  params=params,
                                  timeout=60)
