@@ -3,6 +3,7 @@ import ssl
 from base64 import b64decode, urlsafe_b64encode
 
 import requests
+import os
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
@@ -157,7 +158,8 @@ class GooglePlayAPI(object):
         params = {'ot': str(offerType),
                   'doc': packageName}
         
-        if str(versionCode) != "None":
+        vcNone = os.environ.get('MDASTCLI_SEND_NONE_VC', '')
+        if (str(versionCode) != "None") or (vcNone != "true"):
             params['vc'] = str(versionCode)
             
         response = requests.post(PURCHASE_URL, headers=headers,
