@@ -38,9 +38,11 @@ class GooglePlay(object):
             'icon_url': app_data['image'][0]['imageUrl']
         }
 
-    def download_app(self, download_path, package_name, file_name=None):
+    def download_app(self, download_path, package_name, google_play_vc_null=None, file_name=None):
         file_name = file_name or package_name
-        downloaded_file, app_details = self.gp_api.download(package_name)
+        if google_play_vc_null:
+            google_play_vc_null = ''
+        downloaded_file, app_details = self.gp_api.download(package_name, google_play_vc_null)
         app_version = app_details.get('versionString')
         app_release_ts = self._get_upload_timestamp(app_details)
 

@@ -143,6 +143,8 @@ def parse_args():
                         help='Google auth token for access to Google Play API. '
                              'You should get it from console logs during first login attempt with email and password.'
                              ' This argument required if distribution system set to "google_play"')
+    parser.add_argument('--google_play_vc_null', action='store_true', default=None,
+                        help='Google play app version code = '', optional, use if DF-DFERH-01 when vc=None ')
     parser.add_argument('--google_play_file_name', type=str,
                         help='File name for downloaded application.'
                              ' This argument is optional if distribution system set to "google_play"')
@@ -385,7 +387,7 @@ def main():
                 exit(0)  # just get token and exit
 
             app_file = google_play.download_app(download_path,
-                                                arguments.google_play_package_name,
+                                                arguments.google_play_package_name, arguments.google_play_vc_null,
                                                 arguments.google_play_file_name)
 
         elif distribution_system == 'rustore':
