@@ -193,6 +193,9 @@ You can also specify downloaded app file name with an optional parameter
 
  * `google_play_file_name` - file name for app to be saved with  
 
+optional:
+ * `google_play_vc_null` - Google play app version code = '', optional parameter, use if DF-DFERH-01 and no app version
+
 You should use either email + pass ("--google_play_email" + "--google_play_password") or gsfid + token ("--google_play_gsfid" + "google_play_auth_token") arguments for mdast_cli script. For the continuous process you need only gsfid and token.
 
 For successful launch of Google Play integration you should use python 3.8 or 3.9.
