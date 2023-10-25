@@ -148,14 +148,14 @@ class GooglePlayAPI(object):
         if self.authSubToken is None:
             raise RuntimeError('Google Play - You need to login before executing any request')
 
+        params = {'ot': str(offerType),
+                  'doc': packageName}
+
         if versionCode is None:
             appDetails = self.details(packageName).get('details').get('appDetails')
-            versionCode = appDetails.get('versionCode')
+            params['vc'] = appDetails.get('versionCode')
 
         headers = self.getHeaders()
-        params = {'ot': str(offerType),
-                  'doc': packageName,
-                  'vc': versionCode}
         response = requests.post(PURCHASE_URL, headers=headers,
                                  params=params,
                                  timeout=60)
