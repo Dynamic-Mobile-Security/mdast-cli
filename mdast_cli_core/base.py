@@ -615,14 +615,8 @@ class mDastBase:
                               verify=False)
         return report
 
-
     def get_dast_logs(self, dast_id):
         return requests.get(f'{self.url}/dasts/{dast_id}/log/',
-                            headers=self.headers,
-                            verify=False)
-
-    def get_profiles_for_project(self, project_id):
-        return requests.get(f'{self.url}/projects/{project_id}/profiles/',
                             headers=self.headers,
                             verify=False)
 
