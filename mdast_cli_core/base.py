@@ -234,6 +234,21 @@ class mDastBase:
                             headers=self.headers,
                             verify=False)
 
+    def get_all_started_scans_by_org_id(self, org_id):
+        return requests.get(f'{self.url}/organizations/{org_id}/dasts/?state=2&ordering=state&page_size=10000',
+                            headers=self.headers,
+                            verify=False)
+
+    def get_all_created_scans_by_org_id(self, org_id):
+        return requests.get(f'{self.url}/organizations/{org_id}/dasts/?state=0&ordering=state&page_size=10000',
+                            headers=self.headers,
+                            verify=False)
+
+    def get_all_scans_by_org_id_filter_profile(self, org_id, profile_id):
+        return requests.get(f'{self.url}/organizations/{org_id}/dasts/?profile={profile_id}',
+                            headers=self.headers,
+                            verify=False)
+
     def get_scan_info(self, scan_id):
         return requests.get(f'{self.url}/dasts/{scan_id}/',
                             headers=self.headers,
@@ -355,6 +370,17 @@ class mDastBase:
                                  files=files,
                                  verify=False)
 
+    def create_manual_scan_autocreate_profile(self, app_id, arch_id):
+        data = {
+            'application_id': app_id,
+            'architecture_id': arch_id,
+            'type': 0
+        }
+        return requests.post(f'{self.url}/organizations/{self.current_context["company"]}/dasts/',
+                             headers=self.headers,
+                             data=json.dumps(data),
+                             verify=False)
+
     def start_scan(self, dast_id):
         """
         Start automated scan through REST API
@@ -383,6 +409,31 @@ class mDastBase:
         return requests.get(f'{self.url}/organizations/{self.current_context["company"]}/engines/',
                             headers=self.headers,
                             verify=False)
+
+    def engine_create(self, name, architecture):
+        data = {
+            "name": name,
+            "architecture": architecture
+        }
+        return requests.post(f'{self.url}/organizations/{self.current_context["company"]}/engines/',
+                             headers=self.headers,
+                             data=json.dumps(data),
+                             verify=False)
+
+    def get_engine(self, engine_id):
+        return requests.get(f'{self.url}/engines/{engine_id}/',
+                            headers=self.headers,
+                            verify=False)
+
+    def engine_management(self, engine_id, action):
+        return requests.get(f'{self.url}/engines/{engine_id}/{action}/',
+                            headers=self.headers,
+                            verify=False)
+
+    def engine_delete(self, engine_id):
+        return requests.delete(f'{self.url}/engines/{engine_id}/',
+                               headers=self.headers,
+                               verify=False)
 
     def get_organizations(self):
         return requests.get(f'{self.url}/organizations/',
@@ -557,8 +608,31 @@ class mDastBase:
                               verify=False)
         return report
 
+    def download_scan_json_result(self, dast_id):
+        report = requests.get(f'{self.url}/dasts/{dast_id}/report/?output=json',
+                              allow_redirects=True,
+                              headers=self.headers,
+                              verify=False)
+        return report
+
+
     def get_dast_logs(self, dast_id):
         return requests.get(f'{self.url}/dasts/{dast_id}/log/',
+                            headers=self.headers,
+                            verify=False)
+
+    def get_profiles_for_project(self, project_id):
+        return requests.get(f'{self.url}/projects/{project_id}/profiles/',
+                            headers=self.headers,
+                            verify=False)
+
+    def get_dasts_for_org_project(self, org_id, project_id):
+        return requests.get(f'{self.url}/organizations/{org_id}/dasts/?project={project_id}',
+                            headers=self.headers,
+                            verify=False)
+
+    def get_dast_issues(self, dast_id):
+        return requests.get(f'{self.url}/dasts/{dast_id}/issues/?page_size=1000',
                             headers=self.headers,
                             verify=False)
 
@@ -587,3 +661,18 @@ class mDastBase:
                             headers=self.headers,
                             verify=False)
         return resp
+
+    def get_issue_info(self, issue_id):
+        return requests.get(f'{self.url}/dast_issues/{issue_id}/',
+                            headers=self.headers,
+                            verify=False)
+
+    def get_localization_issue_data_keys(self):
+        return requests.get(f'{self.url}/localization/issue_data_keys',
+                            headers=self.headers,
+                            verify=False)
+
+    def get_modules(self):
+        return requests.get(f'{self.url}/modules/',
+                            headers=self.headers,
+                            verify=False)

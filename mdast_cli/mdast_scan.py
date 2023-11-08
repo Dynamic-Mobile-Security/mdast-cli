@@ -626,10 +626,10 @@ def main():
 
     if json_summary_file_name:
         logger.info(
-            f"Create and download JSON summary report for scan with id {dast['id']} to file {json_summary_file_name}.")
-        json_summary_report = mdast.get_scan_info(dast['id'])
+            f"Download JSON summary report for scan with id {dast['id']} to file {json_summary_file_name}.")
+        json_summary_report = mdast.download_scan_json_result(dast['id'])
         if json_summary_report.status_code != 200:
-            logger.error(f"JSON summary report creating failed with error {json_summary_report.text}. Exit...")
+            logger.error(f"JSON summary report while downloading failed with error {json_summary_report.text}. Exit...")
             sys.exit(1)
 
         logger.info(f"Saving summary json results to file {json_summary_file_name}.")
