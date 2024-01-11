@@ -1,4 +1,5 @@
 import plistlib
+import hashlib
 
 import requests
 
@@ -21,7 +22,7 @@ class StoreException(Exception):
 
 
 class StoreClient(object):
-    def __init__(self, sess: requests.Session, guid: str = '133C2941396B'):
+    def __init__(self, sess: requests.Session, guid: str = None):
         self.sess = sess
         self.guid = guid
         self.dsid = None
@@ -29,6 +30,8 @@ class StoreClient(object):
         self.account_name = None
 
     def authenticate(self, appleId, password):
+        if not self.guid:
+            self.guid = self._generateGuid(appleId)
         req = StoreAuthenticateReq(appleId=appleId, password=password, attempt='4', createSession="true",
                                    guid=self.guid, rmp='0', why='signIn')
         url = "https://p46-buy.itunes.apple.com/WebObjects/MZFinance.woa/wa/authenticate?guid=%s" % self.guid
@@ -115,3 +118,16 @@ class StoreClient(object):
         if resp.cancel_purchase_batch:
             raise StoreException("volumeStoreDownloadProduct", resp.customerMessage, resp.failureType)
         return resp
+
+    def _generateGuid(self, appleId):
+        DEFAULT_GUID = '123C2941396B'
+        GUID_DEFAULT_PREFIX = 2
+        GUID_SEED = 'STINGRAY'
+        GUID_POS = 10
+
+        # generate a unique guid out of the appleId
+        h = hashlib.sha1((GUID_SEED + appleId + GUID_SEED).encode("utf-8")).hexdigest()
+        defaultPart = DEFAULT_GUID[:GUID_DEFAULT_PREFIX]
+        hashPart = h[GUID_POS: GUID_POS + (len(DEFAULT_GUID) - GUID_DEFAULT_PREFIX)]
+        guid = (defaultPart + hashPart).upper()
+        return guid
