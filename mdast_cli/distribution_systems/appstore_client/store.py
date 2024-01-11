@@ -21,7 +21,7 @@ class StoreException(Exception):
 
 
 class StoreClient(object):
-    def __init__(self, sess: requests.Session, guid: str = '000C2941396B'):
+    def __init__(self, sess: requests.Session, guid: str = '133C2941396B'):
         self.sess = sess
         self.guid = guid
         self.dsid = None
