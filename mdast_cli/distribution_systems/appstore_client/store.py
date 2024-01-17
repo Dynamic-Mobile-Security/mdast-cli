@@ -125,7 +125,6 @@ class StoreClient(object):
         GUID_SEED = 'STINGRAY'
         GUID_POS = 10
 
-        # generate a unique guid out of the appleId
         h = hashlib.sha1((GUID_SEED + appleId + GUID_SEED).encode("utf-8")).hexdigest()
         defaultPart = DEFAULT_GUID[:GUID_DEFAULT_PREFIX]
         hashPart = h[GUID_POS: GUID_POS + (len(DEFAULT_GUID) - GUID_DEFAULT_PREFIX)]
