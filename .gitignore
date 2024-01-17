@@ -46,6 +46,7 @@ Thumbs.db
 *.war
 *.apk
 
+
 # Large media files
 *.mp4
 *.tiff
@@ -62,3 +63,5 @@ config
 !/README_DOCKER.md
 README_DOCKER.md
 mdast_cli.egg-info/
+
+*.pkl
