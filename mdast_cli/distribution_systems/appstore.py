@@ -1,5 +1,6 @@
 import logging
 import os
+import pickle
 import plistlib
 import zipfile
 from functools import lru_cache
@@ -55,9 +56,29 @@ class AppStore(object):
     @lru_cache
     def login(self):
         try:
-            logger.info('Logging into iTunes')
-            self.store.authenticate(self.apple_id, self.pass2FA)
-            logger.info(f'Successfully logged in as {self.store.account_name}')
+            logger.info(f'Trying to load session for {self.apple_id} iTunes account')
+            session_cache = os.path.join('appstore_sessions/', self.apple_id.split("@")[0].replace(".", ""))
+            if session_cache and os.path.exists(f'{session_cache}/session.pkl'):
+                with open(f'{session_cache}/session.pkl', "rb") as file:
+                    try:
+                        self.store = pickle.load(file)
+                        logger.info(f'Loaded session for {self.apple_id}')
+                    except Exception:
+                        os.remove(f'{session_cache}/session.pkl')
+                        raise RuntimeError(f"Error loading session for {self.apple_id}. "
+                                           f"It is deleted now, please try again")
+
+            else:
+                logger.info('Logging into iTunes')
+                self.store.authenticate(self.apple_id, self.pass2FA)
+                logger.info(f'Successfully logged in as {self.store.account_name}')
+
+                if not os.path.exists(session_cache):
+                    os.makedirs(session_cache)
+                with open(f'{session_cache}/session.pkl', "wb") as file:
+                    pickle.dump(self.store, file)
+                    logger.info(f'Dumped session for {self.apple_id}')
+
         except StoreException as e:
             raise RuntimeError(f'Failed to download application. Seems like your credentials are incorrect '
                                f'or your 2FA code expired. Message: {e.req} {e.err_msg} {e.err_type}')
@@ -151,8 +172,13 @@ class AppStore(object):
                     ipa_file.writestr(appContentDir + '/' + sinfPath, sinfs[i])
 
         except StoreException as e:
+            session_cache = os.path.join('appstore_sessions/', self.apple_id.split("@")[0].replace(".", ""))
+            if session_cache and os.path.exists(f'{session_cache}/session.pkl'):
+                os.remove(f'{session_cache}/session.pkl')
+                raise RuntimeError('Failed to download application. Seems like your stored session expired. It is'
+                                   'deleted now, please try again')
             raise RuntimeError(f'Failed to download application. Seems like your app_id does not exist '
-                               f'or you did not purchase this app from apple account before. '
+                               f'or you did not purchase this paid app from apple account before. '
                                f'Message: {e.req} {e.err_msg} {e.err_type}')
 
         return file_path, md5
