@@ -44,8 +44,7 @@ class AppStore(object):
         self.pass2FA = appstore_password2FA
         sess = requests.Session()
         self.store = StoreClient(sess)
-        self.app_was_downloaded = False
-        self.logged_in = False
+        self.login_by_session = False
 
         retry_strategy = Retry(
             connect=4,
@@ -56,34 +55,36 @@ class AppStore(object):
         sess.mount("http://", HTTPAdapter(max_retries=retry_strategy))
 
     @lru_cache
-    def login(self, force):
+    def login(self, force=False):
+        self.login_by_session = False
+        session_cache = os.path.join('appstore_sessions/', self.apple_id.split("@")[0].replace(".", ""))
+        if force and os.path.exists(session_cache):
+            os.rmdir(session_cache)
+
+        if session_cache and os.path.exists(f'{session_cache}/session.pkl'):
+            logger.info(f'Trying to load session for {self.apple_id} iTunes account')
+            with open(f'{session_cache}/session.pkl', "rb") as file:
+                try:
+                    self.store = pickle.load(file)
+                    self.login_by_session = True
+                    logger.info(f'Loaded session for {self.apple_id}')
+                except Exception:
+                    os.rmdir(session_cache)
+                    logger.info('Session was corrupted, deleting it')
+
+        if self.login_by_session:
+            return
+
         try:
-            session_cache = os.path.join('appstore_sessions/', self.apple_id.split("@")[0].replace(".", ""))
-            if force:
-                logger.info('Logging into iTunes')
-                self.store.authenticate(self.apple_id, self.pass2FA)
-                logger.info(f'Successfully logged in as {self.store.account_name}')
+            logger.info('Logging into iTunes')
+            self.store.authenticate(self.apple_id, self.pass2FA)
+            logger.info(f'Successfully logged in as {self.store.account_name}')
 
-                if not os.path.exists(session_cache):
-                    os.makedirs(session_cache)
-                with open(f'{session_cache}/session.pkl', "wb") as file:
-                    pickle.dump(self.store, file)
-                    logger.info(f'Dumped session for {self.apple_id}')
-                    self.logged_in = True
-            else:
-                logger.info(f'Trying to load session for {self.apple_id} iTunes account')
-
-                if session_cache and os.path.exists(f'{session_cache}/session.pkl'):
-                    with open(f'{session_cache}/session.pkl', "rb") as file:
-                        try:
-                            self.store = pickle.load(file)
-                            logger.info(f'Loaded session for {self.apple_id}')
-                            self.logged_in = True
-                        except Exception:
-                            os.remove(f'{session_cache}/session.pkl')
-                            logger.info('Session was corrupted, deleting it')
-                else:
-                    logger.info('Session did not exist.')
+            if not os.path.exists(session_cache):
+                os.makedirs(session_cache)
+            with open(f'{session_cache}/session.pkl', "wb") as file:
+                pickle.dump(self.store, file)
+                logger.info(f'Dumped session for {self.apple_id}')
         except StoreException as e:
             raise RuntimeError(f'Failed to download application. Seems like your credentials are incorrect '
                                f'or your 2FA code expired. Message: {e.req} {e.err_msg} {e.err_type}')
@@ -174,14 +175,14 @@ class AppStore(object):
         return file_path, md5
 
     def download_app(self, download_path, app_id=None, bundle_id=None, country='US', file_name=None):
-        for force in (False, True):
-            if not self.app_was_downloaded:
-                try:
-                    self.login(force=force)
-                    if self.logged_in:
-                        file_path, md5 = self._download_app_int(download_path, app_id, bundle_id, country, file_name)
-                        self.app_was_downloaded = True
-                except StoreException as e:
+        file_path, md5 = None, None
+        for force in (False, True):  # try first time with possible stored session, second time with forced login
+            try:
+                self.login(force=force)
+                file_path, md5 = self._download_app_int(download_path, app_id, bundle_id, country, file_name)
+                break
+            except StoreException as e:
+                if not self.login_by_session:  # login by credentials, still with error
                     raise RuntimeError(f'Failed to download application. Seems like your app_id does not exist '
                                        f'or you did not purchase this paid app from apple account before. '
                                        f'Message: {e.req} {e.err_msg} {e.err_type}')
