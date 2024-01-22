@@ -69,7 +69,7 @@ class AppStore(object):
                     self.login_by_session = True
                     logger.info(f'Loaded session for {self.apple_id}')
                 except Exception:
-                    os.rmdir(session_cache)
+                    os.remove(f'{session_cache}/session.pkl')
                     logger.info('Session was corrupted, deleting it')
 
         if self.login_by_session:
