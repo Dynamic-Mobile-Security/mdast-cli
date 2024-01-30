@@ -2,6 +2,7 @@ import logging
 import os
 import pickle
 import plistlib
+import shutil
 import zipfile
 from functools import lru_cache
 
@@ -59,7 +60,7 @@ class AppStore(object):
         self.login_by_session = False
         session_cache = os.path.join('appstore_sessions/', self.apple_id.split("@")[0].replace(".", ""))
         if force and os.path.exists(session_cache):
-            os.rmdir(session_cache)
+            shutil.rmtree(session_cache)
 
         if session_cache and os.path.exists(f'{session_cache}/session.pkl'):
             logger.info(f'Trying to load session for {self.apple_id} iTunes account')
@@ -69,7 +70,7 @@ class AppStore(object):
                     self.login_by_session = True
                     logger.info(f'Loaded session for {self.apple_id}')
                 except Exception:
-                    os.remove(f'{session_cache}/session.pkl')
+                    shutil.rmtree(session_cache)
                     logger.info('Session was corrupted, deleting it')
 
         if self.login_by_session:
@@ -80,8 +81,7 @@ class AppStore(object):
             self.store.authenticate(self.apple_id, self.pass2FA)
             logger.info(f'Successfully logged in as {self.store.account_name}')
 
-            if not os.path.exists(session_cache):
-                os.makedirs(session_cache)
+            os.makedirs(session_cache, exist_ok=True)
             with open(f'{session_cache}/session.pkl', "wb") as file:
                 pickle.dump(self.store, file)
                 logger.info(f'Dumped session for {self.apple_id}')
