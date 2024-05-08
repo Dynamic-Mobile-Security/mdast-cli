@@ -7,7 +7,7 @@ setup(
     name="mdast_cli",
 
 
-    version='2024.01.08',
+    version='2024.05.01',
 
 
 
@@ -47,7 +47,7 @@ setup(
         'six>=1.15.0',
         'soupsieve==2.3.1',
         'uritemplate==3.0.1',
-        'urllib3==1.26.13'
+        'urllib3>=1.26.13'
     ],
     entry_points={
         'console_scripts': [

@@ -74,7 +74,6 @@ class AuthHTTPAdapter(requests.adapters.HTTPAdapter):
         Authentication.
         """
         context = SSLContext()
-        context.set_ciphers(ssl_.DEFAULT_CIPHERS)
         context.verify_mode = ssl.CERT_REQUIRED
         context.options &= ~0x4000
         self.poolmanager = PoolManager(*args, ssl_context=context, **kwargs)
