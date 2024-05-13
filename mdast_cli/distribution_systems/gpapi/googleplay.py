@@ -9,7 +9,6 @@ from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives.asymmetric.utils import encode_dss_signature
 from cryptography.hazmat.primitives.serialization import load_der_public_key
 from urllib3.poolmanager import PoolManager
-from urllib3.util import ssl_
 
 from mdast_cli.distribution_systems.gpapi import config, googleplay_pb2, utils
 
