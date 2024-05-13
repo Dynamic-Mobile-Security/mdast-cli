@@ -7,7 +7,7 @@ setup(
     name="mdast_cli",
 
 
-    version='2024.01.08',
+    version='2024.05.01',
 
 
 
@@ -36,7 +36,7 @@ setup(
         'googleapis-common-protos==1.52.0',
         'httplib2==0.21.0',
         'idna==2.10',
-        'protobuf==4.21.6',
+        'protobuf>=4.21.6',
         'pyasn1==0.4.8',
         'pyasn1-modules==0.2.8',
         'pycparser==2.21',
@@ -47,7 +47,7 @@ setup(
         'six>=1.15.0',
         'soupsieve==2.3.1',
         'uritemplate==3.0.1',
-        'urllib3==1.26.13'
+        'urllib3>=1.26.13'
     ],
     entry_points={
         'console_scripts': [
