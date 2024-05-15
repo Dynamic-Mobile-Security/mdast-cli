@@ -97,6 +97,11 @@ class AppStore(object):
         resp_info = self.store.find_app(app_id=app_id, bundle_id=bundle_id, country=country).json()
         try:
             app_info = resp_info['results'][0]
+        except KeyError:
+            if 'errorMessage' in resp_info:
+                raise RuntimeError(f'App Store - error: {resp_info["errorMessage"]}')
+            else:
+                raise RuntimeError(f'App Store - error: {resp_info}')
         except IndexError:
             raise RuntimeError('App Store - Application not found') from None
         return {
