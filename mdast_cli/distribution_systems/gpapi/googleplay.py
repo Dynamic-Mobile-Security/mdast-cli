@@ -143,15 +143,28 @@ class GooglePlayAPI(object):
             raise RuntimeError('Google Play - Login failed.')
 
     def download(self, packageName, versionCode, offerType=1):
+        download_url, cookie, split, app_details = self.get_download_info(packageName, versionCode, offerType)
+        result = {'docId': packageName, 'additionalData': [], 'splits': []}
+        cookies = {
+            str(cookie.name): str(cookie.value)
+        }
+        result['file'] = self._deliver_data(download_url, cookies)
+
+        for chunk in split:
+            a = {'name': chunk.name, 'file': self._deliver_data(chunk.downloadUrl, None)}
+            result['splits'].append(a)
+        return result, app_details
+
+    def get_download_info(self, packageName, versionCode=None, offerType=1):
         if self.authSubToken is None:
             raise RuntimeError('Google Play - You need to login before executing any request')
 
         params = {'ot': str(offerType),
                   'doc': packageName}
 
+        app_details = self.details(packageName).get('details').get('appDetails')
         if versionCode is None:
-            appDetails = self.details(packageName).get('details').get('appDetails')
-            params['vc'] = appDetails.get('versionCode')
+            params['vc'] = app_details.get('versionCode')
 
         headers = self.getHeaders()
         response = requests.post(PURCHASE_URL, headers=headers,
@@ -166,25 +179,19 @@ class GooglePlayAPI(object):
 
         if downloadToken is not None:
             params['dtok'] = downloadToken
+
         response = requests.get(DELIVERY_URL, headers=headers, params=params, timeout=60)
         response = googleplay_pb2.ResponseWrapper.FromString(response.content)
         if response.commands.displayErrorMessage != "":
             raise RuntimeError(f'Google Play - {response.commands.displayErrorMessage}')
-        elif response.payload.deliveryResponse.appDeliveryData.downloadUrl == "":
-            raise RuntimeError('Google Play - App not purchased')
-        else:
-            result = {'docId': packageName, 'additionalData': [], 'splits': []}
-            downloadUrl = response.payload.deliveryResponse.appDeliveryData.downloadUrl
-            cookie = response.payload.deliveryResponse.appDeliveryData.downloadAuthCookie[0]
-            cookies = {
-                str(cookie.name): str(cookie.value)
-            }
-            result['file'] = self._deliver_data(downloadUrl, cookies)
 
-            for split in response.payload.deliveryResponse.appDeliveryData.split:
-                a = {'name': split.name, 'file': self._deliver_data(split.downloadUrl, None)}
-                result['splits'].append(a)
-            return result, appDetails
+        downloadUrl = response.payload.deliveryResponse.appDeliveryData.downloadUrl
+        if not downloadUrl:
+            raise RuntimeError('Google Play - App not purchased')
+
+        cookie = response.payload.deliveryResponse.appDeliveryData.downloadAuthCookie[0]
+        split = response.payload.deliveryResponse.appDeliveryData.split
+        return downloadUrl, cookie, split, app_details
 
     def setAuthSubToken(self, authSubToken):
         self.authSubToken = authSubToken
