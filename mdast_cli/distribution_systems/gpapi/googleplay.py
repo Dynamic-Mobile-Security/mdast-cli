@@ -11,6 +11,7 @@ from cryptography.hazmat.primitives.serialization import load_der_public_key
 from urllib3.poolmanager import PoolManager
 
 from mdast_cli.distribution_systems.gpapi import config, googleplay_pb2, utils
+from mdast_cli.helpers.decorators import repeat_on_fail
 
 logger = logging.getLogger(__name__)
 
@@ -155,6 +156,7 @@ class GooglePlayAPI(object):
             result['splits'].append(a)
         return result, app_details
 
+    @repeat_on_fail('Get download info', try_count=10, sleep_time=0.1)
     def get_download_info(self, packageName, versionCode=None, offerType=1):
         if self.authSubToken is None:
             raise RuntimeError('Google Play - You need to login before executing any request')
