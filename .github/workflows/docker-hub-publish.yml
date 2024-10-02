@@ -21,13 +21,13 @@ jobs:
           docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
 
       - name: Build the Docker image
-        run: docker build . --file Dockerfile -t mobilesecurity/mdast_cli:2024.5.2 -t mobilesecurity/mdast_cli:latest
+        run: docker build . --file Dockerfile -t mobilesecurity/mdast_cli:2024.10.1 -t mobilesecurity/mdast_cli:latest
 
       - name: Docker Hub push latest image
         run: docker push mobilesecurity/mdast_cli:latest
 
       - name: Docker Hub push tagged image
-        run: docker push mobilesecurity/mdast_cli:2024.5.2
+        run: docker push mobilesecurity/mdast_cli:2024.10.1
 
 
 
