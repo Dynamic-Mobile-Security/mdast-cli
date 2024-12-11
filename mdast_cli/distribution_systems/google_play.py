@@ -9,12 +9,13 @@ logger = logging.getLogger(__name__)
 
 
 class GooglePlay(object):
-    def __init__(self, email=None, password=None, gsfId=None, authSubToken=None):
+    def __init__(self, email=None, password=None, gsfId=None, authSubToken=None, proxy=None):
         self.gp_api = GooglePlayAPI()
         self.email = email
         self.password = password
         self.gsfId = gsfId
         self.authSubToken = authSubToken
+        self.proxy = proxy
 
     def login(self):
         logger.info('Google Play - Google Play integration, trying to login')
@@ -40,11 +41,11 @@ class GooglePlay(object):
             'icon_url': image.get('imageUrl')
         }
 
-    def download_app(self, download_path, package_name, google_play_vc_null=None, file_name=None):
+    def download_app(self, download_path, package_name, google_play_vc_null=None, file_name=None, proxy=None):
         file_name = file_name or package_name
         if google_play_vc_null:
             google_play_vc_null = ''
-        downloaded_file, app_details = self.gp_api.download(package_name, google_play_vc_null)
+        downloaded_file, app_details = self.gp_api.download(package_name, google_play_vc_null, proxy=proxy)
         app_version = app_details.get('versionString')
         app_release_ts = self._get_upload_timestamp(app_details)
 

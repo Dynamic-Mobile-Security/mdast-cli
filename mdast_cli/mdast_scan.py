@@ -148,6 +148,9 @@ def parse_args():
     parser.add_argument('--google_play_file_name', type=str,
                         help='File name for downloaded application.'
                              ' This argument is optional if distribution system set to "google_play"')
+    parser.add_argument('--google_play_proxy', type=str,
+                        help='Proxy config for Google Play'
+                             ' This argument is optional if distribution system set to "google_play"')
     parser.add_argument('--google_play_download_with_creds', action='store_true',
                         help='Download the application at the first login with email + password. '
                              'This argument is optional if distribution system set to "google_play"')
@@ -380,7 +383,8 @@ def main():
             google_play = GooglePlay(arguments.google_play_email,
                                      arguments.google_play_password,
                                      arguments.google_play_gsfid,
-                                     arguments.google_play_auth_token)
+                                     arguments.google_play_auth_token,
+                                     arguments.google_play_proxy)
             google_play.login()
             if arguments.google_play_email and arguments.google_play_password \
                     and not arguments.google_play_download_with_creds:
@@ -388,7 +392,7 @@ def main():
 
             app_file = google_play.download_app(download_path,
                                                 arguments.google_play_package_name, arguments.google_play_vc_null,
-                                                arguments.google_play_file_name)
+                                                arguments.google_play_file_name, proxy=arguments.google_play_proxy)
 
         elif distribution_system == 'rustore':
             package_name = arguments.rustore_package_name
