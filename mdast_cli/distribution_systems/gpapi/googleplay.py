@@ -144,7 +144,7 @@ class GooglePlayAPI(object):
         else:
             raise RuntimeError('Google Play - Login failed.')
 
-    def download(self, packageName, versionCode, offerType=1):
+    def download(self, packageName, versionCode, offerType=1, proxy=None):
         if self.authSubToken is None:
             raise RuntimeError('Google Play - You need to login before executing any request')
 
@@ -156,9 +156,13 @@ class GooglePlayAPI(object):
             params['vc'] = appDetails.get('versionCode')
 
         headers = self.getHeaders()
+        if proxy is not None:
+            proxy_config = dict(https=f'{proxy}')
+        else:
+            proxy_config = None
         response = requests.post(PURCHASE_URL, headers=headers,
                                  params=params,
-                                 timeout=60)
+                                 timeout=60, proxies=proxy_config)
 
         response = googleplay_pb2.ResponseWrapper.FromString(response.content)
         if response.commands.displayErrorMessage != "":
@@ -168,7 +172,7 @@ class GooglePlayAPI(object):
 
         if downloadToken is not None:
             params['dtok'] = downloadToken
-        response = requests.get(DELIVERY_URL, headers=headers, params=params, timeout=60)
+        response = requests.get(DELIVERY_URL, headers=headers, params=params, timeout=60, proxies=proxy_config)
         response = googleplay_pb2.ResponseWrapper.FromString(response.content)
         if response.commands.displayErrorMessage != "":
             raise RuntimeError(f'Google Play - {response.commands.displayErrorMessage}')
@@ -181,10 +185,10 @@ class GooglePlayAPI(object):
             cookies = {
                 str(cookie.name): str(cookie.value)
             }
-            result['file'] = self._deliver_data(downloadUrl, cookies)
+            result['file'] = self._deliver_data(downloadUrl, cookies, proxy_config)
 
             for split in response.payload.deliveryResponse.appDeliveryData.split:
-                a = {'name': split.name, 'file': self._deliver_data(split.downloadUrl, None)}
+                a = {'name': split.name, 'file': self._deliver_data(split.downloadUrl, None, proxy_config)}
                 result['splits'].append(a)
             return result, appDetails
 
@@ -344,11 +348,12 @@ class GooglePlayAPI(object):
 
         return message
 
-    def _deliver_data(self, url, cookies):
+    def _deliver_data(self, url, cookies, proxy_config):
         headers = self.getHeaders()
         response = self.session.get(url, headers=headers,
                                     cookies=cookies, verify=ssl_verify,
-                                    stream=True, timeout=60)
+                                    stream=True, timeout=60,
+                                    proxies=proxy_config)
         total_size = response.headers.get('content-length')
         chunk_size = 32 * (1 << 10)
         return {'data': response.iter_content(chunk_size=chunk_size),
