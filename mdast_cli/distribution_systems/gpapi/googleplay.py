@@ -9,7 +9,6 @@ from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives.asymmetric.utils import encode_dss_signature
 from cryptography.hazmat.primitives.serialization import load_der_public_key
 from urllib3.poolmanager import PoolManager
-from urllib3.util import ssl_
 
 from mdast_cli.distribution_systems.gpapi import config, googleplay_pb2, utils
 
@@ -74,20 +73,18 @@ class AuthHTTPAdapter(requests.adapters.HTTPAdapter):
         Authentication.
         """
         context = SSLContext()
-        context.set_ciphers(ssl_.DEFAULT_CIPHERS)
         context.verify_mode = ssl.CERT_REQUIRED
         context.options &= ~0x4000
         self.poolmanager = PoolManager(*args, ssl_context=context, **kwargs)
 
 
 class GooglePlayAPI(object):
-    def __init__(self, locale="en_US", timezone="UTC", device_codename="pixel_api30", proxies_config=None):
+    def __init__(self, locale="en_US", timezone="UTC", device_codename="pixel_api30"):
         self.authSubToken = None
         self.gsfId = None
         self.device_config_token = None
         self.deviceCheckinConsistencyToken = None
         self.dfeCookie = None
-        self.proxies_config = proxies_config
         self.deviceBuilder = config.DeviceBuilder(device_codename)
         self.deviceBuilder.setLocale(locale)
         self.deviceBuilder.setTimezone(timezone)
@@ -156,7 +153,7 @@ class GooglePlayAPI(object):
             params['vc'] = appDetails.get('versionCode')
 
         headers = self.getHeaders()
-        if proxy is not None:
+        if proxy:
             proxy_config = dict(https=f'{proxy}')
         else:
             proxy_config = None
