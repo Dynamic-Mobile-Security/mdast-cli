@@ -9,13 +9,12 @@ logger = logging.getLogger(__name__)
 
 
 class GooglePlay(object):
-    def __init__(self, email=None, password=None, gsfId=None, authSubToken=None, proxy=None):
+    def __init__(self, email=None, password=None, gsfId=None, authSubToken=None):
         self.gp_api = GooglePlayAPI()
         self.email = email
         self.password = password
         self.gsfId = gsfId
         self.authSubToken = authSubToken
-        self.proxy = proxy
 
     def login(self):
         logger.info('Google Play - Google Play integration, trying to login')
