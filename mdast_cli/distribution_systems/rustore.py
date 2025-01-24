@@ -1,5 +1,6 @@
 import logging
 import os
+import zipfile
 
 import requests
 
@@ -63,6 +64,16 @@ def rustore_download_app(package_name, download_path):
         if chunk:
             f.write(chunk)
     f.close()
+
+    if app_info['download_url'].endswith('.zip'):
+        with zipfile.ZipFile(file_path, 'r') as zip_ref:
+            file_list = zip_ref.namelist()
+            first_file = file_list[0]
+            with zip_ref.open(first_file) as source_file:
+                os.remove(file_path)
+                with open(file_path, 'wb') as target_file:
+                    target_file.write(source_file.read())
+
     logger.info(f'Rustore - Apk was downloaded from rustore to {file_path}')
 
     return file_path
