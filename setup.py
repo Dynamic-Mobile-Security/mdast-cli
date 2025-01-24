@@ -6,9 +6,7 @@ with open("README.md", "r") as fh:
 setup(
     name="mdast_cli",
 
-
-    version='2024.12.1',
-
+    version='2025.1.0',
 
 
     author="Dynamic-Mobile-Security",
