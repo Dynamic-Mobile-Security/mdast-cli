@@ -233,6 +233,7 @@ def parse_args():
     parser.add_argument('--controller_name', type=str, help='Controller name for CR report.')
     parser.add_argument('--use_ldap', type=str, help='Use LDAP for CR report.', default=False)
     parser.add_argument('--authority_server_id', type=str, help='Authority server id for CR report.', default=None)
+    parser.add_argument('--cr_report_path', type=str, help='Use LDAP for CR report.', default='stingray-CR-report.html')
 
 
 
@@ -341,6 +342,7 @@ def main():
         controller_name = arguments.controller_name
         use_ldap = arguments.use_ldap
         authority_server_id = arguments.authority_server_id
+        cr_report_path = arguments.cr_report_path
 
 
         url = url if url.endswith('/') else f'{url}/'
@@ -668,7 +670,8 @@ def main():
         logger.info(f"JSON report for scan {dast['id']} successfully created and available at path: {mdast_json_file}.")
 
     if cr_report:
-        generate_cr(f"{url}", stingray_login, stingray_password, dast['id'], organization_name, engineer_name, controller_name, use_ldap, authority_server_id)
+        generate_cr(f"{url}", stingray_login, stingray_password, dast['id'], organization_name, engineer_name,
+                    controller_name, cr_report_path, use_ldap, authority_server_id)
 
     logger.info('Job completed successfully!')
 
