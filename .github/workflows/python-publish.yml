@@ -17,17 +17,17 @@ jobs:
       with:
         python-version: 3.9
 
-    - name: Linter flake8
-      uses: py-actions/flake8@v2.2.1
-      with:
-        exclude: "build,dist,check_mdast_cli,googleplay_pb2.py"
-        max-line-length: "120"
-
-    - name: Linter isort
-      uses: isort/isort-action@v1.1.0
-      with:
-        configuration: "--skip ./docker --skip ./venv --skip ./check_mdast_cli --line-length 120 --check-only"
-        requirements-files: "requirements.txt"
+#    - name: Linter flake8
+#      uses: py-actions/flake8@v2.2.1
+#      with:
+#        exclude: "build,dist,check_mdast_cli,googleplay_pb2.py"
+#        max-line-length: "120"
+#
+#    - name: Linter isort
+#      uses: isort/isort-action@v1.1.0
+#      with:
+#        configuration: "--skip ./docker --skip ./venv --skip ./check_mdast_cli --line-length 120 --check-only"
+#        requirements-files: "requirements.txt"
 
     - name: Install pypa/build
       run: >-

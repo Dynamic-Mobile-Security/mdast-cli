@@ -22,7 +22,7 @@ jobs:
 
       - name: Build the Docker image
 
-        run: docker build . --file Dockerfile -t mobilesecurity/mdast_cli:2025.6.0 -t mobilesecurity/mdast_cli:latest
+        run: docker build . --file Dockerfile -t mobilesecurity/mdast_cli:2025.6.1 -t mobilesecurity/mdast_cli:latest
 
 
       - name: Docker Hub push latest image
@@ -30,7 +30,7 @@ jobs:
 
       - name: Docker Hub push tagged image
 
-        run: docker push mobilesecurity/mdast_cli:2025.6.0
+        run: docker push mobilesecurity/mdast_cli:2025.6.1
 
 
 
