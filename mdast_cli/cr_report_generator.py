@@ -1193,7 +1193,7 @@ def get_new_app_info(stingray, scan_id):
         return None
 
 
-def generate_cr(url, login, password, scan_id, org_name, engineer_name, controller_name,
+def generate_cr(url, login, password, scan_id, org_name, engineer_name, controller_name, cr_report_path,
                 use_ldap=False, authority_server_id=None):
     urllib3.disable_warnings()
 
@@ -1228,8 +1228,7 @@ def generate_cr(url, login, password, scan_id, org_name, engineer_name, controll
             logger.error("Не удалось получить детали сканирования. Завершение работы.")
             sys.exit(1)
 
-        output_path = generate_html_report(stingray, scan_details, settings,
-                                           f"{settings['stingray_scan_id']}-stingray-CR-report.html")
+        output_path = generate_html_report(stingray, scan_details, settings, cr_report_path)
         logger.info(f"Отчет успешно сгенерирован и сохранен в {output_path}")
 
     except Exception as e:
