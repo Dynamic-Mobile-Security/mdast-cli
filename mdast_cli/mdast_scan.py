@@ -20,6 +20,7 @@ from mdast_cli.helpers.const import (ANDROID_EXTENSIONS, END_SCAN_TIMEOUT, LONG_
                                      DastStateDict)
 from mdast_cli.helpers.helpers import check_app_md5
 from mdast_cli_core.token import mDastToken as mDast
+from mdast_cli.cr_report_generator import generate_cr
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s %(message)s',
                     datefmt='%d/%m/%Y %H:%M:%S', stream=sys.stdout)
@@ -224,6 +225,19 @@ def parse_args():
                         default='downloaded_apps')
     parser.add_argument('--long_wait', action='store_true', help='Time limit - 1 week for scan finish')
 
+    parser.add_argument('--cr_report', action='store_true', help='Generate CR report for scan')
+    parser.add_argument('--stingray_login', type=str, help='Stingray login for CR report. Required if --cr_report.')
+    parser.add_argument('--stingray_password', type=str, help='Stingray password for CR report. Required if --cr_report.')
+    parser.add_argument('--organization_name', type=str, help='Organization name for CR report.', default='ООО Стингрей Технолоджиз')
+    parser.add_argument('--engineer_name', type=str, help='Engineer name for CR report.')
+    parser.add_argument('--controller_name', type=str, help='Controller name for CR report.')
+    parser.add_argument('--use_ldap', type=str, help='Use LDAP for CR report.', default=False)
+    parser.add_argument('--authority_server_id', type=str, help='Authority server id for CR report.', default=None)
+
+
+
+
+
     args = parser.parse_args()
 
     if args.distribution_system == 'file' and args.file_path is None:
@@ -319,6 +333,15 @@ def main():
         pdf_report_file_name = arguments.pdf_report_file_name
         not_wait_scan_end = arguments.nowait
         long_wait = arguments.long_wait
+        cr_report = arguments.cr_report
+        stingray_login = arguments.stingray_login
+        stingray_password = arguments.stingray_password
+        organization_name = arguments.organization_name
+        engineer_name = arguments.engineer_name
+        controller_name = arguments.controller_name
+        use_ldap = arguments.use_ldap
+        authority_server_id = arguments.authority_server_id
+
 
         url = url if url.endswith('/') else f'{url}/'
         url = url if url.endswith('rest/') else f'{url}rest'
@@ -643,6 +666,9 @@ def main():
             json.dump(json_summary_report.json(), fp, indent=4, ensure_ascii=False)
 
         logger.info(f"JSON report for scan {dast['id']} successfully created and available at path: {mdast_json_file}.")
+
+    if cr_report:
+        generate_cr(f"{url}", stingray_login, stingray_password, dast['id'], organization_name, engineer_name, controller_name, use_ldap, authority_server_id)
 
     logger.info('Job completed successfully!')
 

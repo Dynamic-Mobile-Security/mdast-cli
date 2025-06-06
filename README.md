@@ -111,6 +111,14 @@ Optional parameters:
  * `pdf_report_file_name` - an optional parameter that specifies the name of the pdf file into which information on scanning in pdf format is uploaded. If the parameter is absent, the report will not be saved.
  * `download_path` - an optional parameter that specifies the path to folder with downloaded apps. Default value: *downloaded_apps*
  * `long_wait` - increase wait time for scan to 1 week, boolean parameter
+ * `cr_report` - Generate CR report for scan. Optional parameter
+ * `stingray_login` - Stingray login for CR report. Required if --cr_report.
+ *  `stingray_password` - Stingray password for CR report. Required if --cr_report.
+ *  `organization_name` - Organization name for CR report. Optional if --cr_report.
+ *  `engineer_name` - Engineer name for CR report. Optional if --cr_report.
+ *  `controller_name` - Controller name for CR report. Optional if --cr_report.
+ * `use_ldap` - Use LDAP for CR report. Optional if --cr_report.
+ * `authority_server_id` - Authority server id for CR report. Optional if --cr_report.
 
 ## Distribution systems
 
@@ -155,6 +163,12 @@ __Generating a Summary report in JSON format__
 mdast_cli --distribution_system file --file_path "/files/demo/apk/demo.apk" --url "https://saas.mobile.appsec.world" --profile_id 1 --testcase_id 4 --company_id 1 - architecture_id 1 --token "eyJ0eXA4Oi**************I1NiJ1.eyJzdaJqZWNcX**************8OTU3MjB1.hrI6c4VN_U2mo5VjHvRoENPv2" --summary_report_json_file_name json-scan-report.json
 ```
 As a result, automated analysis of the `demo.apk` application with a profile with` id` 1 will be launched and a test case with `id` 4 will be launched, and upon completion of scanning, a JSON report with the total number of defects and brief statistics will be saved.
+
+__Generating CR report__
+
+```
+-ds file --architecture_id 3 --profile_id 1337 --url https://stingray-mobile.ru --company_id 1 --token 4bba***************** --file_path downloaded_apps/app-prod-debug.apk --cr_report --stingray_login aaa@sting.ray --stingray_password p@ss --organization_name "Stingray" --engineer_name Nikita --controller_name Yury
+```
 
 ### Google play
 
