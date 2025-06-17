@@ -408,8 +408,7 @@ def main():
             google_play = GooglePlay(arguments.google_play_email,
                                      arguments.google_play_password,
                                      arguments.google_play_gsfid,
-                                     arguments.google_play_auth_token,
-                                     arguments.google_play_proxy)
+                                     arguments.google_play_auth_token)
             google_play.login()
             if arguments.google_play_email and arguments.google_play_password \
                     and not arguments.google_play_download_with_creds:
