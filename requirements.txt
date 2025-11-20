@@ -13,7 +13,7 @@ google-auth==1.22.1
 google-auth-httplib2==0.0.4
 googleapis-common-protos==1.52.0
 httplib2==0.21.0
-idna==2.10
+idna>=3.7
 protobuf>=4.21.6
 pyasn1==0.4.8
 pyasn1-modules==0.2.8

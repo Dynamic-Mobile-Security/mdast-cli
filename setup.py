@@ -6,7 +6,7 @@ with open("README.md", "r") as fh:
 setup(
     name="mdast_cli",
 
-    version='2025.9.0',
+    version='2025.11.1',
 
 
     author="Dynamic-Mobile-Security",
@@ -33,7 +33,7 @@ setup(
         'google-auth-httplib2==0.0.4',
         'googleapis-common-protos==1.52.0',
         'httplib2==0.21.0',
-        'idna==2.10',
+        'idna>=3.7',
         'protobuf>=4.21.6',
         'pyasn1==0.4.8',
         'pyasn1-modules==0.2.8',
