@@ -7,10 +7,12 @@ import zipfile
 from functools import lru_cache
 
 import requests
+import urllib3
 from requests.adapters import HTTPAdapter
 from urllib3 import Retry
 
 from mdast_cli.distribution_systems.appstore_client.store import StoreClient, StoreException
+from mdast_cli.helpers.file_utils import ensure_download_dir, cleanup_file
 
 logger = logging.getLogger(__name__)
 
@@ -19,18 +21,21 @@ def download_file(url, download_path, file_path):
     with requests.get(url, stream=True, verify=False) as r:
         if r.status_code != 200:
             raise RuntimeError(f'Failed to download application. Request return status code: {r.status_code}"')
-        if not os.path.exists(download_path):
-            os.mkdir(download_path)
-            logger.info(f'Creating directory {download_path} for downloading app from AppStore')
-        with open(file_path, 'wb') as f:
-            for chunk in r.iter_content(chunk_size=1 * 1024 * 1024):
-                f.write(chunk)
-        f.close()
-        if os.path.exists(file_path):
-            logger.info('Application successfully downloaded')
-        else:
-            logger.info('Failed to download application. '
-                        'Seems like something is wrong with your file path or app file is broken')
+        ensure_download_dir(download_path)
+        logger.info(f'Creating directory {download_path} for downloading app from AppStore')
+        try:
+            with open(file_path, 'wb') as f:
+                for chunk in r.iter_content(chunk_size=1 * 1024 * 1024):
+                    f.write(chunk)
+            if os.path.exists(file_path):
+                logger.info('Application successfully downloaded')
+            else:
+                logger.info('Failed to download application. '
+                            'Seems like something is wrong with your file path or app file is broken')
+        except Exception as e:
+            # Cleanup partial file on error
+            cleanup_file(file_path)
+            raise RuntimeError(f'AppStore - Failed to write downloaded file: {e}')
 
     return file_path
 
@@ -47,11 +52,30 @@ class AppStore(object):
         self.store = StoreClient(sess)
         self.login_by_session = False
 
-        retry_strategy = Retry(
-            connect=4,
-            read=2,
-            total=8,
-        )
+        # Configure retry strategy compatible with both old and new urllib3 versions
+        # In urllib3 1.26.0+, method_whitelist was renamed to allowed_methods
+        # Detect which version is installed and use appropriate parameter
+        retry_kwargs = {
+            'total': 8,
+            'connect': 4,
+            'read': 2,
+            'backoff_factor': 0.3,
+            'status_forcelist': [500, 502, 503, 504],
+        }
+        
+        # Check urllib3 version to determine which parameter to use
+        urllib3_version = tuple(map(int, urllib3.__version__.split('.')[:2]))
+        methods = ['GET', 'POST', 'PUT', 'DELETE', 'HEAD', 'OPTIONS', 'TRACE']
+        
+        if urllib3_version >= (1, 26):
+            # urllib3 >= 1.26.0 uses allowed_methods
+            retry_kwargs['allowed_methods'] = set(methods)
+        else:
+            # urllib3 < 1.26.0 uses method_whitelist
+            retry_kwargs['method_whitelist'] = methods
+        
+        retry_strategy = Retry(**retry_kwargs)
+        
         sess.mount("https://", HTTPAdapter(max_retries=retry_strategy))
         sess.mount("http://", HTTPAdapter(max_retries=retry_strategy))
 
@@ -81,7 +105,7 @@ class AppStore(object):
             self.store.authenticate(self.apple_id, self.pass2FA)
             logger.info(f'Successfully logged in as {self.store.account_name}')
 
-            os.makedirs(session_cache, exist_ok=True)
+            ensure_download_dir(session_cache)
             with open(f'{session_cache}/session.pkl', "wb") as file:
                 pickle.dump(self.store, file)
                 logger.info(f'Dumped session for {self.apple_id}')
@@ -159,23 +183,48 @@ class AppStore(object):
         logger.info(f'Downloading ipa to {file_path}')
         download_file(downloaded_app_info.URL, download_path, file_path)
 
-        with zipfile.ZipFile(file_path, 'a') as ipa_file:
-            logger.info('Creating iTunesMetadata.plist with metadata info')
-            metadata = downloaded_app_info.metadata.as_dict()
-            metadata["apple-id"] = self.apple_id
-            metadata["userName"] = self.apple_id
-            ipa_file.writestr("iTunesMetadata.plist", plistlib.dumps(metadata))
+        # Optimize ZIP operations to avoid loading all file names into memory for large IPAs
+        try:
+            with zipfile.ZipFile(file_path, 'a', compression=zipfile.ZIP_DEFLATED) as ipa_file:
+                logger.info('AppStore - Creating iTunesMetadata.plist with metadata info')
+                metadata = downloaded_app_info.metadata.as_dict()
+                metadata["apple-id"] = self.apple_id
+                metadata["userName"] = self.apple_id
+                ipa_file.writestr("iTunesMetadata.plist", plistlib.dumps(metadata))
 
-            appContentDir = [c for c in ipa_file.namelist() if
-                             c.startswith('Payload/') and len(c.strip('/').split('/')) == 2][0]
-            appContentDir = appContentDir.rstrip('/')
+                # Find appContentDir - break early to minimize memory usage
+                # Note: namelist() still loads all names, but we break immediately after finding target
+                logger.info('AppStore - Searching for Payload directory in IPA')
+                appContentDir = None
+                try:
+                    for name in ipa_file.namelist():
+                        if name.startswith('Payload/') and len(name.strip('/').split('/')) == 2:
+                            appContentDir = name.rstrip('/')
+                            logger.info(f'AppStore - Found Payload directory: {appContentDir}')
+                            break
+                except MemoryError:
+                    raise RuntimeError('AppStore - Out of memory while processing IPA file. IPA file may be too large.')
+                
+                if not appContentDir:
+                    raise RuntimeError('AppStore - Failed to find Payload directory in IPA file')
 
-            scManifestData = ipa_file.read(appContentDir + '/SC_Info/Manifest.plist')
-            scManifest = plistlib.loads(scManifestData)
+                # Read only the manifest file we need (small file)
+                manifest_path = appContentDir + '/SC_Info/Manifest.plist'
+                try:
+                    scManifestData = ipa_file.read(manifest_path)
+                except KeyError:
+                    raise RuntimeError(f'AppStore - Failed to find {manifest_path} in IPA file')
+                
+                scManifest = plistlib.loads(scManifestData)
 
-            sinfs = {c.id: c.sinf for c in downloaded_app_info.sinfs}
-            for i, sinfPath in enumerate(scManifest['SinfPaths']):
-                ipa_file.writestr(appContentDir + '/' + sinfPath, sinfs[i])
+                sinfs = {c.id: c.sinf for c in downloaded_app_info.sinfs}
+                logger.info(f'AppStore - Writing {len(scManifest["SinfPaths"])} sinf files to IPA')
+                for i, sinfPath in enumerate(scManifest['SinfPaths']):
+                    ipa_file.writestr(appContentDir + '/' + sinfPath, sinfs[i])
+        except MemoryError as e:
+            cleanup_file(file_path)
+            raise RuntimeError(f'AppStore - Out of memory while processing IPA file: {e}. '
+                             f'Try increasing available memory or processing on a machine with more RAM.')
 
         return file_path, md5
 

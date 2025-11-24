@@ -1,10 +1,18 @@
 import logging
 import os
+import warnings
+
+# Suppress pkg_resources deprecation warning from google-auth
+# Must be before importing google.auth to catch the warning
+warnings.filterwarnings('ignore', message='.*pkg_resources is deprecated.*', category=UserWarning)
 
 import google.auth
 import google.auth.transport.requests
 import requests
 from google.oauth2 import service_account
+
+from mdast_cli.helpers.file_utils import ensure_download_dir, cleanup_file
+from mdast_cli.helpers.const import HTTP_REQUEST_TIMEOUT, HTTP_DOWNLOAD_TIMEOUT
 
 logger = logging.getLogger(__name__)
 
@@ -32,8 +40,14 @@ def get_app_info(project_number, app_id, account_info):
         last_release_info_resp = requests.get(
             f'https://firebaseappdistribution.googleapis.com/v1/projects/{project_number}/apps/'
             f'{app_id}/releases?pageSize=1',
-            headers=headers)
+            headers=headers,
+            timeout=HTTP_REQUEST_TIMEOUT)
+        if last_release_info_resp.status_code != 200:
+            raise RuntimeError(f'Firebase - Failed to get application info. Status: {last_release_info_resp.status_code}, '
+                             f'Response: {last_release_info_resp.text[:500]}')
         release = last_release_info_resp.json()['releases'][0]
+    except KeyError as e:
+        raise RuntimeError(f'Firebase - Failed to get application info: unexpected response structure: {e}')
     except Exception as e:
         raise RuntimeError(f'Firebase - Failed to get application info: {e}')
 
@@ -54,21 +68,28 @@ def firebase_download_app(download_path, project_number, app_id, account_info, f
                 f'{project_number} with app id {app_id}')
     app_info = get_app_info(project_number, app_id, account_info)
     app_download_link = app_info['download_link']
-    app_file_resp = requests.get(app_download_link, allow_redirects=True)
-    if app_file_resp != 200:
-        raise RuntimeError(f'Firebase - Failed to download application, status code - {app_file_resp.status_code} ')
+    app_file_resp = requests.get(app_download_link, allow_redirects=True, stream=True, timeout=HTTP_DOWNLOAD_TIMEOUT)
+    if app_file_resp.status_code != 200:
+        raise RuntimeError(f'Firebase - Failed to download application, status code: {app_file_resp.status_code}')
 
     if file_name is None:
         file_name = app_info['version_name']
 
     path_to_file = f'{download_path}/{file_name}.{file_extension}'
 
-    if not os.path.exists(download_path):
-        os.mkdir(download_path)
-        logger.info(f'Firebase - Creating directory {download_path} for downloading app from Firebase')
+    ensure_download_dir(download_path)
+    logger.info(f'Firebase - Creating directory {download_path} for downloading app from Firebase')
 
-    with open(path_to_file, 'wb') as file:
-        file.write(app_file_resp.content)
+    # Use streaming for large files to avoid memory issues
+    try:
+        with open(path_to_file, 'wb') as file:
+            for chunk in app_file_resp.iter_content(chunk_size=8192):
+                if chunk:
+                    file.write(chunk)
+    except Exception as e:
+        # Cleanup partial file on error
+        cleanup_file(path_to_file)
+        raise RuntimeError(f'Firebase - Failed to write downloaded file: {e}')
 
     if os.path.exists(path_to_file):
         logger.info(f'Firebase - Application successfully downloaded to {path_to_file}')
