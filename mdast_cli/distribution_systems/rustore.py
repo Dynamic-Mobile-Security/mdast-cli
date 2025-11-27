@@ -3,6 +3,7 @@ import os
 import zipfile
 
 import requests
+from tqdm import tqdm
 
 from mdast_cli.helpers.file_utils import ensure_download_dir, cleanup_file
 
@@ -120,10 +121,16 @@ def rustore_download_app(package_name, download_path):
 
     # Save network payload to a temp file first to avoid creating a locked/partial target file
     try:
+        total_size = int(r.headers.get('content-length', 0))
+        chunk_size = 512 * 1024
         with open(tmp_download_path, 'wb') as f:
-            for chunk in r.iter_content(chunk_size=512 * 1024):
-                if chunk:
-                    f.write(chunk)
+            with tqdm(total=total_size, unit='B', unit_scale=True, unit_divisor=1024,
+                      desc=f"RuStore - Downloading {package_name}",
+                      disable=total_size == 0) as pbar:
+                for chunk in r.iter_content(chunk_size=chunk_size):
+                    if chunk:
+                        f.write(chunk)
+                        pbar.update(len(chunk))
     except Exception as e:
         # Cleanup partial file on error
         cleanup_file(tmp_download_path)

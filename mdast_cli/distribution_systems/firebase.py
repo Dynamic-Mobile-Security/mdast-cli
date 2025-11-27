@@ -10,6 +10,7 @@ import google.auth
 import google.auth.transport.requests
 import requests
 from google.oauth2 import service_account
+from tqdm import tqdm
 
 from mdast_cli.helpers.file_utils import ensure_download_dir, cleanup_file
 from mdast_cli.helpers.const import HTTP_REQUEST_TIMEOUT, HTTP_DOWNLOAD_TIMEOUT
@@ -82,10 +83,16 @@ def firebase_download_app(download_path, project_number, app_id, account_info, f
 
     # Use streaming for large files to avoid memory issues
     try:
+        total_size = int(app_file_resp.headers.get('content-length', 0))
+        chunk_size = 8192
         with open(path_to_file, 'wb') as file:
-            for chunk in app_file_resp.iter_content(chunk_size=8192):
-                if chunk:
-                    file.write(chunk)
+            with tqdm(total=total_size, unit='B', unit_scale=True, unit_divisor=1024, 
+                      desc=f'Firebase - Downloading {file_name}.{file_extension}', 
+                      disable=total_size == 0) as pbar:
+                for chunk in app_file_resp.iter_content(chunk_size=chunk_size):
+                    if chunk:
+                        file.write(chunk)
+                        pbar.update(len(chunk))
     except Exception as e:
         # Cleanup partial file on error
         cleanup_file(path_to_file)

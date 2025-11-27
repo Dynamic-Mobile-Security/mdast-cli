@@ -10,6 +10,7 @@ import requests
 import urllib3
 from requests.adapters import HTTPAdapter
 from urllib3 import Retry
+from tqdm import tqdm
 
 from mdast_cli.distribution_systems.appstore_client.store import StoreClient, StoreException
 from mdast_cli.helpers.file_utils import ensure_download_dir, cleanup_file
@@ -24,9 +25,16 @@ def download_file(url, download_path, file_path):
         ensure_download_dir(download_path)
         logger.info(f'Creating directory {download_path} for downloading app from AppStore')
         try:
+            total_size = int(r.headers.get('content-length', 0))
+            chunk_size = 1 * 1024 * 1024
             with open(file_path, 'wb') as f:
-                for chunk in r.iter_content(chunk_size=1 * 1024 * 1024):
-                    f.write(chunk)
+                with tqdm(total=total_size, unit='B', unit_scale=True, unit_divisor=1024,
+                          desc='AppStore - Downloading application',
+                          disable=total_size == 0) as pbar:
+                    for chunk in r.iter_content(chunk_size=chunk_size):
+                        if chunk:
+                            f.write(chunk)
+                            pbar.update(len(chunk))
             if os.path.exists(file_path):
                 logger.info('Application successfully downloaded')
             else:

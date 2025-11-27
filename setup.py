@@ -40,7 +40,8 @@ setup(
         'six>=1.15.0',
         'soupsieve==2.3.1',
         'uritemplate==3.0.1',
-        'urllib3>=1.26.13'
+        'urllib3>=1.26.13',
+        'tqdm>=4.66.0'
     ],
     entry_points={
         'console_scripts': [

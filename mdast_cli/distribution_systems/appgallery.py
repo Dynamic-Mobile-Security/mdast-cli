@@ -3,6 +3,7 @@ import os
 import time
 
 import requests
+from tqdm import tqdm
 
 from mdast_cli.helpers.file_utils import ensure_download_dir, cleanup_file
 
@@ -61,7 +62,7 @@ def get_app_info(app_id):
 def appgallery_download_app(app_id, download_path, file_name=None):
     logger.info(f'Appgallery - Try to download application with id {app_id}')
     app_info = get_app_info(app_id)
-    r = requests.get(f'https://appgallery.cloud.huawei.com/appdl/{app_id}')
+    r = requests.get(f'https://appgallery.cloud.huawei.com/appdl/{app_id}', stream=True)
     if r.status_code != 200:
         raise RuntimeError(f'Appgallery - Failed to download application. '
                            f'Something goes wrong. Request return status code: {r.status_code}')
@@ -75,10 +76,16 @@ def appgallery_download_app(app_id, download_path, file_name=None):
         file_path = f"{download_path}/{file_name}.apk"
 
     try:
+        total_size = int(r.headers.get('content-length', 0))
+        chunk_size = 512 * 1024
         with open(file_path, 'wb') as f:
-            for chunk in r.iter_content(chunk_size=512 * 1024):
-                if chunk:
-                    f.write(chunk)
+            with tqdm(total=total_size, unit='B', unit_scale=True, unit_divisor=1024,
+                      desc=f"AppGallery - Downloading {app_info.get('name', app_id)}",
+                      disable=total_size == 0) as pbar:
+                for chunk in r.iter_content(chunk_size=chunk_size):
+                    if chunk:
+                        f.write(chunk)
+                        pbar.update(len(chunk))
     except Exception as e:
         # Cleanup partial file on error
         cleanup_file(file_path)
