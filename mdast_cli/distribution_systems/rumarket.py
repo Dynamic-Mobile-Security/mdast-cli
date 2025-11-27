@@ -2,6 +2,7 @@ import logging
 import os
 
 import requests
+from tqdm import tqdm
 
 from mdast_cli.helpers.file_utils import ensure_download_dir, cleanup_file
 
@@ -33,7 +34,7 @@ def get_app_info(package_name):
 def rumarket_download_app(package_name, download_path):
     app_info = get_app_info(package_name)
     logger.info(f'Rumarket - Start downloading application {package_name}')
-    r = requests.get(app_info['download_url'])
+    r = requests.get(app_info['download_url'], stream=True)
     if r.status_code == 401:
         raise RuntimeError(f'Rumarket - Failed to download application. '
                            f'Something goes wrong. Request return status code: {r.status_code}')
@@ -44,10 +45,16 @@ def rumarket_download_app(package_name, download_path):
     logger.info(f'Rumarket - Creating directory {download_path} for downloading app from Rumarket')
 
     try:
+        total_size = int(r.headers.get('content-length', 0))
+        chunk_size = 512 * 1024
         with open(file_path, 'wb') as f:
-            for chunk in r.iter_content(chunk_size=512 * 1024):
-                if chunk:
-                    f.write(chunk)
+            with tqdm(total=total_size, unit='B', unit_scale=True, unit_divisor=1024,
+                      desc=f"RuMarket - Downloading {package_name}",
+                      disable=total_size == 0) as pbar:
+                for chunk in r.iter_content(chunk_size=chunk_size):
+                    if chunk:
+                        f.write(chunk)
+                        pbar.update(len(chunk))
     except Exception as e:
         # Cleanup partial file on error
         cleanup_file(file_path)

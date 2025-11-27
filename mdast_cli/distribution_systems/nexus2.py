@@ -4,6 +4,7 @@ from base64 import b64encode
 
 import requests
 import urllib3
+from tqdm import tqdm
 
 from mdast_cli.helpers.file_utils import ensure_download_dir, cleanup_file
 
@@ -42,7 +43,7 @@ class Nexus2Repository(object):
             'Authorization': basic_auth(self.login, self.password),
             'Connection': 'close'
         }
-        response = requests.get(download_url, headers=headers)
+        response = requests.get(download_url, headers=headers, stream=True)
         if response.status_code != 200:
             raise RuntimeError(f'NexusRepo: Failed to download application. '
                                f'Request return status code: {response.status_code}')
@@ -54,10 +55,16 @@ class Nexus2Repository(object):
         logger.info(f'Nexus 2 - Creating directory {download_path} for downloading app from Nexus 2')
 
         try:
+            total_size = int(response.headers.get('content-length', 0))
+            chunk_size = 512 * 1024
             with open(path_to_save, 'wb') as f:
-                for chunk in response.iter_content(chunk_size=512 * 1024):
-                    if chunk:
-                        f.write(chunk)
+                with tqdm(total=total_size, unit='B', unit_scale=True, unit_divisor=1024,
+                          desc=f"Nexus2 - Downloading {file_name}",
+                          disable=total_size == 0) as pbar:
+                    for chunk in response.iter_content(chunk_size=chunk_size):
+                        if chunk:
+                            f.write(chunk)
+                            pbar.update(len(chunk))
         except Exception as e:
             # Cleanup partial file on error
             cleanup_file(path_to_save)

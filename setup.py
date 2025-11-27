@@ -6,7 +6,7 @@ with open("README.md", "r") as fh:
 setup(
     name="mdast_cli",
 
-    version='2025.11.1',
+    version='2025.11.2',
 
     python_requires='>=3.9',
 
@@ -40,7 +40,8 @@ setup(
         'six>=1.15.0',
         'soupsieve==2.3.1',
         'uritemplate==3.0.1',
-        'urllib3>=1.26.13'
+        'urllib3>=1.26.13',
+        'tqdm>=4.66.0'
     ],
     entry_points={
         'console_scripts': [
