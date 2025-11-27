@@ -4,6 +4,8 @@ import zipfile
 
 import requests
 
+from mdast_cli.helpers.file_utils import ensure_download_dir, cleanup_file
+
 logger = logging.getLogger(__name__)
 
 
@@ -87,7 +89,7 @@ def rustore_download_app(package_name, download_path):
     - Потоковая загрузка во временный файл для предотвращения частичной записи
     - Обнаружение ZIP по URL или Content-Type и извлечение встроенного APK
     - Проверка конечного артефакта на наличие ZIP-контейнера (формат APK) перед возвратом
-    - Использует os.makedirs(exist_ok=True) и os.path.join для кроссплатформенных путей
+    - Использует ensure_download_dir() и os.path.join для кроссплатформенных путей
     - Запись в временные файлы
     """
     app_info = get_app_info(package_name)
@@ -111,16 +113,21 @@ def rustore_download_app(package_name, download_path):
             f"content-type: {r.headers.get('Content-Type')}, body: {r.text[:500]}"
         )
 
-    os.makedirs(download_path, exist_ok=True)
+    ensure_download_dir(download_path)
     file_path = os.path.join(download_path, f"{app_info['package_name']}-{app_info['version_name']}.apk")
     tmp_download_path = file_path + '.download'
     tmp_apk_path = file_path + '.part'
 
     # Save network payload to a temp file first to avoid creating a locked/partial target file
-    with open(tmp_download_path, 'wb') as f:
-        for chunk in r.iter_content(chunk_size=512 * 1024):
-            if chunk:
-                f.write(chunk)
+    try:
+        with open(tmp_download_path, 'wb') as f:
+            for chunk in r.iter_content(chunk_size=512 * 1024):
+                if chunk:
+                    f.write(chunk)
+    except Exception as e:
+        # Cleanup partial file on error
+        cleanup_file(tmp_download_path)
+        raise RuntimeError(f'Rustore - Failed to write downloaded file: {e}')
 
     content_type = r.headers.get('Content-Type', '')
     url_looks_like_zip = app_info['download_url'].endswith('.zip')
@@ -156,6 +163,8 @@ def rustore_download_app(package_name, download_path):
                 head = f.read(64)
         except Exception:
             head = b''
+        # Cleanup invalid file before raising error
+        cleanup_file(working_path)
         raise RuntimeError(
             f"Rustore - Downloaded file is not a valid APK/ZIP. Content-Type: {content_type}, "
             f"first-bytes: {head[:16]}"

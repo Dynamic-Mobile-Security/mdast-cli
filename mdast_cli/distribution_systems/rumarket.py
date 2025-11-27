@@ -3,6 +3,8 @@ import os
 
 import requests
 
+from mdast_cli.helpers.file_utils import ensure_download_dir, cleanup_file
+
 logger = logging.getLogger(__name__)
 
 
@@ -38,15 +40,19 @@ def rumarket_download_app(package_name, download_path):
 
     file_path = f"{download_path}/{app_info['package_name']}-{app_info['version_name']}.apk"
 
-    if not os.path.exists(download_path):
-        os.mkdir(download_path)
-        logger.info(f'Rumarket - Creating directory {download_path} for downloading app from Rumarket')
+    ensure_download_dir(download_path)
+    logger.info(f'Rumarket - Creating directory {download_path} for downloading app from Rumarket')
 
-    f = open(file_path, 'wb')
-    for chunk in r.iter_content(chunk_size=512 * 1024):
-        if chunk:
-            f.write(chunk)
-    f.close()
+    try:
+        with open(file_path, 'wb') as f:
+            for chunk in r.iter_content(chunk_size=512 * 1024):
+                if chunk:
+                    f.write(chunk)
+    except Exception as e:
+        # Cleanup partial file on error
+        cleanup_file(file_path)
+        raise RuntimeError(f'Rumarket - Failed to write downloaded file: {e}')
+
     logger.info(f'Rumarket - Apk was downloaded from rumarket to {file_path}')
 
     return file_path

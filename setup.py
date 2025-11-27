@@ -8,6 +8,7 @@ setup(
 
     version='2025.11.1',
 
+    python_requires='>=3.9',
 
     author="Dynamic-Mobile-Security",
     description="Dynamic-Mobile-Security",
@@ -27,14 +28,8 @@ setup(
         'charset-normalizer==2.0.12',
         'cryptography>=37.0.2',
         'google==3.0.0',
-        'google-api-core==1.22.4',
-        'google-api-python-client==1.12.3',
-        'google-auth==1.22.1',
-        'google-auth-httplib2==0.0.4',
-        'googleapis-common-protos==1.52.0',
-        'httplib2==0.21.0',
+        'google-auth>=2.23.0',
         'idna>=3.7',
-        'protobuf>=4.21.6',
         'pyasn1==0.4.8',
         'pyasn1-modules==0.2.8',
         'pycparser==2.21',
@@ -53,7 +48,11 @@ setup(
         ]
     },
     classifiers=[
+        "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
         "License :: OSI Approved :: MIT License",
         "Operating System :: Unix",
     ],

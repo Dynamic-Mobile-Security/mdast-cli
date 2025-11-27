@@ -5,6 +5,8 @@ from base64 import b64encode
 import requests
 import urllib3
 
+from mdast_cli.helpers.file_utils import ensure_download_dir, cleanup_file
+
 urllib3.disable_warnings()
 
 logger = logging.getLogger(__name__)
@@ -72,10 +74,14 @@ class NexusRepository(object):
 
         path_to_save = os.path.join(download_path, file_name)
 
-        if not os.path.exists(download_path):
-            os.mkdir(download_path)
+        ensure_download_dir(download_path)
 
-        with open(path_to_save, 'wb') as file:
-            file.write(response.content)
+        try:
+            with open(path_to_save, 'wb') as file:
+                file.write(response.content)
+        except Exception as e:
+            # Cleanup partial file on error
+            cleanup_file(path_to_save)
+            raise RuntimeError(f'Nexus - Failed to write downloaded file: {e}')
 
         return path_to_save

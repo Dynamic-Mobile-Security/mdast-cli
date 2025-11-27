@@ -5,6 +5,8 @@ from base64 import b64encode
 import requests
 import urllib3
 
+from mdast_cli.helpers.file_utils import ensure_download_dir, cleanup_file
+
 urllib3.disable_warnings()
 
 logger = logging.getLogger(__name__)
@@ -48,15 +50,18 @@ class Nexus2Repository(object):
                     f' artifact - {artifact_id}, version - {version} and extension - {extension}')
         path_to_save = os.path.join(download_path, file_name)
 
-        if not os.path.exists(download_path):
-            logger.info(f'Nexus 2 - Creating directory {download_path} for downloading app from Nexus 2')
-            os.mkdir(download_path)
+        ensure_download_dir(download_path)
+        logger.info(f'Nexus 2 - Creating directory {download_path} for downloading app from Nexus 2')
 
-        with open(path_to_save, 'wb') as f:
-            for chunk in response.iter_content(chunk_size=512 * 1024):
-                if chunk:
-                    f.write(chunk)
-            f.close()
+        try:
+            with open(path_to_save, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=512 * 1024):
+                    if chunk:
+                        f.write(chunk)
+        except Exception as e:
+            # Cleanup partial file on error
+            cleanup_file(path_to_save)
+            raise RuntimeError(f'Nexus2 - Failed to write downloaded file: {e}')
 
         logger.info('Nexus 2 - Application was successfully downloaded!')
 
