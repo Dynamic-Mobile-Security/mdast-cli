@@ -23,7 +23,7 @@ setup(
         'beautifulsoup4==4.10.0',
         'cachetools==4.1.1',
         'certifi>=2023.7.22',
-        'cffi==1.15.0',
+        'cffi>=1.15.0',
         'chardet>=3.0.4',
         'charset-normalizer==2.0.12',
         'cryptography>=37.0.2',
