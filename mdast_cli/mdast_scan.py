@@ -74,6 +74,8 @@ For detailed information about specific distribution system see README.md
                                 'Default: downloaded_apps. '
                                 'Directory will be created automatically if it does not exist.',
                            default='downloaded_apps')
+    main_group.add_argument('--verbose', '-v', action='store_true',
+                           help='Enable debug logging (e.g. for troubleshooting download failures).')
 
     # File distribution system
     file_group = parser.add_argument_group('Local File (file)', 
@@ -450,6 +452,10 @@ def main():
 
     arguments = parse_args()
 
+    if getattr(arguments, 'verbose', False):
+        logging.getLogger().setLevel(logging.DEBUG)
+        logger.debug('Verbose (debug) logging enabled')
+
     distribution_system = arguments.distribution_system
     download_path = arguments.download_path
 
@@ -566,7 +572,12 @@ def main():
                                                arguments.appgallery_file_name)
 
     except Exception as e:
-        logger.fatal(f'Cannot download application file: {e}')
+        logger.fatal(
+            'Cannot download application file: %s (exception type: %s)',
+            e,
+            type(e).__name__,
+        )
+        logger.exception('Download failed (traceback below)')
         sys.exit(ExitCode.DOWNLOAD_FAILED)
 
     if arguments.download_only is True:
