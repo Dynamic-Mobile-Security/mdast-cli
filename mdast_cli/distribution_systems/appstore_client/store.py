@@ -2,7 +2,7 @@ import hashlib
 import logging
 import plistlib
 import re
-
+from typing import Optional
 import requests
 
 logger = logging.getLogger(__name__)
@@ -37,7 +37,7 @@ class StoreException(Exception):
         )
 
 
-def _parse_bag_response(content: bytes) -> str | None:
+def _parse_bag_response(content: bytes) -> Optional[str]:
     """Extract authenticateAccount URL from Apple bag plist/XML. Returns None if not found."""
     if not content or len(content) < 10:
         return None
