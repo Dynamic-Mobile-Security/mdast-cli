@@ -6,9 +6,9 @@ with open("README.md", "r") as fh:
 setup(
     name="mdast_cli",
 
-    version='2026.03.02',
+    version='2026.03.01',
 
-    python_requires='>=3.12',
+    python_requires='>=3.9',
 
     author="Dynamic-Mobile-Security",
     description="Dynamic-Mobile-Security",
@@ -23,7 +23,7 @@ setup(
         'beautifulsoup4==4.10.0',
         'cachetools==4.1.1',
         'certifi>=2023.7.22',
-        'cffi>=1.15.0',
+        'cffi==1.15.0',
         'chardet>=3.0.4',
         'charset-normalizer==2.0.12',
         'cryptography>=37.0.2',
@@ -58,3 +58,5 @@ setup(
         "Operating System :: Unix",
     ],
 )
+
+
