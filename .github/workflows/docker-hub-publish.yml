@@ -30,7 +30,8 @@ jobs:
 
       - name: Docker Hub push tagged image
 
-        run: docker push mobilesecurity/mdast_cli:2025.9.0
+        run: docker push mobilesecurity/mdast_cli:2026.03.05
+
 
 
 
