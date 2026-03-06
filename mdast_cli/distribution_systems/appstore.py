@@ -162,16 +162,57 @@ class AppStore(object):
 
         logger.info(f'Trying to purchase app with id {app_id}')
         purchase_resp = self.store.purchase(app_id)
+        logger.debug(
+            'Purchase response: status_code=%s, content_length=%s',
+            purchase_resp.status_code,
+            len(purchase_resp.content),
+        )
         if purchase_resp.status_code == 200:
             logger.info(f'App was successfully purchased for {self.apple_id} account')
         elif purchase_resp.status_code == 500:
             logger.info(f'This app was purchased before for {self.apple_id} account')
+        else:
+            logger.warning(
+                'Unexpected purchase response: status_code=%s, body_preview=%r',
+                purchase_resp.status_code,
+                (purchase_resp.text[:500] if purchase_resp.text else ''),
+            )
         logger.info(f'Retrieving download info for app with id: {app_id}')
-        download_resp = self.store.download(app_id)
+        try:
+            download_resp = self.store.download(app_id)
+        except Exception as e:
+            logger.warning(
+                'store.download failed: exception=%s, app_id=%s',
+                type(e).__name__,
+                app_id,
+                exc_info=True,
+            )
+            raise
         if not download_resp.songList:
+            logger.error(
+                'Download response has no songList: cancel_purchase_batch=%s, '
+                'customerMessage=%r',
+                getattr(download_resp, 'cancel_purchase_batch', None),
+                getattr(download_resp, 'customerMessage', None),
+            )
             raise RuntimeError('Failed to get app download info! Check your parameters')
 
         downloaded_app_info = download_resp.songList[0]
+        logger.debug(
+            'Download info: songId=%s, bundleId=%s, version=%s, URL present=%s',
+            getattr(downloaded_app_info, 'songId', None),
+            getattr(
+                getattr(downloaded_app_info, 'metadata', None),
+                'softwareVersionBundleId',
+                None,
+            ),
+            getattr(
+                getattr(downloaded_app_info, 'metadata', None),
+                'bundleShortVersionString',
+                None,
+            ),
+            bool(getattr(downloaded_app_info, 'URL', None)),
+        )
 
         app_name = downloaded_app_info.metadata.bundleDisplayName
         app_id = downloaded_app_info.songId

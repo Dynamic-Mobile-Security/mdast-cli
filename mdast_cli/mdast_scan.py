@@ -74,6 +74,8 @@ For detailed information about specific distribution system see README.md
                                 'Default: downloaded_apps. '
                                 'Directory will be created automatically if it does not exist.',
                            default='downloaded_apps')
+    main_group.add_argument('--verbose', '-v', action='store_true',
+                           help='Enable debug logging (e.g. for troubleshooting download failures).')
 
     # File distribution system
     file_group = parser.add_argument_group('Local File (file)', 
@@ -170,6 +172,9 @@ For detailed information about specific distribution system see README.md
                                help='File name for saving application (without .ipa extension). '
                                     'Optional parameter. If not specified, application name and version are used. '
                                     'Example: my_app, instagram_latest')
+    appstore_group.add_argument('--appstore_country', type=str, default='US',
+                           help='App Store country/region code for lookup and download (ISO 3166-1 alpha-2). '
+                                'Default: US. Example: RU, DE, GB')
     appstore_group.add_argument('--appstore_password2FA', type=str,
                                help='[DEPRECATED] Password and 2FA code in one parameter (format: password2FA_code). '
                                     'Use --appstore_password and --appstore_2FA instead of this parameter. '
@@ -450,6 +455,10 @@ def main():
 
     arguments = parse_args()
 
+    if getattr(arguments, 'verbose', False):
+        logging.getLogger().setLevel(logging.DEBUG)
+        logger.debug('Verbose (debug) logging enabled')
+
     distribution_system = arguments.distribution_system
     download_path = arguments.download_path
 
@@ -523,10 +532,13 @@ def main():
                 password2FA = arguments.appstore_password2FA
             appstore = AppStore(arguments.appstore_apple_id,
                                 password2FA)
-            app_file, appstore_app_md5 = appstore.download_app(download_path,
-                                                               arguments.appstore_app_id,
-                                                               arguments.appstore_bundle_id,
-                                                               arguments.appstore_file_name)
+            app_file, appstore_app_md5 = appstore.download_app(
+                                                    download_path,
+                                                    arguments.appstore_app_id,
+                                                    arguments.appstore_bundle_id,
+                                                    arguments.appstore_country,
+                                                    arguments.appstore_file_name,
+            )
 
         elif distribution_system == 'google_play':
             # Resolve AAS token from OAuth2 if provided and AAS not given
@@ -566,7 +578,12 @@ def main():
                                                arguments.appgallery_file_name)
 
     except Exception as e:
-        logger.fatal(f'Cannot download application file: {e}')
+        logger.fatal(
+            'Cannot download application file: %s (exception type: %s)',
+            e,
+            type(e).__name__,
+        )
+        logger.exception('Download failed (traceback below)')
         sys.exit(ExitCode.DOWNLOAD_FAILED)
 
     if arguments.download_only is True:
