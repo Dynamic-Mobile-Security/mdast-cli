@@ -111,7 +111,8 @@ async def download_app(
     if proc.returncode != 0:
         raise RuntimeError(sanitized_output_text.strip() or 'apkeep returned non-zero exit code')
 
-    if f'{package_name} downloaded successfully!' not in output:
+    success_marker_found = f'{package_name} downloaded successfully!' in output
+    if not success_marker_found:
         logger.warning(f'Google Play - success marker not found in output, continuing artifact check (package: {package_name})')
 
     split_dir = os.path.join(download_dir, package_name)
@@ -279,8 +280,26 @@ async def download_app(
     except Exception as ex:
         logger.debug(f'Google Play - failed to scan directory for candidates: {ex} (package: {package_name})')
 
-    logger.error(f'Google Play - artifact not found after successful download (package: {package_name})')
-    raise RuntimeError('Google Play: download reports success but artifact not found')
+    if not success_marker_found:
+        # apkeep exited without printing the "downloaded successfully!" marker and produced no file.
+        # This is how Google Play behaves when it refuses to deliver the APK for the requested
+        # device profile: most commonly the app has no native build for the device's CPU ABI
+        # (e.g. requesting an x86_64 emulator profile for an arm64-only app), but it can also mean
+        # the app is unavailable for the account's region or is not acquired in its library.
+        # Not a real download failure on our side.
+        logger.error(f'Google Play - apkeep produced no success marker and no artifact; '
+                     f'Google Play did not deliver the app for the requested device profile '
+                     f'(likely CPU ABI/architecture mismatch, e.g. no x86_64 build for an arm64-only app; '
+                     f'or region/availability/acquisition) (package: {package_name})')
+        raise RuntimeError(
+            'Google Play: apkeep finished without a success marker and produced no artifact - '
+            'Google Play did not deliver the app for the requested device profile. Most likely the app '
+            'has no native build for the requested CPU ABI (e.g. requesting x86_64 for an arm64-only app); '
+            'also check region/availability and that the app is acquired in the account library'
+        )
+
+    logger.error(f'Google Play - success marker present but artifact not found (package: {package_name})')
+    raise RuntimeError('Google Play: apkeep reported success but the artifact could not be located')
 
 
 def _ensure_dir_exists(path: str) -> None:

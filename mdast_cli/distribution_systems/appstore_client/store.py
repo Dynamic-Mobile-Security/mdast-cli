@@ -9,8 +9,28 @@ logger = logging.getLogger(__name__)
 
 # Apple "bag" service: returns endpoint definitions (auth URL). Required since ~2025.
 BAG_URL_TEMPLATE = "https://init.itunes.apple.com/bag.xml?guid=%s"
-DEFAULT_AUTH_URL_TEMPLATE = "https://buy.itunes.apple.com/WebObjects/MZFinance.woa/wa/authenticate?guid=%s"
+# Apple's 26HOTFIX24 (June 2026) moved login to the native auth endpoint. The bag now
+# advertises ".../auth/v1/native" (no "/fast"); the endpoint only works WITH the "/fast/"
+# sub-path AND a trailing slash, otherwise Apple replies 301 + an HTML redirect page that
+# breaks the plist parser. See majd/ipatool#486.
+AUTH_HOST = "auth.itunes.apple.com"
+NATIVE_FAST_PATH = "/auth/v1/native/fast/"
+DEFAULT_AUTH_URL = "https://" + AUTH_HOST + NATIVE_FAST_PATH
 BUY_DOMAIN = "buy.itunes.apple.com"
+
+
+def _normalize_auth_endpoint(endpoint: Optional[str]) -> Optional[str]:
+    """Ensure the native auth endpoint carries the '/fast/' sub-path with a trailing slash.
+
+    Apple's bag advertises ".../auth/v1/native"; without "/fast/" the request gets a
+    301 + HTML redirect that the plist parser chokes on (majd/ipatool#486).
+    """
+    if endpoint and AUTH_HOST in endpoint:
+        if not (endpoint.endswith("/fast") or endpoint.endswith("/fast/")):
+            endpoint = endpoint.rstrip("/") + "/fast"
+        if not endpoint.endswith("/"):
+            endpoint = endpoint + "/"
+    return endpoint
 PURCHASE_PATH = "/WebObjects/MZBuy.woa/wa/buyProduct"
 DOWNLOAD_PATH = "/WebObjects/MZFinance.woa/wa/volumeStoreDownloadProduct"
 
@@ -45,9 +65,14 @@ def _parse_bag_response(content: bytes) -> Optional[str]:
     try:
         data = plistlib.loads(content)
         if isinstance(data, dict):
-            url_bag = data.get("urlBag") or data.get("URLBag")
-            if isinstance(url_bag, dict):
-                return url_bag.get("authenticateAccount") or url_bag.get("authenticate")
+            # 'authenticateAccount' moved to the bag root (majd/ipatool#486); older bags
+            # keep it under 'urlBag'. Check the root first, then fall back to urlBag.
+            endpoint = data.get("authenticateAccount") or data.get("authenticate")
+            if not endpoint:
+                url_bag = data.get("urlBag") or data.get("URLBag")
+                if isinstance(url_bag, dict):
+                    endpoint = url_bag.get("authenticateAccount") or url_bag.get("authenticate")
+            return endpoint
         return None
     except Exception:
         pass
@@ -121,13 +146,13 @@ class StoreClient(object):
                 "Bag request failed: status=%s, falling back to default auth URL",
                 r.status_code,
             )
-            return DEFAULT_AUTH_URL_TEMPLATE % self.guid
-        auth_endpoint = _parse_bag_response(r.content)
+            return DEFAULT_AUTH_URL
+        auth_endpoint = _normalize_auth_endpoint(_parse_bag_response(r.content))
         if auth_endpoint:
             logger.debug("Using auth endpoint from bag: %s", auth_endpoint[:60] + "...")
             return auth_endpoint
         logger.warning("Could not parse bag response, falling back to default auth URL")
-        return DEFAULT_AUTH_URL_TEMPLATE % self.guid
+        return DEFAULT_AUTH_URL
 
     def authenticate(self, appleId, password):
         if not self.guid:
