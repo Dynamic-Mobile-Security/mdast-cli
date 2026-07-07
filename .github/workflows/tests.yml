@@ -20,7 +20,7 @@ jobs:
         run: pip install -r requirements.txt -r requirements-dev.txt
 
       - name: Run full test suite
-        run: pytest -q
+        run: python -m pytest -q
 
       - name: Security tests gate
-        run: pytest -q -m security
+        run: python -m pytest -q -m security
