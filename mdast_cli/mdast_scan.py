@@ -27,7 +27,12 @@ from mdast_cli.helpers.const import (ANDROID_EXTENSIONS, DEFAULT_ANDROID_ARCHITE
 from mdast_cli.helpers.exit_codes import ExitCode
 from mdast_cli.helpers.helpers import check_app_md5
 from mdast_cli_core.token import mDastToken as mDast
+from mdast_cli_core.factory import (MODE_MICROSERVICES, ModeDetectionError, resolve_installation_mode,
+                                    tls_verify_enabled)
 from mdast_cli.cr_report_generator import generate_cr
+from mdast_cli import __version__
+
+USER_AGENT = f'mdast_cli/{__version__}'
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s %(message)s',
                     datefmt='%d/%m/%Y %H:%M:%S', stream=sys.stdout)
@@ -590,6 +595,20 @@ def main():
         logger.info('Your application was downloaded!')
         # Emit a single-line machine-friendly output for CI parsers
         print(f'DOWNLOAD_PATH={app_file}')
+        sys.exit(ExitCode.SUCCESS)
+
+    try:
+        installation_mode = resolve_installation_mode(url, token, company_id,
+                                                      verify=tls_verify_enabled())
+    except ModeDetectionError as ex:
+        logger.error(str(ex))
+        sys.exit(ExitCode.AUTH_ERROR if ex.auth_error else ExitCode.NETWORK_ERROR)
+
+    if installation_mode == MODE_MICROSERVICES:
+        from mdast_cli.ms_flow import run_microservices_flow
+        run_microservices_flow(arguments, url, token, app_file, appstore_app_md5,
+                               user_agent=USER_AGENT, verify=tls_verify_enabled())
+        logger.info('Job completed successfully!')
         sys.exit(ExitCode.SUCCESS)
 
     mdast = mDast(url, token, company_id)
