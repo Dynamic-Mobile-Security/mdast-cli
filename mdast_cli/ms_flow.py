@@ -98,12 +98,41 @@ def _exit_on_http_error(resp, action, exit_code=ExitCode.SCAN_FAILED):
     sys.exit(exit_code)
 
 
+POLL_TRANSIENT_RETRIES = 5
+POLL_TRANSIENT_CODES = (502, 503, 504)
+
+
 def _get_scan(mdast, scan_id):
-    resp = mdast.get_scan_info(scan_id)
-    if resp.status_code != 200:
-        _exit_on_http_error(resp, f'Getting scan info for scan {scan_id}',
+    """Poll scan state, tolerating transient downstream failures.
+
+    A long CI poll must not die on a single flaky 5xx / network blip while the
+    scan keeps running server-side. Transient errors are retried a few times;
+    a persistent failure or a 4xx still exits.
+    """
+    import requests as _requests
+    last_resp = None
+    for attempt in range(POLL_TRANSIENT_RETRIES):
+        try:
+            resp = mdast.get_scan_info(scan_id)
+        except _requests.RequestException as ex:
+            logger.warning(f'Scan info request failed ({type(ex).__name__}), '
+                           f'retry {attempt + 1}/{POLL_TRANSIENT_RETRIES}')
+            time.sleep(SLEEP_TIMEOUT)
+            continue
+        if resp.status_code == 200:
+            return resp.json()
+        last_resp = resp
+        if resp.status_code in POLL_TRANSIENT_CODES:
+            logger.warning(f'Scan info returned {resp.status_code} (transient), '
+                           f'retry {attempt + 1}/{POLL_TRANSIENT_RETRIES}')
+            time.sleep(SLEEP_TIMEOUT)
+            continue
+        break
+    if last_resp is not None:
+        _exit_on_http_error(last_resp, f'Getting scan info for scan {scan_id}',
                             ExitCode.NETWORK_ERROR)
-    return resp.json()
+    logger.error(f'Getting scan info for scan {scan_id} failed after retries (network)')
+    sys.exit(ExitCode.NETWORK_ERROR)
 
 
 def run_precheck_gate(mdast, md5, profile_id, testcase_id, scan_type):
