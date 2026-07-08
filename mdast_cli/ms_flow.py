@@ -337,6 +337,37 @@ def run_microservices_flow(arguments, url, token, app_file, appstore_app_md5, us
     download_reports(mdast, scan_id, arguments)
 
 
+def _download_report_with_retry(fetch, action):
+    """Download a report tolerating transient downstream (Pepper) 5xx/network.
+
+    The report render can momentarily be unavailable (502/503/504) right after a
+    scan finishes; a single blip must not lose the finished scan's report.
+    """
+    import requests as _requests
+    last_resp = None
+    for attempt in range(POLL_TRANSIENT_RETRIES):
+        try:
+            resp = fetch()
+        except _requests.RequestException as ex:
+            logger.warning(f'{action} request failed ({type(ex).__name__}), '
+                           f'retry {attempt + 1}/{POLL_TRANSIENT_RETRIES}')
+            time.sleep(SLEEP_TIMEOUT)
+            continue
+        if resp.status_code == 200:
+            return resp
+        last_resp = resp
+        if resp.status_code in POLL_TRANSIENT_CODES:
+            logger.warning(f'{action} returned {resp.status_code} (transient), '
+                           f'retry {attempt + 1}/{POLL_TRANSIENT_RETRIES}')
+            time.sleep(SLEEP_TIMEOUT)
+            continue
+        break
+    if last_resp is not None:
+        _exit_on_http_error(last_resp, action)
+    logger.error(f'{action} failed after retries (network)')
+    sys.exit(ExitCode.NETWORK_ERROR)
+
+
 def download_reports(mdast, scan_id, arguments):
     """Report step (STG-4478): files are written to the user-provided paths.
 
@@ -349,9 +380,8 @@ def download_reports(mdast, scan_id, arguments):
     if pdf_report_file_name:
         logger.info(f'Create and download pdf report for scan with id {scan_id} '
                     f'to file {pdf_report_file_name}.')
-        pdf_report = mdast.download_report(scan_id)
-        if pdf_report.status_code != 200:
-            _exit_on_http_error(pdf_report, 'PDF report downloading')
+        pdf_report = _download_report_with_retry(lambda: mdast.download_report(scan_id),
+                                                 'PDF report downloading')
         pdf_report_file_name = pdf_report_file_name if pdf_report_file_name.endswith(
             '.pdf') else f'{pdf_report_file_name}.pdf'
         with open(pdf_report_file_name, 'wb') as f:
@@ -362,9 +392,8 @@ def download_reports(mdast, scan_id, arguments):
     if json_summary_file_name:
         logger.info(f'Download JSON summary report for scan with id {scan_id} '
                     f'to file {json_summary_file_name}.')
-        json_report = mdast.download_scan_json_result(scan_id)
-        if json_report.status_code != 200:
-            _exit_on_http_error(json_report, 'JSON summary report downloading')
+        json_report = _download_report_with_retry(
+            lambda: mdast.download_scan_json_result(scan_id), 'JSON summary report downloading')
         json_file_name = json_summary_file_name if json_summary_file_name.endswith(
             '.json') else f'{json_summary_file_name}.json'
         with open(json_file_name, 'w') as fp:
