@@ -106,9 +106,9 @@ def _get_scan(mdast, scan_id):
     return resp.json()
 
 
-def run_precheck_gate(mdast, md5, profile_id, testcase_id):
+def run_precheck_gate(mdast, md5, profile_id, testcase_id, scan_type):
     """Gate model (DEC-671-05): any warning blocks the scan with a non-zero exit."""
-    resp = mdast.precheck_scan(md5, profile_id, testcase_id)
+    resp = mdast.precheck_scan(md5, profile_id, testcase_id, scan_type)
     if resp.status_code == 404:
         _exit_on_http_error(resp, 'Scan pre-check (profile lookup)')
     if resp.status_code == 422 and profile_id is None:
@@ -212,7 +212,8 @@ def run_microservices_flow(arguments, url, token, app_file, appstore_app_md5, us
         application = upload_resp.json()
         logger.info(f"Application uploaded successfully. Application id: {application['id']}")
 
-    run_precheck_gate(mdast, app_md5, profile_id, testcase_id)
+    precheck_type = 'AUTO' if testcase_id is not None else 'MANUAL'
+    run_precheck_gate(mdast, app_md5, profile_id, testcase_id, precheck_type)
 
     logger.info(f"Creating scan for application {application['id']}")
     if testcase_id is not None:
@@ -235,7 +236,17 @@ def run_microservices_flow(arguments, url, token, app_file, appstore_app_md5, us
 
     logger.info(f'Start scan with id {scan_id}')
     start_resp = mdast.start_scan(scan_id)
-    if start_resp.status_code != 200:
+    if start_resp.status_code == 409:
+        # POST /scans/{id}/start/ is not idempotent: a facade retry (network/timeout
+        # after the first call already unlocked the scan) surfaces as 409 "not in
+        # initial state" even though the scan did start. Confirm by state before failing.
+        current = _get_scan(mdast, scan_id)
+        if current.get('stage') != ScanStage.CREATED:
+            logger.warning(f'Start returned 409 but scan {scan_id} is already past initial '
+                           f'state ({scan_pair(current)}) - treating as started (facade retry).')
+        else:
+            _exit_on_http_error(start_resp, f'Starting scan {scan_id}')
+    elif start_resp.status_code != 200:
         _exit_on_http_error(start_resp, f'Starting scan {scan_id}')
 
     if arguments.nowait:

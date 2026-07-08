@@ -150,15 +150,17 @@ class mDastMicroservices(mDastBase):
 
     # --- scan flow (STG-4475) ---
 
-    def precheck_scan(self, md5, profile_id, testcase_id):
+    def precheck_scan(self, md5, profile_id, testcase_id, scan_type):
         """Gate pre-check before scan creation (DEC-671-05).
 
         Field is `application_md5` in the scanyon contract (not `md5`).
+        scan_type mirrors the create call: MANUAL for a scan without a test case,
+        AUTO for a test-case replay.
         """
         data = {
             'application_md5': md5,
             'profile_id': profile_id,
-            'type': 'AUTO',
+            'type': scan_type,
             'testcase_id': testcase_id,
         }
         return requests.post(f'{self.url}/scans/start/precheck/',
@@ -167,11 +169,13 @@ class mDastMicroservices(mDastBase):
                              verify=self.verify,
                              timeout=self.timeout)
 
-    def _create_scan(self, project_id, profile_id, app_md5, test_case_id):
-        # testcase_id key is mandatory in ScanIn even when null
+    def _create_scan(self, project_id, profile_id, app_md5, test_case_id, scan_type):
+        # scanyon: AUTO requires testcase_id; a scan without a test case is MANUAL
+        # (install/launch/wait/stop semantics, wait=True on the server side).
+        # testcase_id key is mandatory in ScanIn even when null.
         data = {
             'md5': app_md5,
-            'type': 'AUTO',
+            'type': scan_type,
             'testcase_id': test_case_id,
             'fsm_locked': True,
         }
@@ -187,10 +191,10 @@ class mDastMicroservices(mDastBase):
 
     def create_manual_scan(self, project_id, profile_id, app_md5, arch_id=None):
         # arch_id accepted and ignored (microservices resolve platform from app metadata)
-        return self._create_scan(project_id, profile_id, app_md5, None)
+        return self._create_scan(project_id, profile_id, app_md5, None, 'MANUAL')
 
     def create_auto_scan(self, project_id, profile_id, app_md5, arch_id, test_case_id):
-        return self._create_scan(project_id, profile_id, app_md5, test_case_id)
+        return self._create_scan(project_id, profile_id, app_md5, test_case_id, 'AUTO')
 
     def create_appium_scan(self, project_id, profile_id, app_id, arch_id, appium_script_path):
         raise NotImplementedError(

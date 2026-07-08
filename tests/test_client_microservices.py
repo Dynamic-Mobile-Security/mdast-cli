@@ -60,12 +60,13 @@ def test_create_scan_body_auto(client, mocked_responses):
                     'fsm_locked': True, 'project_id': 3, 'profile_id': 4}
 
 
-def test_create_scan_body_manual_testcase_key_is_null(client, mocked_responses):
-    """ScanIn requires the testcase_id key to be present even when null."""
+def test_create_scan_body_manual_is_manual_type(client, mocked_responses):
+    """Scan without a test case is MANUAL (scanyon rejects AUTO without testcase_id);
+    testcase_id key stays present (null)."""
     mocked_responses.add(responses.POST, f'{REST_URL}/scans/start/', json={'id': 1}, status=200)
     client.create_manual_scan(project_id=None, profile_id=None, app_md5='b' * 32)
     body = json.loads(last_request(mocked_responses).body)
-    assert body == {'md5': 'b' * 32, 'type': 'AUTO', 'testcase_id': None, 'fsm_locked': True}
+    assert body == {'md5': 'b' * 32, 'type': 'MANUAL', 'testcase_id': None, 'fsm_locked': True}
     assert 'architecture_id' not in body
     assert 'application_id' not in body
 
@@ -73,10 +74,10 @@ def test_create_scan_body_manual_testcase_key_is_null(client, mocked_responses):
 def test_precheck_body_uses_application_md5_field(client, mocked_responses):
     mocked_responses.add(responses.POST, f'{REST_URL}/scans/start/precheck/',
                          json={'warnings': []})
-    client.precheck_scan('c' * 32, profile_id=7, testcase_id=None)
+    client.precheck_scan('c' * 32, profile_id=7, testcase_id=None, scan_type='MANUAL')
     body = json.loads(last_request(mocked_responses).body)
     assert body == {'application_md5': 'c' * 32, 'profile_id': 7,
-                    'type': 'AUTO', 'testcase_id': None}
+                    'type': 'MANUAL', 'testcase_id': None}
 
 
 def test_scan_lifecycle_urls(client, mocked_responses):

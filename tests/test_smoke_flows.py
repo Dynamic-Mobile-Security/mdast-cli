@@ -140,6 +140,54 @@ def test_ms_scan_fail_state(mocked_responses, monkeypatch, tmp_path, tmp_apk, ap
     assert exit_code == 5
 
 
+def test_ms_start_409_facade_retry_is_tolerated(mocked_responses, monkeypatch, tmp_path,
+                                                tmp_apk, apk_md5, no_sleep, ms_mode):
+    """POST /scans/{id}/start/ is not idempotent: a facade retry after the first
+    (successful) call returns 409, but the scan did start. CLI must confirm by state
+    and continue, not fail."""
+    monkeypatch.chdir(tmp_path)
+    mocked_responses.add(responses.GET, f'{REST_URL}/architectures/', json=[])
+    mocked_responses.add(responses.GET, f'{REST_URL}/testcases/5/', json={'os': 'ANDROID'})
+    mocked_responses.add(responses.GET, f'{REST_URL}/engines/',
+                         json=[{'type': 'ANDROID', 'status': 'STARTED'}])
+    mocked_responses.add(responses.GET, f'{REST_URL}/applications/',
+                         json=[application_json(apk_md5)])
+    mocked_responses.add(responses.POST, f'{REST_URL}/scans/start/precheck/',
+                         json={'warnings': []})
+    mocked_responses.add(responses.POST, f'{REST_URL}/scans/start/',
+                         json=scan_json(stage='CREATED', status='INITIAL'))
+    # start returns 409 (retry after first unlock succeeded)
+    mocked_responses.add(responses.POST, f'{REST_URL}/scans/77/start/',
+                         json={'error_code': 'bad_request', 'message': 'недоступны'}, status=409)
+    # but the scan is already past initial - 409 must be tolerated
+    mocked_responses.add(responses.GET, f'{REST_URL}/scans/77/',
+                         json=scan_json(stage='START', status='INITIAL'))
+    exit_code = run_main(monkeypatch, ms_argv(tmp_apk) + ['--nowait'])
+    assert exit_code == 0
+
+
+def test_ms_start_409_real_conflict_fails(mocked_responses, monkeypatch, tmp_path,
+                                          tmp_apk, apk_md5, no_sleep, ms_mode):
+    """A genuine 409 (scan still in CREATED) must NOT be masked - CLI fails."""
+    monkeypatch.chdir(tmp_path)
+    mocked_responses.add(responses.GET, f'{REST_URL}/architectures/', json=[])
+    mocked_responses.add(responses.GET, f'{REST_URL}/testcases/5/', json={'os': 'ANDROID'})
+    mocked_responses.add(responses.GET, f'{REST_URL}/engines/',
+                         json=[{'type': 'ANDROID', 'status': 'STARTED'}])
+    mocked_responses.add(responses.GET, f'{REST_URL}/applications/',
+                         json=[application_json(apk_md5)])
+    mocked_responses.add(responses.POST, f'{REST_URL}/scans/start/precheck/',
+                         json={'warnings': []})
+    mocked_responses.add(responses.POST, f'{REST_URL}/scans/start/',
+                         json=scan_json(stage='CREATED', status='INITIAL'))
+    mocked_responses.add(responses.POST, f'{REST_URL}/scans/77/start/',
+                         json={'error_code': 'bad_request', 'message': 'x'}, status=409)
+    mocked_responses.add(responses.GET, f'{REST_URL}/scans/77/',
+                         json=scan_json(stage='CREATED', status='INITIAL'))
+    exit_code = run_main(monkeypatch, ms_argv(tmp_apk) + ['--nowait'])
+    assert exit_code == 5
+
+
 def test_ms_appium_rejected(monkeypatch, tmp_apk, ms_mode):
     exit_code = run_main(monkeypatch, [
         '--distribution_system', 'file', '--file_path', tmp_apk,

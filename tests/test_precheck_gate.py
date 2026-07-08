@@ -19,7 +19,7 @@ def client():
 
 def test_empty_warnings_pass(client, mocked_responses):
     mocked_responses.add(responses.POST, PRECHECK_URL, json={'warnings': []})
-    run_precheck_gate(client, 'a' * 32, profile_id=1, testcase_id=None)
+    run_precheck_gate(client, 'a' * 32, profile_id=1, testcase_id=None, scan_type='MANUAL')
 
 
 def test_warnings_block_with_exit_code_8(client, mocked_responses, capsys):
@@ -29,7 +29,7 @@ def test_warnings_block_with_exit_code_8(client, mocked_responses, capsys):
          'payload': {'platform': 'Android', 'os_version': '99'}},
     ]})
     with pytest.raises(SystemExit) as excinfo:
-        run_precheck_gate(client, 'a' * 32, profile_id=1, testcase_id=None)
+        run_precheck_gate(client, 'a' * 32, profile_id=1, testcase_id=None, scan_type='MANUAL')
     assert excinfo.value.code == ExitCode.PRECHECK_BLOCKED == 8
     stderr = capsys.readouterr().err
     assert '[empty_profile]' in stderr
@@ -44,7 +44,7 @@ def test_precheck_unavailable_blocks(client, mocked_responses):
          'payload': {'unavailable_dependencies': ['application_lookup']}},
     ]})
     with pytest.raises(SystemExit) as excinfo:
-        run_precheck_gate(client, 'a' * 32, profile_id=1, testcase_id=None)
+        run_precheck_gate(client, 'a' * 32, profile_id=1, testcase_id=None, scan_type='MANUAL')
     assert excinfo.value.code == ExitCode.PRECHECK_BLOCKED
 
 
@@ -52,7 +52,7 @@ def test_precheck_transport_error_blocks(client, mocked_responses):
     mocked_responses.add(responses.POST, PRECHECK_URL, status=502,
                          json={'error_code': 'downstream_unavailable', 'message': 'Scanyon down'})
     with pytest.raises(SystemExit) as excinfo:
-        run_precheck_gate(client, 'a' * 32, profile_id=1, testcase_id=None)
+        run_precheck_gate(client, 'a' * 32, profile_id=1, testcase_id=None, scan_type='MANUAL')
     assert excinfo.value.code == ExitCode.PRECHECK_BLOCKED
 
 
@@ -60,7 +60,7 @@ def test_profile_not_found_fails(client, mocked_responses):
     mocked_responses.add(responses.POST, PRECHECK_URL, status=404,
                          json={'error_code': 'not_found', 'message': 'profile not found'})
     with pytest.raises(SystemExit) as excinfo:
-        run_precheck_gate(client, 'a' * 32, profile_id=42, testcase_id=None)
+        run_precheck_gate(client, 'a' * 32, profile_id=42, testcase_id=None, scan_type='MANUAL')
     assert excinfo.value.code == ExitCode.SCAN_FAILED
 
 
@@ -68,7 +68,7 @@ def test_missing_profile_id_skips_on_422(client, mocked_responses, caplog):
     """Interim behavior until scanyon makes profile_id optional: 422 + no profile -> skip."""
     mocked_responses.add(responses.POST, PRECHECK_URL, status=422,
                          json={'error_code': 'validation_error', 'message': 'profile_id required'})
-    run_precheck_gate(client, 'a' * 32, profile_id=None, testcase_id=None)
+    run_precheck_gate(client, 'a' * 32, profile_id=None, testcase_id=None, scan_type='MANUAL')
     assert any('pre-check skipped' in record.message.lower() for record in caplog.records)
 
 
