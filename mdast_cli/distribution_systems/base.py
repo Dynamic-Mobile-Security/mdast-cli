@@ -2,7 +2,7 @@
 Base interface for all distribution system downloaders.
 """
 from abc import ABC, abstractmethod
-from typing import Dict, Optional, Any
+from typing import Dict, Any
 
 
 class BaseDownloader(ABC):

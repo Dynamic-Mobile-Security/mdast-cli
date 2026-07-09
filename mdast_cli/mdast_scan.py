@@ -7,6 +7,7 @@ import sys
 import time
 import warnings
 
+import requests
 import urllib3
 
 # Suppress pkg_resources deprecation warning from google-auth
@@ -25,9 +26,14 @@ from mdast_cli.distribution_systems.rustore import rustore_download_app
 from mdast_cli.helpers.const import (ANDROID_EXTENSIONS, DEFAULT_ANDROID_ARCHITECTURE, DEFAULT_IOS_ARCHITECTURE,
                                      END_SCAN_TIMEOUT, LONG_TRY, SLEEP_TIMEOUT, TRY, DastState, DastStateDict)
 from mdast_cli.helpers.exit_codes import ExitCode
-from mdast_cli.helpers.helpers import check_app_md5
+from mdast_cli.helpers.helpers import check_app_md5, resolve_report_targets
 from mdast_cli_core.token import mDastToken as mDast
+from mdast_cli_core.factory import (MODE_MICROSERVICES, ModeDetectionError, resolve_installation_mode,
+                                    tls_verify_enabled)
 from mdast_cli.cr_report_generator import generate_cr
+from mdast_cli import __version__
+
+USER_AGENT = f'mdast_cli/{__version__}'
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s %(message)s',
                     datefmt='%d/%m/%Y %H:%M:%S', stream=sys.stdout)
@@ -294,19 +300,16 @@ For detailed information about specific distribution system see README.md
     scan_group.add_argument('--url', type=str,
                            help='MDast server URL for submitting application for scanning. '
                                 'Required parameter when starting scan (without --download_only). '
-                                'Example: https://mdast.example.com',
-                           required=(not '-d'))
+                                'Example: https://mdast.example.com')
     scan_group.add_argument('--company_id', type=int,
                            help='Company ID in MDast system. '
                                 'Required parameter when starting scan (without --download_only). '
-                                'Can be found in company settings in MDast web interface.',
-                           required=(not '-d'))
+                                'Can be found in company settings in MDast web interface.')
     scan_group.add_argument('--token', type=str,
                            help='CI/CD token for authentication and starting scan. '
                                 'Required parameter when starting scan (without --download_only). '
                                 'Token can be obtained in profile settings in MDast web interface. '
-                                'It is recommended to use environment variables for security.',
-                           required=(not '-d'))
+                                'It is recommended to use environment variables for security.')
     scan_group.add_argument('--architecture_id', type=int,
                            help='Architecture ID for performing scan. '
                                 'Optional parameter. If not specified, default architecture is used. '
@@ -324,12 +327,23 @@ For detailed information about specific distribution system see README.md
     scan_group.add_argument('--appium_script_path', type=str,
                            help='Path to Appium script for automatic scanning using Stingray Appium. '
                                 'Optional parameter. Used for automated testing.')
+    scan_group.add_argument('--report_format', type=str,
+                           choices=['pdf', 'json', 'all', 'none'], default=None,
+                           help='Which scan report(s) to download after a successful scan. '
+                                'Works the same on both installations (monolith and microservices). '
+                                'Default: pdf. Use "json" for the structured JSON summary, "all" for both, '
+                                '"none" to skip reports. When --pdf_report_file_name / '
+                                '--summary_report_json_file_name are given, those formats are always '
+                                'produced (this flag can add the other one). Without explicit file names, '
+                                'reports are saved as scan_report_<scan_id>.pdf / .json.')
     scan_group.add_argument('--summary_report_json_file_name', type=str,
                            help='File name for saving JSON report with scan results in structured format. '
-                                'Optional parameter. If specified, report will be saved to specified file.')
+                                'Optional parameter. If specified, the JSON report will be saved to this file '
+                                '(implies --report_format json).')
     scan_group.add_argument('--pdf_report_file_name', type=str,
                            help='File name for saving PDF report with scan results. '
-                                'Optional parameter. If specified, PDF report will be saved to specified file.')
+                                'Optional parameter. If specified, the PDF report will be saved to this file '
+                                '(implies --report_format pdf).')
     scan_group.add_argument('--nowait', '-nw', action='store_true',
                            help='Do not wait for scan completion. '
                                 'If set, utility will start scan and exit immediately. '
@@ -447,7 +461,303 @@ For detailed information about specific distribution system see README.md
     elif args.distribution_system == 'appgallery' and args.appgallery_app_id is None:
         parser.error('"--distribution_system appgallery" requires "--appgallery_app_id" to be set')
 
+    # F13: при запуске скана (без --download_only) обязательны --url/--company_id/--token.
+    # Прежнее required=(not '-d') вычислялось в False и не работало.
+    if not args.download_only:
+        missing = [name for name, val in (
+            ('--url', args.url), ('--company_id', args.company_id), ('--token', args.token),
+        ) if val in (None, '')]
+        if missing:
+            parser.error(
+                'scanning requires ' + ', '.join(missing)
+                + ' (or use --download_only to only download the application)')
+
+        # --cr_report (monolith-only) needs Stingray credentials; fail fast with a
+        # clear message instead of crashing mid-flow after the scan already ran.
+        if args.cr_report and (not args.stingray_login or not args.stingray_password):
+            parser.error('--cr_report requires --stingray_login and --stingray_password')
+
     return args
+
+
+def _mono_http_error(resp, action, default_exit=ExitCode.SCAN_FAILED):
+    """Classify a failed monolith HTTP response and exit with the right code.
+
+    401/403 map to AUTH_ERROR(7) in BOTH installations (F12 parity with
+    ms_flow._exit_on_http_error); every other status uses the caller's default
+    (NETWORK_ERROR for read/poll calls, SCAN_FAILED for mutating calls).
+    """
+    body = getattr(resp, 'text', '')
+    if resp.status_code in (401, 403):
+        logger.error(f'{action}: authorization failed (HTTP {resp.status_code}): {body}. '
+                     'Check the CI/CD token.')
+        sys.exit(ExitCode.AUTH_ERROR)
+    logger.error(f'{action} (HTTP {resp.status_code}): {body}')
+    sys.exit(default_exit)
+
+
+def run_monolith_flow(arguments, url, token, company_id, app_file, appstore_app_md5=None):
+    """Full scan flow against the monolith installation. Exits the process.
+
+    Wrapped by main() in a requests.RequestException guard so a bare network error
+    surfaces as NETWORK_ERROR(6) - the same class the microservices flow uses -
+    instead of a traceback + INTERNAL_ERROR(1). Kept symmetric with
+    run_microservices_flow.
+    """
+    architecture = arguments.architecture_id
+    profile_id = arguments.profile_id
+    project_id = arguments.project_id
+    testcase_id = arguments.testcase_id
+    appium_script_path = arguments.appium_script_path
+    not_wait_scan_end = arguments.nowait
+    long_wait = arguments.long_wait
+
+    mdast = mDast(url, token, company_id)
+    get_architectures_resp = mdast.get_architectures()
+    if get_architectures_resp.status_code != 200:
+        _mono_http_error(get_architectures_resp, 'Error while getting architectures',
+                         ExitCode.NETWORK_ERROR)
+    architectures = get_architectures_resp.json()
+    if not isinstance(architectures, list):
+        logger.error('Getting architectures: unexpected response shape (expected a list)')
+        sys.exit(ExitCode.NETWORK_ERROR)
+
+    _, file_extension = os.path.splitext(app_file)
+
+    if architecture is None:
+        if file_extension in ANDROID_EXTENSIONS:
+            architecture = next((arch.get('id') for arch in architectures
+                                 if isinstance(arch, dict) and arch.get('name') == DEFAULT_ANDROID_ARCHITECTURE), None)
+        if file_extension == '.ipa':
+            architecture = next((arch.get('id') for arch in architectures
+                                 if isinstance(arch, dict) and arch.get('name') == DEFAULT_IOS_ARCHITECTURE), None)
+        if architecture is None:
+            logger.error("Cannot create scan - no suitable architecture for this app, try to set it manually with --architecture_id")
+            sys.exit(ExitCode.INVALID_ARGS)
+    # An explicit --architecture_id that the server does not know is a user error,
+    # not an internal crash: guard next() with a default instead of StopIteration,
+    # and skip non-dict items so a malformed payload can't raise AttributeError.
+    architecture_type = next((arch for arch in architectures
+                              if isinstance(arch, dict) and arch.get('id', '') == architecture), None)
+    if architecture_type is None:
+        logger.error(f"--architecture_id {architecture} is not available on this server. "
+                     "Check the available architectures.")
+        sys.exit(ExitCode.INVALID_ARGS)
+    logger.info(f'Architecture type is {architecture_type}')
+
+    if testcase_id is not None:
+        # Best-effort (preserved from the original monolith flow): the test-case
+        # lookup only refines the architecture. Any non-200 - including 401/403 -
+        # falls back to the CLI/auto architecture rather than aborting; the real
+        # authorization check happens on create_auto_scan below.
+        get_testcase_resp = mdast.get_testcase(testcase_id)
+        if get_testcase_resp.status_code == 200:
+            architecture = get_testcase_resp.json()['architecture']['id']
+        else:
+            logger.warning("Testcase with this id does not exist or you use old version of system. Trying to use "
+                           "architecture from command line params.")
+
+    get_engines_resp = mdast.get_engines()
+    if get_engines_resp.status_code != 200:
+        _mono_http_error(get_engines_resp, 'Error while getting engines', ExitCode.NETWORK_ERROR)
+    engines = get_engines_resp.json()
+    if not isinstance(engines, list):
+        logger.error('Getting engines: unexpected response shape (expected a list)')
+        sys.exit(ExitCode.NETWORK_ERROR)
+    if sum(isinstance(e, dict) and e.get('architecture') == architecture_type['id'] and e.get('state') == 3
+           for e in engines) == 0:
+        logger.error(f"Cannot create scan - Cannot find active engine for architecture {architecture_type['name']}")
+        sys.exit(ExitCode.SCAN_FAILED)
+
+    if testcase_id:
+        logger.info(f'Autoscan(Stingray) with test case id: '
+                    f'{testcase_id}, profile id: {profile_id} and file: {app_file}, architecture id is {architecture}')
+    elif appium_script_path:
+        logger.info(f'Autoscan(Appium) with  profile id: {profile_id} and file: {app_file},'
+                    f' architecture id is {architecture}')
+    else:
+        logger.info(f'Manual scan with profile id: {profile_id} and file located in {app_file},'
+                    f' architecture id is {architecture}')
+
+    logger.info('Check if this version of application was already uploaded..')
+    dedup_md5 = appstore_app_md5 if appstore_app_md5 else check_app_md5(app_file)
+    dedup_resp = mdast.check_app_md5(mdast.company_id, dedup_md5)
+    if dedup_resp.status_code != 200:
+        _mono_http_error(dedup_resp, 'Application dedup check', ExitCode.NETWORK_ERROR)
+    check_app_already_uploaded = dedup_resp.json()
+    if isinstance(check_app_already_uploaded, list) and check_app_already_uploaded:
+        application = check_app_already_uploaded[0]
+        logger.info(f"This app was uploaded before, application id is: {application.get('id')}, "
+                    f"package name: {application.get('package_name')},"
+                    f" version: {application.get('version_name')}, md5: {application.get('md5')}")
+    else:
+        logger.info('This is new application or new version')
+        logger.info('Uploading application to server..')
+        upload_application_resp = mdast.upload_application(app_file, str(architecture_type['type']))
+        if upload_application_resp.status_code != 201:
+            _mono_http_error(upload_application_resp, 'Error while uploading application to server')
+        application = upload_application_resp.json()
+        logger.info(f"Application uploaded successfully. Application id: {application['id']}")
+
+    logger.info(f"Creating scan for application {application['id']}")
+    if testcase_id is not None:
+        create_dast_resp = mdast.create_auto_scan(project_id, profile_id, application['id'], architecture, testcase_id)
+        scan_type = 'auto_stingray'
+    elif appium_script_path is not None:
+        create_dast_resp = mdast.create_appium_scan(project_id, profile_id, application['id'], architecture,
+                                                    appium_script_path)
+        scan_type = 'auto_appium'
+    else:
+        create_dast_resp = mdast.create_manual_scan(project_id, profile_id, application['id'], architecture)
+        scan_type = 'manual'
+    if create_dast_resp.status_code != 201:
+        _mono_http_error(create_dast_resp, 'Error while creating scan')
+
+    dast = create_dast_resp.json()
+    logger.info(f"Project and profile was created/found successfully."
+                f" Project id: {(dast.get('project') or {}).get('id')}, "
+                f"profile id: {(dast.get('profile') or {}).get('id')}")
+
+    if 'id' not in dast or dast.get('id', '') == '':
+        logger.error(f'Something went wrong while creating scan: {dast}')
+        sys.exit(ExitCode.SCAN_FAILED)
+
+    if scan_type == 'auto_stingray':
+        logger.info(f"Autoscan(Stingray) was created successfully. Scan id: {dast['id']}")
+    elif scan_type == 'auto_appium':
+        logger.info(f"Autoscan(Appium) was created successfully. Scan id: {dast['id']}")
+    else:
+        logger.info(f"Manual scan was created successfully. Scan id: {dast['id']}")
+
+    logger.info(f"Start scan with id {dast['id']}")
+    start_dast_resp = mdast.start_scan(dast['id'])
+    if start_dast_resp.status_code != 200:
+        _mono_http_error(start_dast_resp, f"Error while starting scan with id {dast['id']}")
+
+    if not_wait_scan_end:
+        logger.info('Scan successfully started. Don`t wait for end, exit with zero code')
+        sys.exit(ExitCode.SUCCESS)
+
+    logger.info("Scan started successfully.")
+    logger.info(f"Checking scan state with id {dast['id']}")
+    get_dast_info_resp = mdast.get_scan_info(dast['id'])
+    if get_dast_info_resp.status_code != 200:
+        _mono_http_error(get_dast_info_resp, f"Error while getting scan info with id {dast['id']}",
+                         ExitCode.NETWORK_ERROR)
+
+    dast = get_dast_info_resp.json()
+    dast_status = dast['state']
+    logger.info(f"Current scan status: {DastStateDict.get(dast_status)}")
+    count = 0
+
+    try_count = LONG_TRY if long_wait else TRY
+
+    while dast_status in (DastState.CREATED, DastState.INITIALIZING, DastState.STARTING) and count < try_count:
+        logger.info(f"Try to get scan status for scan id {dast['id']}. Count number {count}")
+        get_dast_info_resp = mdast.get_scan_info(dast['id'])
+        if get_dast_info_resp.status_code != 200:
+            _mono_http_error(get_dast_info_resp, f"Error while getting scan info with id {dast['id']}",
+                             ExitCode.NETWORK_ERROR)
+
+        dast = get_dast_info_resp.json()
+        dast_status = dast['state']
+        logger.info(f"Current scan status: {DastStateDict.get(dast_status)}")
+        count += 1
+        if dast_status not in (DastState.STARTED, DastState.SUCCESS):
+            logger.info(f"Wait {SLEEP_TIMEOUT} seconds and try again")
+            time.sleep(SLEEP_TIMEOUT)
+
+    if dast['state'] not in (DastState.STARTED, DastState.STOPPING, DastState.ANALYZING, DastState.SUCCESS):
+        logger.error(f"Error with scan id {dast['id']}. Current scan status: {dast['state']},"
+                     f" but expected to be {DastState.STARTED}, {DastState.ANALYZING}, {DastState.STOPPING} "
+                     f"or {DastState.SUCCESS}")
+        sys.exit(ExitCode.SCAN_FAILED)
+    logger.info(f"Scan {dast['id']} is started now. Let's wait until the scan is finished")
+
+    get_dast_info_resp = mdast.get_scan_info(dast['id'])
+    if get_dast_info_resp.status_code != 200:
+        _mono_http_error(get_dast_info_resp, f"Error while getting scan info with id {dast['id']}",
+                         ExitCode.NETWORK_ERROR)
+    count = 0
+
+    while dast_status in (DastState.STARTED, DastState.STOPPING, DastState.ANALYZING) and count < try_count:
+        if count == 0 and scan_type == 'manual':
+            if dast_status not in (DastState.ANALYZING, DastState.SUCCESS):
+                logger.info(f"This is manual scan with dynamic modules,"
+                            f" lets wait for {END_SCAN_TIMEOUT} seconds and stop it.")
+                time.sleep(END_SCAN_TIMEOUT)
+                stop_manual_dast_resp = mdast.stop_scan(dast['id'])
+                if stop_manual_dast_resp.status_code == 200:
+                    logger.info(f'Scan {dast["id"]} was successfully stopped')
+                else:
+                    _mono_http_error(stop_manual_dast_resp, f'Error while stopping scan with id {dast["id"]}')
+            else:
+                logger.info("This is manual scan with profile without dynamic modules,"
+                            " only SAST, lets wait till the end")
+
+        logger.info(f"Try to get scan status for scan id {dast['id']}. Count number {count}")
+        get_dast_info_resp = mdast.get_scan_info(dast['id'])
+        if get_dast_info_resp.status_code != 200:
+            _mono_http_error(get_dast_info_resp, f"Error while getting scan info with id {dast['id']}",
+                             ExitCode.NETWORK_ERROR)
+        dast = get_dast_info_resp.json()
+        dast_status = dast['state']
+        logger.info(f"Current scan status: {DastStateDict.get(dast_status)}")
+        count += 1
+        if dast_status is not DastState.SUCCESS:
+            logger.info(f"Wait {SLEEP_TIMEOUT} seconds and try again")
+            time.sleep(SLEEP_TIMEOUT)
+
+    logger.info(f"Check if scan with id {dast['id']} was finished correctly.")
+    get_dast_info_resp = mdast.get_scan_info(dast['id'])
+    if get_dast_info_resp.status_code != 200:
+        _mono_http_error(get_dast_info_resp, f"Error while getting scan info with id {dast['id']}",
+                         ExitCode.NETWORK_ERROR)
+    dast = get_dast_info_resp.json()
+
+    if dast['state'] != DastState.SUCCESS:
+        logger.error(
+            f"Expected state {DastStateDict.get(DastState.SUCCESS)}, but in real it was {dast['state']}. "
+            f"Exit with error status code.")
+        sys.exit(ExitCode.SCAN_FAILED)
+
+    # Report selection is shared with the microservices flow: --report_format
+    # (default pdf) plus explicit file-name flags, with scan-id default names.
+    # Monolith keeps the report download as a hard-fail (unlike the soft-fail
+    # microservices path, where the report service is a separate component).
+    report_targets = resolve_report_targets(arguments, dast['id'])
+
+    if 'pdf' in report_targets:
+        pdf_path = report_targets['pdf']
+        logger.info(f"Create and download pdf report for scan with id {dast['id']} to file {pdf_path}.")
+        pdf_report = mdast.download_report(dast['id'])
+        if pdf_report.status_code != 200:
+            _mono_http_error(pdf_report, 'PDF report creating failed')
+        with open(pdf_path, 'wb') as f:
+            f.write(pdf_report.content)
+        logger.info(f"Report for scan {dast['id']} successfully created and available at path: {pdf_path}.")
+
+    if 'json' in report_targets:
+        json_path = report_targets['json']
+        logger.info(f"Download JSON summary report for scan with id {dast['id']} to file {json_path}.")
+        json_summary_report = mdast.download_scan_json_result(dast['id'])
+        if json_summary_report.status_code != 200:
+            _mono_http_error(json_summary_report, 'JSON summary report download')
+        # Parse BEFORE opening the file, so a 200 with a non-JSON body neither
+        # crashes with a traceback nor leaves a 0-byte invalid .json behind.
+        try:
+            payload = json_summary_report.json()
+        except ValueError:
+            logger.error('JSON summary report: server returned HTTP 200 with a non-JSON body. Exit...')
+            sys.exit(ExitCode.SCAN_FAILED)
+        with open(json_path, 'w') as fp:
+            json.dump(payload, fp, indent=4, ensure_ascii=False)
+        logger.info(f"JSON report for scan {dast['id']} successfully created and available at path: {json_path}.")
+
+    if arguments.cr_report:
+        generate_cr(f"{url}", arguments.stingray_login, arguments.stingray_password, dast['id'],
+                    arguments.organization_name, arguments.engineer_name, arguments.controller_name,
+                    arguments.cr_report_path, arguments.use_ldap, arguments.authority_server_id)
 
 
 def main():
@@ -465,29 +775,17 @@ def main():
     if arguments.download_only is False:
         url = arguments.url
         company_id = arguments.company_id
-        architecture = arguments.architecture_id
         token = arguments.token
-        profile_id = arguments.profile_id
-        project_id = arguments.project_id
-        testcase_id = arguments.testcase_id
-        appium_script_path = arguments.appium_script_path
-        json_summary_file_name = arguments.summary_report_json_file_name
-        pdf_report_file_name = arguments.pdf_report_file_name
-        not_wait_scan_end = arguments.nowait
-        long_wait = arguments.long_wait
-        cr_report = arguments.cr_report
-        stingray_login = arguments.stingray_login
-        stingray_password = arguments.stingray_password
-        organization_name = arguments.organization_name
-        engineer_name = arguments.engineer_name
-        controller_name = arguments.controller_name
-        use_ldap = arguments.use_ldap
-        authority_server_id = arguments.authority_server_id
-        cr_report_path = arguments.cr_report_path
 
-
-        url = url if url.endswith('/') else f'{url}/'
-        url = url if url.endswith('rest/') else f'{url}rest'
+        # Canonical base URL: strip trailing slashes, then ensure it ends with
+        # '/rest' (both installations serve the CLI routes under /rest). All
+        # clients build request paths as f'{url}/...', so a trailing slash here
+        # would produce '//' and can 404 on a strict Envoy/OPA path match. The
+        # previous two-step form left a trailing slash when --url already
+        # contained 'rest', breaking the monolith and the mode probe alike.
+        url = url.rstrip('/')
+        if not url.endswith('/rest'):
+            url = f'{url}/rest'
 
     app_file = ''
     appstore_app_md5 = None
@@ -495,6 +793,12 @@ def main():
     try:
         if distribution_system == 'file':
             app_file = arguments.file_path
+            if not app_file or not os.path.isfile(app_file):
+                # A bad --file_path is a user error, not a download failure; fail
+                # fast with INVALID_ARGS instead of a later md5/open traceback.
+                # (SystemExit is not caught by the `except Exception` below.)
+                logger.error(f'--file_path does not point to an existing file: {app_file!r}')
+                sys.exit(ExitCode.INVALID_ARGS)
 
         elif distribution_system == 'nexus':
             nexus_repository = NexusRepository(arguments.nexus_url,
@@ -586,240 +890,47 @@ def main():
         logger.exception('Download failed (traceback below)')
         sys.exit(ExitCode.DOWNLOAD_FAILED)
 
+    # Defensive guard: a downloader must have produced a real file before we try
+    # to md5/upload it. Catches a downloader that returned an empty/bogus path
+    # without raising, so the failure is a clear DOWNLOAD_FAILED, not a traceback.
+    if not app_file or not os.path.isfile(app_file):
+        logger.error(f'Downloaded application file was not found on disk: {app_file!r}')
+        sys.exit(ExitCode.DOWNLOAD_FAILED)
+
     if arguments.download_only is True:
         logger.info('Your application was downloaded!')
         # Emit a single-line machine-friendly output for CI parsers
         print(f'DOWNLOAD_PATH={app_file}')
         sys.exit(ExitCode.SUCCESS)
 
-    mdast = mDast(url, token, company_id)
-    get_architectures_resp = mdast.get_architectures()
+    try:
+        installation_mode = resolve_installation_mode(url, token, company_id,
+                                                      verify=tls_verify_enabled())
+    except ModeDetectionError as ex:
+        logger.error(str(ex))
+        sys.exit(ExitCode.AUTH_ERROR if ex.auth_error else ExitCode.NETWORK_ERROR)
 
-    if get_architectures_resp.status_code != 200:
-        logger.error(f'Error while getting architectures. Server response: {get_architectures_resp.text}')
-        sys.exit(ExitCode.NETWORK_ERROR)
-
-    architectures = get_architectures_resp.json()
-
-    _, file_extension = os.path.splitext(app_file)
-
-    if architecture is None:
-        if file_extension in ANDROID_EXTENSIONS:
-            architecture = next((arch['id'] for arch in architectures if arch.get('name', '') == DEFAULT_ANDROID_ARCHITECTURE), None)
-        if file_extension == '.ipa':
-            architecture = next((arch['id'] for arch in architectures if arch.get('name', '') == DEFAULT_IOS_ARCHITECTURE), None)
-        if architecture is None:
-            logger.error(f"Cannot create scan - no suitable architecture for this app, try to set it manually with --architecture_id")
-            sys.exit(ExitCode.INVALID_ARGS)
-    architecture_type = next(arch for arch in architectures if arch.get('id', '') == architecture)
-    logger.info(f'Architecture type is {architecture_type}')
-
-    if testcase_id is not None:
-        get_testcase_resp = mdast.get_testcase(testcase_id)
-        if get_testcase_resp.status_code == 200:
-            architecture = get_testcase_resp.json()['architecture']['id']
-        else:
-            logger.warning("Testcase with this id does not exist or you use old version of system. Trying to use "
-                           "architecture from command line params.")
-
-    if sum(e['architecture'] == architecture_type['id'] and e['state'] == 3 for e in mdast.get_engines().json()) == 0:
-        logger.error(f"Cannot create scan - Cannot find active engine for architecture {architecture_type['name']}")
-        sys.exit(ExitCode.SCAN_FAILED)
-
-    if testcase_id:
-        logger.info(f'Autoscan(Stingray) with test case id: '
-                    f'{testcase_id}, profile id: {profile_id} and file: {app_file}, architecture id is {architecture}')
-    elif appium_script_path:
-        logger.info(f'Autoscan(Appium) with  profile id: {profile_id} and file: {app_file},'
-                    f' architecture id is {architecture}')
-    else:
-        logger.info(f'Manual scan with profile id: {profile_id} and file located in {app_file},'
-                    f' architecture id is {architecture}')
-
-    logger.info('Check if this version of application was already uploaded..')
-    if appstore_app_md5:
-        check_app_already_uploaded = mdast.check_app_md5(mdast.company_id, appstore_app_md5).json()
-    else:
-        check_app_already_uploaded = mdast.check_app_md5(mdast.company_id, check_app_md5(app_file)).json()
-    if check_app_already_uploaded:
-        application = check_app_already_uploaded[0]
-        logger.info(f"This app was uploaded before, application id is: {application['id']}, "
-                    f"package name: {application['package_name']},"
-                    f" version: {application['version_name']}, md5: {application['md5']}")
-    else:
-        logger.info('This is new application or new version')
-        logger.info('Uploading application to server..')
-        upload_application_resp = mdast.upload_application(app_file, str(architecture_type['type']))
-        if upload_application_resp.status_code != 201:
-            logger.error(f'Error while uploading application to server: {upload_application_resp.text}')
-            sys.exit(ExitCode.SCAN_FAILED)
-        application = upload_application_resp.json()
-        logger.info(f"Application uploaded successfully. Application id: {application['id']}")
-
-    logger.info(f"Creating scan for application {application['id']}")
-    if testcase_id is not None:
-        create_dast_resp = mdast.create_auto_scan(project_id, profile_id, application['id'], architecture, testcase_id)
-        scan_type = 'auto_stingray'
-    elif appium_script_path is not None:
-        create_dast_resp = mdast.create_appium_scan(project_id, profile_id, application['id'], architecture,
-                                                    appium_script_path)
-        scan_type = 'auto_appium'
-    else:
-        create_dast_resp = mdast.create_manual_scan(project_id, profile_id, application['id'], architecture)
-        scan_type = 'manual'
-    if create_dast_resp.status_code != 201:
-        logger.error(f'Error while creating scan: {create_dast_resp.text}')
-        sys.exit(ExitCode.SCAN_FAILED)
-
-    dast_info = create_dast_resp.json()
-    logger.info(f"Project and profile was created/found successfully."
-                f" Project id: {dast_info['project']['id']}, profile id: {dast_info['profile']['id']}")
-
-    dast = create_dast_resp.json()
-    if 'id' not in dast or dast.get('id', '') == '':
-        logger.error(f'Something went wrong while creating scan: {dast}')
-        sys.exit(ExitCode.SCAN_FAILED)
-
-    if scan_type == 'auto_stingray':
-        logger.info(f"Autoscan(Stingray) was created successfully. Scan id: {dast['id']}")
-    elif scan_type == 'auto_appium':
-        logger.info(f"Autoscan(Appium) was created successfully. Scan id: {dast['id']}")
-    else:
-        logger.info(f"Manual scan was created successfully. Scan id: {dast['id']}")
-
-    logger.info(f"Start scan with id {dast['id']}")
-    start_dast_resp = mdast.start_scan(dast['id'])
-    if start_dast_resp.status_code != 200:
-        logger.error(f"Error while starting scan with id {dast['id']}: {start_dast_resp.text}")
-        sys.exit(ExitCode.SCAN_FAILED)
-
-    if not_wait_scan_end:
-        logger.info('Scan successfully started. Don`t wait for end, exit with zero code')
+    if installation_mode == MODE_MICROSERVICES:
+        tls_verify = tls_verify_enabled()
+        if not tls_verify:
+            logger.warning('TLS verification is DISABLED (MDAST_TLS_VERIFY): the organization '
+                           'CLI token is sent over an unverified connection - use only on trusted '
+                           'networks / self-signed stands.')
+        from mdast_cli.ms_flow import run_microservices_flow
+        run_microservices_flow(arguments, url, token, app_file,
+                               user_agent=USER_AGENT, verify=tls_verify)
+        logger.info('Job completed successfully!')
         sys.exit(ExitCode.SUCCESS)
 
-    logger.info("Scan started successfully.")
-    logger.info(f"Checking scan state with id {dast['id']}")
-    get_dast_info_resp = mdast.get_scan_info(dast['id'])
-    if get_dast_info_resp.status_code != 200:
-        logger.error(f"Error while getting scan info with id {dast['id']}: {get_dast_info_resp.text}")
+    try:
+        run_monolith_flow(arguments, url, token, company_id, app_file, appstore_app_md5)
+    except requests.RequestException as ex:
+        logger.error(f'Network error talking to the monolith installation '
+                     f'({type(ex).__name__}): {ex}')
         sys.exit(ExitCode.NETWORK_ERROR)
-
-    dast = get_dast_info_resp.json()
-    dast_status = dast['state']
-    logger.info(f"Current scan status: {DastStateDict.get(dast_status)}")
-    count = 0
-
-    if long_wait:
-        try_count = LONG_TRY
-    else:
-        try_count = TRY
-
-    while dast_status in (DastState.CREATED, DastState.INITIALIZING, DastState.STARTING) and count < try_count:
-        logger.info(f"Try to get scan status for scan id {dast['id']}. Count number {count}")
-        get_dast_info_resp = mdast.get_scan_info(dast['id'])
-        if get_dast_info_resp.status_code != 200:
-            logger.error(f"Error while getting scan info with id {dast['id']}: {get_dast_info_resp.text}")
-            sys.exit(1)
-
-        dast = get_dast_info_resp.json()
-        dast_status = dast['state']
-        logger.info(f"Current scan status: {DastStateDict.get(dast_status)}")
-        count += 1
-        if dast_status not in (DastState.STARTED, DastState.SUCCESS):
-            logger.info(f"Wait {SLEEP_TIMEOUT} seconds and try again")
-            time.sleep(SLEEP_TIMEOUT)
-
-    if dast['state'] not in (DastState.STARTED, DastState.STOPPING, DastState.ANALYZING, DastState.SUCCESS):
-        logger.error(f"Error with scan id {dast['id']}. Current scan status: {dast['state']},"
-                     f" but expected to be {DastState.STARTED}, {DastState.ANALYZING}, {DastState.STOPPING} "
-                     f"or {DastState.SUCCESS}")
-        sys.exit(ExitCode.SCAN_FAILED)
-    logger.info(f"Scan {dast['id']} is started now. Let's wait until the scan is finished")
-
-    get_dast_info_resp = mdast.get_scan_info(dast['id'])
-    if get_dast_info_resp.status_code != 200:
-        logger.error(f"Error while getting scan info with id {dast['id']}: {get_dast_info_resp.text}")
-        sys.exit(ExitCode.NETWORK_ERROR)
-    count = 0
-
-    while dast_status in (DastState.STARTED, DastState.STOPPING, DastState.ANALYZING) and count < try_count:
-        if count == 0 and scan_type == 'manual':
-            if dast_status not in (DastState.ANALYZING, DastState.SUCCESS):
-                logger.info(f"This is manual scan with dynamic modules,"
-                            f" lets wait for {END_SCAN_TIMEOUT} seconds and stop it.")
-                time.sleep(END_SCAN_TIMEOUT)
-                stop_manual_dast_resp = mdast.stop_scan(dast['id'])
-                if stop_manual_dast_resp.status_code == 200:
-                    logger.info(f'Scan {dast["id"]} was successfully stopped')
-                else:
-                    logger.error(f'Error while stopping scan with id {dast["id"]}: {stop_manual_dast_resp.text}')
-                    sys.exit(ExitCode.SCAN_FAILED)
-            else:
-                logger.info("This is manual scan with profile without dynamic modules,"
-                            " only SAST, lets wait till the end")
-
-        logger.info(f"Try to get scan status for scan id {dast['id']}. Count number {count}")
-        get_dast_info_resp = mdast.get_scan_info(dast['id'])
-        if get_dast_info_resp.status_code != 200:
-            logger.error(f"Error while getting scan info with id {dast['id']}: {get_dast_info_resp.text}")
-            sys.exit(1)
-        dast = get_dast_info_resp.json()
-        dast_status = dast['state']
-        logger.info(f"Current scan status: {DastStateDict.get(dast_status)}")
-        count += 1
-        if dast_status is not DastState.SUCCESS:
-            logger.info(f"Wait {SLEEP_TIMEOUT} seconds and try again")
-            time.sleep(SLEEP_TIMEOUT)
-
-    logger.info(f"Check if scan with id {dast['id']} was finished correctly.")
-    get_dast_info_resp = mdast.get_scan_info(dast['id'])
-    if get_dast_info_resp.status_code != 200:
-        logger.error(f"Error while getting scan info with id {dast['id']}: {get_dast_info_resp.text}")
-        sys.exit(ExitCode.NETWORK_ERROR)
-    dast = get_dast_info_resp.json()
-
-    if dast['state'] != DastState.SUCCESS:
-        logger.error(
-            f"Expected state {DastStateDict.get(DastState.SUCCESS)}, but in real it was {dast['state']}. "
-            f"Exit with error status code.")
-        sys.exit(ExitCode.SCAN_FAILED)
-
-    if pdf_report_file_name:
-        logger.info(f"Create and download pdf report for scan with id {dast['id']} to file {pdf_report_file_name}.")
-        pdf_report = mdast.download_report(dast['id'])
-        if pdf_report.status_code != 200:
-            logger.error(f"PDF report creating failed with error {pdf_report.text}. Exit...")
-            sys.exit(ExitCode.SCAN_FAILED)
-
-        logger.info(f"Saving pdf report to file {pdf_report_file_name}.")
-        pdf_report_file_name = pdf_report_file_name if pdf_report_file_name.endswith(
-            '.pdf') else f'{pdf_report_file_name}.pdf'
-        with open(pdf_report_file_name, 'wb') as f:
-            f.write(pdf_report.content)
-
-        logger.info(f"Report for scan {dast['id']} successfully created and available at path: {pdf_report_file_name}.")
-
-    if json_summary_file_name:
-        logger.info(
-            f"Download JSON summary report for scan with id {dast['id']} to file {json_summary_file_name}.")
-        json_summary_report = mdast.download_scan_json_result(dast['id'])
-        if json_summary_report.status_code != 200:
-            logger.error(f"JSON summary report while downloading failed with error {json_summary_report.text}. Exit...")
-            sys.exit(ExitCode.SCAN_FAILED)
-
-        logger.info(f"Saving summary json results to file {json_summary_file_name}.")
-        mdast_json_file = json_summary_file_name if json_summary_file_name.endswith(
-            '.json') else f'{json_summary_file_name}.json'
-        with open(mdast_json_file, 'w') as fp:
-            json.dump(json_summary_report.json(), fp, indent=4, ensure_ascii=False)
-
-        logger.info(f"JSON report for scan {dast['id']} successfully created and available at path: {mdast_json_file}.")
-
-    if cr_report:
-        generate_cr(f"{url}", stingray_login, stingray_password, dast['id'], organization_name, engineer_name,
-                    controller_name, cr_report_path, use_ldap, authority_server_id)
 
     logger.info('Job completed successfully!')
+    sys.exit(ExitCode.SUCCESS)
 
 
 if __name__ == '__main__':

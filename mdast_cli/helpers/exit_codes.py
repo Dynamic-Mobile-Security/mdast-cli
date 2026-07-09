@@ -24,7 +24,10 @@ class ExitCode(IntEnum):
     
     AUTH_ERROR = 7
     """Authentication or authorization error."""
-    
+
+    PRECHECK_BLOCKED = 8
+    """Scan pre-check returned blocking warnings (microservices installation gate)."""
+
     INTERNAL_ERROR = 1
     """Internal application error (default for unexpected errors)."""
 

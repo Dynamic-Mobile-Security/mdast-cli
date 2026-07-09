@@ -40,6 +40,7 @@ This script is designed to integrate mobile applications' security analysis into
 * [Usage Modes](#usage-modes)
   * [Download Only Mode](#download-only-mode)
   * [Scan Mode](#scan-mode)
+* [Installation Modes (Monolith and Kubernetes)](#installation-modes-monolith-and-kubernetes)
 * [Distribution Systems](#distribution-systems)
   * [Local File](#local-file)
   * [Google Play](#google-play)
@@ -189,7 +190,55 @@ Without `--download_only`, the script will:
 2. Upload to the DAST platform
 3. Start a security scan
 4. Wait for completion (unless `--nowait` is set)
-5. Generate reports (if specified)
+5. Generate reports (PDF by default)
+
+---
+
+## Installation Modes (Monolith and Kubernetes)
+
+`mdast_cli` is a **single package that works against both** flavours of the DAST
+platform, with **no change to the command line**:
+
+- **Monolith** - the classic all-in-one installation (`Token` auth, tenant carried
+  in the `/organizations/{company_id}/...` URL path).
+- **Microservices / Kubernetes** - the platform behind the Clark facade (`Bearer`
+  auth with an organization token issued in the platform UI; the tenant is resolved
+  server-side, so `--company_id` is accepted but ignored).
+
+By default the CLI **auto-detects** the installation by probing `GET /rest/architectures/`
+and inspecting the response shape (it does not merely trust an HTTP 200). The same
+`--url`, `--token`, `--company_id` and scan flags are used either way.
+
+### Selecting the mode explicitly
+
+Auto-detection can be overridden with the `MDAST_CLI_MODE` environment variable -
+recommended in CI, where the target platform is known and a deterministic choice is
+preferable to a probe:
+
+```bash
+export MDAST_CLI_MODE=microservices   # or: monolith  (default: auto)
+```
+
+### Environment variables (microservices installation)
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `MDAST_CLI_MODE` | `auto` | Force the installation mode (`auto` / `monolith` / `microservices`). |
+| `MDAST_TLS_VERIFY` | *(on)* | TLS certificate verification. **Secure by default.** Set to `0`/`false`/`no`/`off` to disable for a self-signed stand (the org token is a credential - use only on trusted networks). An unset **or empty** value stays secure. |
+| `MDAST_UPLOAD_TIMEOUT` | *(server default)* | Optional server-side upload/parse wait in seconds (1-300) for large builds. |
+
+### Differences on the microservices installation
+
+- **Authentication** uses an **organization CLI token** issued in the platform UI
+  (`Bearer`), not a per-user CI/CD token. There is one active token per organization.
+- `--architecture_id` is **ignored** (the platform resolves the architecture from the
+  application binary itself).
+- `--appium_script_path` (Appium scans) and `--cr_report` (CR report) are **not
+  supported** and exit with `INVALID_ARGS` (2).
+- A report render failure is **soft-fail**: a finished scan stays green (exit 0) with
+  a warning, because the report service (Pepper) is separate from the scan itself.
+- Transient gateway errors (502/503/504) during polling, upload and report download
+  are **retried**, so a rolling restart of a backend mid-scan does not fail a CI job.
 
 ---
 
@@ -643,11 +692,43 @@ mdast_cli ... --project_id 10  # Create profile in project #10
 
 ## Reports
 
+Reports work the **same way on both installations**.
+
+### Choosing the report format
+
+**Parameter:** `--report_format {pdf|json|all|none}` (default: `pdf`)
+
+After a successful scan the CLI downloads a **PDF report by default** - a plain scan
+always produces one. Use the flag to choose otherwise:
+
+| `--report_format` | Result |
+|-------------------|--------|
+| `pdf` *(default)* | PDF only |
+| `json` | JSON summary only |
+| `all` | both PDF and JSON |
+| `none` | no report (e.g. gate on exit code only) |
+
+**File names.** If you do not pass an explicit file name, reports are saved next to
+the working directory as `scan_report_<scan_id>.pdf` / `scan_report_<scan_id>.json`,
+so the file is always tied to the scan it came from. Passing `--pdf_report_file_name`
+and/or `--summary_report_json_file_name` overrides the name and forces that format
+(so those flags remain fully backward compatible). PDF is always downloaded first.
+
+> On the **microservices** installation a report that fails to render (e.g. the
+> report service returns 502) is a **warning, not a failure**: the scan already
+> succeeded, so the CLI still exits 0 and any other requested report is still saved.
+
+> **In Docker:** the default `scan_report_<scan_id>.*` name is written to the
+> container's working directory, which is discarded when the container exits. Mount
+> a host directory and point the report there with an absolute path (e.g.
+> `-v /host/reports:/mdast/report` + `--pdf_report_file_name /mdast/report/report.pdf`),
+> otherwise the report is lost. See the Docker example under *Local File*.
+
 ### JSON Summary Report
 
 Generate a structured JSON report with scan summary and statistics.
 
-**Parameter:** `--summary_report_json_file_name <filename>`
+**Parameter:** `--summary_report_json_file_name <filename>` (implies `--report_format json`)
 
 **Output Format:**
 - Total number of vulnerabilities
@@ -673,7 +754,7 @@ mdast_cli \
 
 Generate a detailed PDF report with full scan results.
 
-**Parameter:** `--pdf_report_file_name <filename>`
+**Parameter:** `--pdf_report_file_name <filename>` (implies `--report_format pdf`; a PDF is produced by default even without this flag)
 
 **Output Format:**
 - Detailed vulnerability descriptions
@@ -697,7 +778,12 @@ mdast_cli \
 
 ### CR Report
 
-Generate a CR (Change Request) report in HTML format.
+Generate a CR (Compliance) report in HTML format - a Bank-of-Russia regulatory
+report on call-trace immutability (KNTV) that compares two versions of a mobile
+application. Not a "change request" report.
+
+> **Monolith installation only.** On the microservices installation `--cr_report`
+> exits with `INVALID_ARGS` (2).
 
 **Required Parameters (when `--cr_report` is set):**
 - `--cr_report` - Enable CR report generation
@@ -760,7 +846,12 @@ mdast_cli \
 
 ### Long-running Scans
 
-Use `--long_wait` to extend the maximum wait time to 1 week (instead of default timeout).
+Use `--long_wait` to extend the maximum wait time to ~1 week (instead of the default
+~1 hour timeout).
+
+If a scan still has not reached a terminal state when the wait budget is exhausted,
+the CLI **fails** with `SCAN_FAILED` (5) rather than exiting 0 - a scan that never
+finished is never reported as success.
 
 **Use Case:**
 - Very long testcases
@@ -783,6 +874,10 @@ mdast_cli \
 ### Appium Integration
 
 Use `--appium_script_path` to provide a custom Appium script for automated testing.
+
+> **Monolith installation only.** On the microservices installation
+> `--appium_script_path` exits with `INVALID_ARGS` (2); use a recorded test case
+> (`--testcase_id`) instead.
 
 **Parameter:** `--appium_script_path <path>`
 
@@ -898,16 +993,23 @@ mdast_cli -d \
 
 ## Exit Codes
 
-The script uses standardized exit codes for CI/CD integration:
+The script uses standardized exit codes for CI/CD integration. They are **identical
+on both installations** (monolith and microservices), so pipelines behave the same
+regardless of which platform they target:
 
 | Code | Constant | Description |
 |------|----------|-------------|
 | 0 | `SUCCESS` | Operation completed successfully |
-| 1 | `INVALID_ARGS` | Invalid command-line arguments |
-| 2 | `AUTH_ERROR` | Authentication failed |
-| 3 | `DOWNLOAD_FAILED` | Application download failed |
-| 4 | `NETWORK_ERROR` | Network/connection error |
-| 5 | `SCAN_FAILED` | Scan execution or upload failed |
+| 1 | `INTERNAL_ERROR` | Unexpected internal error |
+| 2 | `INVALID_ARGS` | Invalid command-line arguments (also: Appium/CR report on the microservices installation) |
+| 4 | `DOWNLOAD_FAILED` | Application download failed / file not found |
+| 5 | `SCAN_FAILED` | Scan created but failed, no active engine, or finished in a non-success terminal state |
+| 6 | `NETWORK_ERROR` | Network/connection error, gateway 5xx (incl. upload 502/503/504), non-JSON gateway response |
+| 7 | `AUTH_ERROR` | Authentication/authorization error (bad or revoked token, 401/403) |
+| 8 | `PRECHECK_BLOCKED` | Scan pre-check returned blocking warnings (microservices gate) |
+
+> There is no code 3. Codes 6/7/8 are meaningful mostly on the microservices
+> installation but are used consistently wherever they apply.
 
 **Example CI/CD Usage:**
 ```bash
@@ -915,15 +1017,13 @@ The script uses standardized exit codes for CI/CD integration:
 mdast_cli --distribution_system file --file_path app.apk ...
 EXIT_CODE=$?
 
-if [ $EXIT_CODE -eq 0 ]; then
-  echo "Scan completed successfully"
-elif [ $EXIT_CODE -eq 3 ]; then
-  echo "Download failed - check distribution system"
-  exit 1
-else
-  echo "Scan failed with code $EXIT_CODE"
-  exit 1
-fi
+case $EXIT_CODE in
+  0) echo "Scan completed successfully" ;;
+  4) echo "Download failed - check distribution system"; exit 1 ;;
+  6|7) echo "Infrastructure/auth problem (code $EXIT_CODE) - safe to retry"; exit 1 ;;
+  8) echo "Scan blocked by pre-check warnings"; exit 1 ;;
+  *) echo "Scan failed with code $EXIT_CODE"; exit 1 ;;
+esac
 ```
 
 ---
