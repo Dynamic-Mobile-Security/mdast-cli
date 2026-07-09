@@ -36,7 +36,7 @@ DEFAULT_IOS_ARCHITECTURE = 'iOS 14'
 
 # Timeout constants (in seconds)
 TRY = 360
-LONG_TRY = 20160
+LONG_TRY = 60480  # ~1 week at SLEEP_TIMEOUT=10s (matches --long_wait docs)
 END_SCAN_TIMEOUT = 30
 SLEEP_TIMEOUT = 10
 

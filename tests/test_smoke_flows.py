@@ -18,7 +18,7 @@ pytestmark = pytest.mark.smoke
 
 def register_ms_happy_path(rsps, apk_md5, with_testcase=True):
     rsps.add(responses.GET, f'{REST_URL}/architectures/', json=[
-        {'id': 1, 'type': 1, 'os_version': '11', 'name': 'Android 11', 'description': 'API 30'},
+        {'id': 1, 'type': 'ANDROID', 'os_version': '11', 'name': 'Android 11', 'description': 'API 30'},
     ])
     if with_testcase:
         rsps.add(responses.GET, f'{REST_URL}/testcases/5/', json={'id': 5, 'os': 'ANDROID'})

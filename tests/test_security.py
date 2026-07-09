@@ -73,26 +73,31 @@ def test_x_file_size_matches_actual_content(mocked_responses, tmp_apk):
     assert declared <= int(request.headers['Content-Length'])
 
 
-def test_tls_verify_disabled_by_default():
+def test_tls_verify_enabled_by_default():
+    """F4: secure by default - client verifies TLS unless explicitly told not to."""
     client = mDastMicroservices(REST_URL, TOKEN)
-    with mock.patch('mdast_cli_core.microservices.requests.get') as mocked_get:
-        client.get_architectures()
-    assert mocked_get.call_args.kwargs['verify'] is False
-
-
-def test_tls_verify_enabled_via_client_flag():
-    client = mDastMicroservices(REST_URL, TOKEN, verify=True)
     with mock.patch('mdast_cli_core.microservices.requests.get') as mocked_get:
         client.get_architectures()
     assert mocked_get.call_args.kwargs['verify'] is True
 
 
+def test_tls_verify_can_be_disabled_via_client_flag():
+    client = mDastMicroservices(REST_URL, TOKEN, verify=False)
+    with mock.patch('mdast_cli_core.microservices.requests.get') as mocked_get:
+        client.get_architectures()
+    assert mocked_get.call_args.kwargs['verify'] is False
+
+
 @pytest.mark.parametrize('raw,expected', [
-    ('1', True), ('true', True), ('YES', True), ('on', True),
-    ('', False), ('0', False), ('false', False), ('off', False),
+    # secure by default: unset/empty -> True; only explicit off-values disable
+    (None, True), ('1', True), ('true', True), ('YES', True), ('on', True), ('', True),
+    ('0', False), ('false', False), ('no', False), ('off', False),
 ])
 def test_tls_verify_env_parsing(monkeypatch, raw, expected):
-    monkeypatch.setenv(factory.TLS_VERIFY_ENV_VAR, raw)
+    if raw is None:
+        monkeypatch.delenv(factory.TLS_VERIFY_ENV_VAR, raising=False)
+    else:
+        monkeypatch.setenv(factory.TLS_VERIFY_ENV_VAR, raw)
     assert factory.tls_verify_enabled() is expected
 
 
@@ -109,8 +114,12 @@ def test_precheck_payload_with_control_characters_is_safe():
 
 def test_mode_probe_does_not_leak_token_on_error(mocked_responses, monkeypatch):
     monkeypatch.delenv('MDAST_CLI_MODE', raising=False)
-    mocked_responses.add(responses.GET, f'{REST_URL}/engines/', status=401)
-    mocked_responses.add(responses.GET, f'{REST_URL}/organizations/1/engines/', status=401)
+    # The factory probes GET /architectures/ (Bearer, then Token) - both 401 here.
+    # One registration serves both probes (responses reuses it for repeat calls).
+    mocked_responses.add(responses.GET, f'{REST_URL}/architectures/', status=401)
     with pytest.raises(factory.ModeDetectionError) as excinfo:
         factory.resolve_installation_mode(REST_URL, TOKEN, '1')
+    # An auth failure must be classified as such, and the token must never appear
+    # in the surfaced error (it is logged/raised near the Authorization header).
+    assert excinfo.value.auth_error is True
     assert TOKEN not in str(excinfo.value)

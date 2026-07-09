@@ -48,9 +48,27 @@ def test_precheck_unavailable_blocks(client, mocked_responses):
     assert excinfo.value.code == ExitCode.PRECHECK_BLOCKED
 
 
-def test_precheck_transport_error_blocks(client, mocked_responses):
+def test_precheck_gateway_5xx_is_network_error_not_block(client, mocked_responses, no_sleep):
+    """A transient gateway 5xx is retryable infra, not a policy block -> NETWORK_ERROR(6)."""
     mocked_responses.add(responses.POST, PRECHECK_URL, status=502,
                          json={'error_code': 'downstream_unavailable', 'message': 'Scanyon down'})
+    with pytest.raises(SystemExit) as excinfo:
+        run_precheck_gate(client, 'a' * 32, profile_id=1, testcase_id=None, scan_type='MANUAL')
+    assert excinfo.value.code == ExitCode.NETWORK_ERROR
+
+
+def test_precheck_network_exception_is_network_error(client, mocked_responses, no_sleep):
+    """A raw connection error during pre-check -> NETWORK_ERROR(6), still fail-closed."""
+    # no mock registered for PRECHECK_URL -> responses raises ConnectionError
+    with pytest.raises(SystemExit) as excinfo:
+        run_precheck_gate(client, 'a' * 32, profile_id=1, testcase_id=None, scan_type='MANUAL')
+    assert excinfo.value.code == ExitCode.NETWORK_ERROR
+
+
+def test_precheck_non_transient_non_200_blocks(client, mocked_responses):
+    """A genuine non-transient rejection (e.g. 400) is a policy block -> exit 8."""
+    mocked_responses.add(responses.POST, PRECHECK_URL, status=400,
+                         json={'error_code': 'bad_request', 'message': 'nope'})
     with pytest.raises(SystemExit) as excinfo:
         run_precheck_gate(client, 'a' * 32, profile_id=1, testcase_id=None, scan_type='MANUAL')
     assert excinfo.value.code == ExitCode.PRECHECK_BLOCKED

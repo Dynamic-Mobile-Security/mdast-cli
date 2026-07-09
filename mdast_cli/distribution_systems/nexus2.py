@@ -29,7 +29,10 @@ class Nexus2Repository(object):
     def download_app(self, download_path, repo_name, group_id, artifact_id, version, extension, file_name=''):
         download_url = f'{self.nexus_url}/service/local/artifact/maven/content?r={repo_name}&g={group_id}&a=' \
                        f'{artifact_id}&v={version}&p={extension}'
-        if file_name == '':
+        # `not file_name` (not `== ''`): mdast_scan passes arguments.nexus2_file_name, which is
+        # None when --nexus2_file_name is omitted (argparse default). The old `== ''` check missed
+        # None, so os.path.join(download_path, None) crashed the download on a valid invocation.
+        if not file_name:
             file_name = f'{artifact_id}-{version}.{extension}'
         headers = {
             'DNT': '1',

@@ -55,3 +55,36 @@ def test_network_exception_retried_then_success(client, no_sleep):
     with mock.patch.object(client, 'get_scan_info', side_effect=seq):
         scan = ms_flow._get_scan(client, 55)
     assert scan['status'] == 'COMPLETE'
+
+
+# --- report download resilience (soft-fail contract, STG-4478) ---
+
+REPORT_URL = f'{REST_URL}/scans/55/report'
+
+
+def test_report_transient_502_then_success(client, mocked_responses, no_sleep):
+    """A transient 502 on the report service is retried, then the PDF is returned."""
+    mocked_responses.add(responses.GET, REPORT_URL, status=502, json={'error_code': 'busy'})
+    mocked_responses.add(responses.GET, REPORT_URL, body=b'%PDF-1.4 x',
+                         content_type='application/pdf')
+    resp = ms_flow._download_report(client.download_report, 55, 'PDF report')
+    assert resp is not None
+    assert resp.content == b'%PDF-1.4 x'
+
+
+def test_report_persistent_failure_soft_fails_to_none(client, mocked_responses, no_sleep):
+    """A report that never renders returns None (soft-fail) - it must NOT raise:
+    the scan already succeeded, so a report-service outage cannot turn it red."""
+    for _ in range(ms_flow.POLL_TRANSIENT_RETRIES + 1):
+        mocked_responses.add(responses.GET, REPORT_URL, status=502, json={'error_code': 'busy'})
+    resp = ms_flow._download_report(client.download_report, 55, 'PDF report')
+    assert resp is None
+
+
+def test_report_network_exception_then_success(client, no_sleep):
+    """A raw connection drop on report fetch is retried, not fatal."""
+    resp_ok = mock.Mock(status_code=200, content=b'%PDF-1.4 x')
+    seq = [requests.ConnectionError('boom'), resp_ok]
+    fetch = mock.Mock(side_effect=seq)
+    resp = ms_flow._download_report(fetch, 55, 'PDF report')
+    assert resp is resp_ok

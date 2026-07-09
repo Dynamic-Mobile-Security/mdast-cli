@@ -64,12 +64,17 @@ def extract_error_message(resp):
 class mDastMicroservices(mDastBase):
     """API client for the Clark facade of the microservices installation."""
 
-    def __init__(self, base_url, ci_token, company_id=None, user_agent=None, verify=False):
+    def __init__(self, base_url, ci_token, company_id=None, user_agent=None, verify=True):
         super().__init__(base_url)
+        # F14: strip trailing slash so f'{self.url}/architectures/' can't produce
+        # a double slash (a strict OPA/Envoy path match may 403/404 on '//').
+        self.url = base_url.rstrip('/')
         # company_id is accepted for interface parity with mDastToken and ignored:
         # the organization is resolved server-side from the token (X-Organization-Id).
         self.company_id = company_id
         self.current_context = {'company': company_id}
+        # F4: TLS verification on by default (org bearer token is a credential);
+        # opt out only via MDAST_TLS_VERIFY for self-signed stands.
         self.verify = verify
         self.timeout = HTTP_REQUEST_TIMEOUT
         self.headers = {'Authorization': 'Bearer {0}'.format(ci_token),

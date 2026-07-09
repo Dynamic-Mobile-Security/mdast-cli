@@ -9,6 +9,11 @@ dist/
 
 # venv
 venv/
+.venv/
+
+# CLI-generated scan reports (default output names: scan_report_<scan_id>.pdf/.json)
+scan_report_*.pdf
+scan_report_*.json
 
 # Compiled Java class files
 *.class
