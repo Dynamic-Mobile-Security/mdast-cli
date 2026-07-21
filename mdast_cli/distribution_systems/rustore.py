@@ -9,6 +9,14 @@ from mdast_cli.helpers.file_utils import ensure_download_dir, cleanup_file
 
 logger = logging.getLogger(__name__)
 
+# Since July 2026 RuStore backapi rejects requests without a client version header:
+# a missing/non-numeric value returns an empty HTTP 400 from the "kittenx" edge,
+# and a numeric value below the minimum returns HTTP 417. The server only enforces
+# a lower bound (currently 247) and accepts any larger integer, so we send a value
+# far above it that never needs bumping as the real RuStore client version changes.
+# Override via the MDAST_RUSTORE_VER_CODE env var if the minimum is ever raised.
+RUSTORE_VER_CODE = os.environ.get('MDAST_RUSTORE_VER_CODE', '2000000000')
+
 
 def get_app_info(package_name):
     """
@@ -21,7 +29,8 @@ def get_app_info(package_name):
     """
     common_headers = {
         'User-Agent': 'mdast-cli/1.0 (+https://stingray-tech.ru)',
-        'Accept': 'application/json'
+        'Accept': 'application/json',
+        'ruStoreVerCode': RUSTORE_VER_CODE
     }
 
     req = requests.get(
