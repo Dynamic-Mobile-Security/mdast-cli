@@ -1,9 +1,11 @@
 import logging
 import os
+import warnings
 import zipfile
 
 import requests
 from tqdm import tqdm
+from urllib3.exceptions import InsecureRequestWarning
 
 from mdast_cli.helpers.file_utils import ensure_download_dir, cleanup_file
 
@@ -110,13 +112,16 @@ def rustore_download_app(package_name, download_path):
         'Accept': '*/*'
     }
 
-    r = requests.get(
-        app_info['download_url'],
-        headers=download_headers,
-        stream=True,
-        allow_redirects=True,
-        timeout=120
-    )
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore', InsecureRequestWarning)
+        r = requests.get(
+            app_info['download_url'],
+            headers=download_headers,
+            stream=True,
+            allow_redirects=True,
+            timeout=120,
+            verify=False
+        )
     if r.status_code != 200:
         raise RuntimeError(
             f"Rustore - Failed to download application. Status: {r.status_code}, "
