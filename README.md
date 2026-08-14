@@ -219,6 +219,39 @@ preferable to a probe:
 export MDAST_CLI_MODE=microservices   # or: monolith  (default: auto)
 ```
 
+> **Note for SaaS users:** this setting describes the **stand you connect to**, not
+> anything deployed in your own infrastructure. If you use the hosted service, you
+> do not need to install anything - just set the value matching your stand (ask us
+> if unsure).
+
+### Behind a TLS-inspecting proxy
+
+Corporate proxies that inspect TLS re-sign traffic with an internal CA, which Python
+does not trust by default. The symptom is:
+
+```
+certificate verify failed: self-signed certificate in certificate chain
+```
+
+Point `REQUESTS_CA_BUNDLE` at your corporate root CA (PEM format):
+
+```bash
+export REQUESTS_CA_BUNDLE=/path/to/corporate-ca.pem
+```
+
+**Adding the CA to the OS trust store is not enough.** The CLI uses `requests`,
+which reads the `certifi` bundle rather than the system store - `update-ca-certificates`
+alone will not help. To keep trusting public CAs as well, concatenate the two:
+
+```bash
+cat $(python3 -c "import certifi; print(certifi.where())") corporate-ca.pem > ca-bundle.pem
+export REQUESTS_CA_BUNDLE=ca-bundle.pem
+```
+
+If the CA is not available, the CLI still proceeds: mode detection retries without
+certificate verification and logs a warning. Setting `MDAST_CLI_MODE` explicitly skips
+the probe altogether.
+
 ### Environment variables (microservices installation)
 
 | Variable | Default | Purpose |
