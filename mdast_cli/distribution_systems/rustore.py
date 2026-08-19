@@ -12,12 +12,58 @@ from mdast_cli.helpers.file_utils import ensure_download_dir, cleanup_file
 logger = logging.getLogger(__name__)
 
 # Since July 2026 RuStore backapi rejects requests without a client version header:
-# a missing/non-numeric value returns an empty HTTP 400 from the "kittenx" edge,
-# and a numeric value below the minimum returns HTTP 417. The server only enforces
-# a lower bound (currently 247) and accepts any larger integer, so we send a value
-# far above it that never needs bumping as the real RuStore client version changes.
-# Override via the MDAST_RUSTORE_VER_CODE env var if the minimum is ever raised.
-RUSTORE_VER_CODE = os.environ.get('MDAST_RUSTORE_VER_CODE', '2000000000')
+# a missing/non-numeric value returns an empty HTTP 400 from the "kittenx" edge.
+# Contrary to the earlier assumption that only a lower bound existed, the server
+# enforces a *range*: a value below the minimum (currently 247) returns HTTP 417,
+# and a value above the maximum (currently between 1_100_000 and 1_150_000) returns
+# an empty HTTP 419. We therefore send a value with plenty of headroom over the
+# minimum while staying well inside the accepted range.
+# Override via the MDAST_RUSTORE_VER_CODE env var if the bounds change again.
+RUSTORE_VER_CODE = os.environ.get('MDAST_RUSTORE_VER_CODE', '1000000')
+
+# Values tried in order when the primary one is rejected. RuStore's backend fleet is
+# not uniformly configured — a value accepted by one instance can be rejected by the
+# next — so each candidate is retried a few times before moving on.
+VER_CODE_FALLBACKS = ('1000000', '247')
+VER_CODE_REJECT_STATUSES = (417, 419)
+VER_CODE_ATTEMPTS = 3
+
+
+def request_with_ver_code(send, description):
+    """
+    Выполнить запрос к backapi RuStore, подбирая значение заголовка ruStoreVerCode.
+
+    Аргумент send — функция, принимающая значение ruStoreVerCode и возвращающая ответ.
+    Статусы 417 и 419 означают, что значение вне допустимого диапазона; в этом случае
+    значение пробуется повторно (инстансы бэкенда настроены неодинаково), а затем
+    берётся следующее из VER_CODE_FALLBACKS. Возвращается последний полученный ответ,
+    чтобы вызывающий код сам сформировал сообщение об ошибке.
+    """
+    candidates = []
+    for ver_code in (RUSTORE_VER_CODE, *VER_CODE_FALLBACKS):
+        if ver_code and ver_code not in candidates:
+            candidates.append(ver_code)
+
+    resp = None
+    for ver_code in candidates:
+        for attempt in range(VER_CODE_ATTEMPTS):
+            resp = send(ver_code)
+            if resp.status_code not in VER_CODE_REJECT_STATUSES:
+                return resp
+            logger.debug(f'Rustore - {description}: status {resp.status_code} for '
+                         f'ruStoreVerCode={ver_code} (attempt {attempt + 1}/{VER_CODE_ATTEMPTS})')
+        logger.warning(f'Rustore - {description}: ruStoreVerCode={ver_code} rejected with status '
+                       f'{resp.status_code}, trying next value')
+    return resp
+
+
+def ver_code_hint(status_code):
+    """Подсказка для статусов, означающих недопустимое значение ruStoreVerCode."""
+    if status_code not in VER_CODE_REJECT_STATUSES:
+        return ''
+    bound = 'below the minimum' if status_code == 417 else 'above the maximum'
+    return (f' RuStore rejected the client version header as {bound} accepted value; '
+            f'set the MDAST_RUSTORE_VER_CODE env var to a supported ruStoreVerCode.')
 
 
 def get_app_info(package_name):
@@ -29,16 +75,20 @@ def get_app_info(package_name):
     - Исправлена ошибка, при которой статус POST проверялся по предыдущему ответу GET.
     - Предоставляются подробные сообщения об ошибках со статусом и фрагментом ответа.
     """
-    common_headers = {
-        'User-Agent': 'mdast-cli/1.0 (+https://stingray-tech.ru)',
-        'Accept': 'application/json',
-        'ruStoreVerCode': RUSTORE_VER_CODE
-    }
+    def common_headers(ver_code):
+        return {
+            'User-Agent': 'mdast-cli/1.0 (+https://stingray-tech.ru)',
+            'Accept': 'application/json',
+            'ruStoreVerCode': ver_code
+        }
 
-    req = requests.get(
-        f'https://backapi.rustore.ru/applicationData/overallInfo/{package_name}',
-        headers=common_headers,
-        timeout=30
+    req = request_with_ver_code(
+        lambda ver_code: requests.get(
+            f'https://backapi.rustore.ru/applicationData/overallInfo/{package_name}',
+            headers=common_headers(ver_code),
+            timeout=30
+        ),
+        'overallInfo'
     )
     if req.status_code == 200:
         body = req.json()
@@ -49,22 +99,25 @@ def get_app_info(package_name):
                     f" version:{body_info['versionName']}, company: {body_info['companyName']}")
     else:
         raise RuntimeError(
-            f"Rustore - Failed to get application info. Status: {req.status_code}, body: {req.text[:500]}"
+            f"Rustore - Failed to get application info. Status: {req.status_code}, "
+            f"body: {req.text[:500]}{ver_code_hint(req.status_code)}"
         )
 
-    headers = {
-        'Content-Type': 'application/json; charset=utf-8',
-        **common_headers
-    }
     body = {
         'appId': body_info['appId'],
         'firstInstall': True
     }
-    download_link_resp = requests.post(
-        'https://backapi.rustore.ru/applicationData/download-link',
-        headers=headers,
-        json=body,
-        timeout=30
+    download_link_resp = request_with_ver_code(
+        lambda ver_code: requests.post(
+            'https://backapi.rustore.ru/applicationData/download-link',
+            headers={
+                'Content-Type': 'application/json; charset=utf-8',
+                **common_headers(ver_code)
+            },
+            json=body,
+            timeout=30
+        ),
+        'download-link'
     )
     if download_link_resp.status_code == 200:
         dl_json = download_link_resp.json()
@@ -76,7 +129,7 @@ def get_app_info(package_name):
     else:
         raise RuntimeError(
             f"Rustore - Failed to get application download link. Status: {download_link_resp.status_code}, "
-            f"body: {download_link_resp.text[:500]}"
+            f"body: {download_link_resp.text[:500]}{ver_code_hint(download_link_resp.status_code)}"
         )
 
     return {
