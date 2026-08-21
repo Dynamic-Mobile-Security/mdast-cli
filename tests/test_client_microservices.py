@@ -54,9 +54,9 @@ def test_testcase_url(client, mocked_responses):
 def test_create_scan_body_auto(client, mocked_responses):
     mocked_responses.add(responses.POST, f'{REST_URL}/scans/start/', json={'id': 1}, status=200)
     client.create_auto_scan(project_id=3, profile_id=4, app_md5='b' * 32,
-                            arch_id=999, test_case_id=5)
+                            arch_id=999, test_case_id=5, os_version='11')
     body = json.loads(last_request(mocked_responses).body)
-    assert body == {'md5': 'b' * 32, 'type': 'AUTO', 'testcase_id': 5,
+    assert body == {'md5': 'b' * 32, 'type': 'AUTO', 'testcase_id': 5, 'os_version': '11',
                     'fsm_locked': True, 'project_id': 3, 'profile_id': 4}
 
 
@@ -74,10 +74,12 @@ def test_create_scan_body_manual_is_manual_type(client, mocked_responses):
 def test_precheck_body_uses_application_md5_field(client, mocked_responses):
     mocked_responses.add(responses.POST, f'{REST_URL}/scans/start/precheck/',
                          json={'warnings': []})
-    client.precheck_scan('c' * 32, profile_id=7, testcase_id=None, scan_type='MANUAL')
+    client.precheck_scan(
+        'c' * 32, profile_id=7, testcase_id=None, scan_type='MANUAL', os_version='11',
+    )
     body = json.loads(last_request(mocked_responses).body)
     assert body == {'application_md5': 'c' * 32, 'profile_id': 7,
-                    'type': 'MANUAL', 'testcase_id': None}
+                    'type': 'MANUAL', 'testcase_id': None, 'os_version': '11'}
 
 
 def test_scan_lifecycle_urls(client, mocked_responses):

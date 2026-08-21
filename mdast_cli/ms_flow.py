@@ -19,7 +19,8 @@ import time
 
 import requests
 
-from mdast_cli.helpers.const import (ACTIVE_STAGES, ANDROID_EXTENSIONS, END_SCAN_TIMEOUT, LONG_TRY, OS_ANDROID,
+from mdast_cli.helpers.const import (ACTIVE_STAGES, ANDROID_EXTENSIONS, DEFAULT_ANDROID_ARCHITECTURE,
+                                     DEFAULT_IOS_ARCHITECTURE, END_SCAN_TIMEOUT, LONG_TRY, OS_ANDROID,
                                      OS_IOS, PRE_START_STAGES, SLEEP_TIMEOUT, TERMINAL_SCAN_PAIRS, TRY,
                                      UPLOAD_TIMEOUT_ENV_VAR, UPLOAD_TIMEOUT_MAX, UPLOAD_TIMEOUT_MIN,
                                      ENGINE_ACTIVE_STATUS, ScanStage, ScanStageStatus)
@@ -73,6 +74,31 @@ def resolve_platform(app_file):
         return OS_ANDROID
     if extension.lower() == '.ipa':
         return OS_IOS
+
+
+def resolve_ms_os_version(architectures, platform):
+    """Choose a deterministic Scanyon OS version for a CLI scan."""
+    if not isinstance(architectures, list):
+        return None
+
+    candidates = [
+        architecture for architecture in architectures
+        if isinstance(architecture, dict)
+        and str(architecture.get('type', '')).upper() == platform
+        and str(architecture.get('os_version', '')).strip()
+    ]
+    if not candidates:
+        return None
+
+    preferred_name = {
+        OS_ANDROID: DEFAULT_ANDROID_ARCHITECTURE,
+        OS_IOS: DEFAULT_IOS_ARCHITECTURE,
+    }.get(platform)
+    selected = next(
+        (architecture for architecture in candidates if architecture.get('name') == preferred_name),
+        candidates[0],
+    )
+    return str(selected['os_version']).strip()
     return None
 
 
@@ -183,7 +209,7 @@ def _get_scan(mdast, scan_id):
     return _json_or_exit(resp, f'Getting scan info for scan {scan_id}')
 
 
-def run_precheck_gate(mdast, md5, profile_id, testcase_id, scan_type):
+def run_precheck_gate(mdast, md5, profile_id, testcase_id, scan_type, os_version=None):
     """Gate model (DEC-671-05): any warning blocks the scan with a non-zero exit.
 
     A transient gateway failure (429/502/503/504) or a raw network error is NOT a
@@ -194,7 +220,7 @@ def run_precheck_gate(mdast, md5, profile_id, testcase_id, scan_type):
     resp = None
     for attempt in range(UPLOAD_TRANSIENT_RETRIES):
         try:
-            resp = mdast.precheck_scan(md5, profile_id, testcase_id, scan_type)
+            resp = mdast.precheck_scan(md5, profile_id, testcase_id, scan_type, os_version=os_version)
         except requests.RequestException as ex:
             logger.warning(f'Scan pre-check request failed ({type(ex).__name__}), '
                            f'retry {attempt + 1}/{UPLOAD_TRANSIENT_RETRIES}')
@@ -296,6 +322,12 @@ def _run_microservices_flow(arguments, url, token, app_file, user_agent, verify)
         logger.error(f'Cannot resolve platform (Android/iOS) from file extension: {app_file}')
         sys.exit(ExitCode.INVALID_ARGS)
 
+    os_version = resolve_ms_os_version(architectures, platform)
+    if os_version is None:
+        logger.error(f'Cannot create scan - no supported OS version for platform {platform}')
+        sys.exit(ExitCode.SCAN_FAILED)
+    logger.info(f'Selected OS version for {platform}: {sanitize(os_version)}')
+
     if testcase_id is not None:
         testcase_resp = mdast.get_testcase(testcase_id)
         if testcase_resp.status_code == 200:
@@ -352,14 +384,16 @@ def _run_microservices_flow(arguments, url, token, app_file, user_agent, verify)
         sys.exit(ExitCode.SCAN_FAILED)
 
     precheck_type = 'AUTO' if testcase_id is not None else 'MANUAL'
-    run_precheck_gate(mdast, app_md5, profile_id, testcase_id, precheck_type)
+    run_precheck_gate(mdast, app_md5, profile_id, testcase_id, precheck_type, os_version=os_version)
 
     logger.info(f'Creating scan for application {sanitize(app_id)}')
     if testcase_id is not None:
-        create_resp = mdast.create_auto_scan(project_id, profile_id, app_md5, None, testcase_id)
+        create_resp = mdast.create_auto_scan(
+            project_id, profile_id, app_md5, None, testcase_id, os_version=os_version,
+        )
         scan_type = 'auto_stingray'
     else:
-        create_resp = mdast.create_manual_scan(project_id, profile_id, app_md5)
+        create_resp = mdast.create_manual_scan(project_id, profile_id, app_md5, os_version=os_version)
         scan_type = 'manual'
     if create_resp.status_code not in (200, 201):
         _exit_on_http_error(create_resp, 'Creating scan')

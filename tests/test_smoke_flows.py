@@ -75,7 +75,11 @@ def test_ms_full_flow_success(mocked_responses, monkeypatch, tmp_path, tmp_apk, 
     body = json.loads(create_calls[0].request.body)
     assert body['md5'] == apk_md5
     assert body['type'] == 'AUTO'
+    assert body['os_version'] == '11'
     assert body['fsm_locked'] is True
+    precheck_calls = [c for c in mocked_responses.calls
+                      if c.request.url == f'{REST_URL}/scans/start/precheck/']
+    assert json.loads(precheck_calls[0].request.body)['os_version'] == '11'
 
 
 def test_ms_full_flow_without_company_id_when_forced(mocked_responses, monkeypatch, tmp_path,
@@ -115,7 +119,9 @@ def test_ms_manual_flow_stops_scan(mocked_responses, monkeypatch, tmp_path, tmp_
 def test_ms_precheck_gate_blocks(mocked_responses, monkeypatch, tmp_path, tmp_apk, apk_md5,
                                  no_sleep, ms_mode, capsys):
     monkeypatch.chdir(tmp_path)
-    mocked_responses.add(responses.GET, f'{REST_URL}/architectures/', json=[])
+    mocked_responses.add(responses.GET, f'{REST_URL}/architectures/', json=[
+        {'id': 1, 'type': 'ANDROID', 'os_version': '11', 'name': 'Android 11'},
+    ])
     mocked_responses.add(responses.GET, f'{REST_URL}/testcases/5/', json={'os': 'ANDROID'})
     mocked_responses.add(responses.GET, f'{REST_URL}/engines/',
                          json=[{'type': 'ANDROID', 'status': 'STARTED'}])
@@ -134,7 +140,9 @@ def test_ms_precheck_gate_blocks(mocked_responses, monkeypatch, tmp_path, tmp_ap
 def test_ms_scan_fail_state(mocked_responses, monkeypatch, tmp_path, tmp_apk, apk_md5,
                             no_sleep, ms_mode):
     monkeypatch.chdir(tmp_path)
-    mocked_responses.add(responses.GET, f'{REST_URL}/architectures/', json=[])
+    mocked_responses.add(responses.GET, f'{REST_URL}/architectures/', json=[
+        {'id': 1, 'type': 'ANDROID', 'os_version': '11', 'name': 'Android 11'},
+    ])
     mocked_responses.add(responses.GET, f'{REST_URL}/testcases/5/', json={'os': 'ANDROID'})
     mocked_responses.add(responses.GET, f'{REST_URL}/engines/',
                          json=[{'type': 'ANDROID', 'status': 'STARTED'}])
@@ -159,7 +167,9 @@ def test_ms_start_409_facade_retry_is_tolerated(mocked_responses, monkeypatch, t
     (successful) call returns 409, but the scan did start. CLI must confirm by state
     and continue, not fail."""
     monkeypatch.chdir(tmp_path)
-    mocked_responses.add(responses.GET, f'{REST_URL}/architectures/', json=[])
+    mocked_responses.add(responses.GET, f'{REST_URL}/architectures/', json=[
+        {'id': 1, 'type': 'ANDROID', 'os_version': '11', 'name': 'Android 11'},
+    ])
     mocked_responses.add(responses.GET, f'{REST_URL}/testcases/5/', json={'os': 'ANDROID'})
     mocked_responses.add(responses.GET, f'{REST_URL}/engines/',
                          json=[{'type': 'ANDROID', 'status': 'STARTED'}])
@@ -183,7 +193,9 @@ def test_ms_start_409_real_conflict_fails(mocked_responses, monkeypatch, tmp_pat
                                           tmp_apk, apk_md5, no_sleep, ms_mode):
     """A genuine 409 (scan still in CREATED) must NOT be masked - CLI fails."""
     monkeypatch.chdir(tmp_path)
-    mocked_responses.add(responses.GET, f'{REST_URL}/architectures/', json=[])
+    mocked_responses.add(responses.GET, f'{REST_URL}/architectures/', json=[
+        {'id': 1, 'type': 'ANDROID', 'os_version': '11', 'name': 'Android 11'},
+    ])
     mocked_responses.add(responses.GET, f'{REST_URL}/testcases/5/', json={'os': 'ANDROID'})
     mocked_responses.add(responses.GET, f'{REST_URL}/engines/',
                          json=[{'type': 'ANDROID', 'status': 'STARTED'}])
@@ -199,6 +211,19 @@ def test_ms_start_409_real_conflict_fails(mocked_responses, monkeypatch, tmp_pat
                          json=scan_json(stage='CREATED', status='INITIAL'))
     exit_code = run_main(monkeypatch, ms_argv(tmp_apk) + ['--nowait'])
     assert exit_code == 5
+
+
+def test_ms_missing_platform_architecture_stops_before_upload(mocked_responses, monkeypatch,
+                                                              tmp_apk, ms_mode):
+    mocked_responses.add(responses.GET, f'{REST_URL}/architectures/', json=[
+        {'id': 3, 'type': 'IOS', 'os_version': '16', 'name': 'iOS 16'},
+    ])
+
+    exit_code = run_main(monkeypatch, ms_argv(tmp_apk))
+
+    assert exit_code == 5
+    urls = [call.request.url for call in mocked_responses.calls]
+    assert urls == [f'{REST_URL}/architectures/']
 
 
 def test_ms_appium_rejected(monkeypatch, tmp_apk, ms_mode):
