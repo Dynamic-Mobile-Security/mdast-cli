@@ -28,8 +28,8 @@ from mdast_cli.helpers.const import (ANDROID_EXTENSIONS, DEFAULT_ANDROID_ARCHITE
 from mdast_cli.helpers.exit_codes import ExitCode
 from mdast_cli.helpers.helpers import check_app_md5, resolve_report_targets
 from mdast_cli_core.token import mDastToken as mDast
-from mdast_cli_core.factory import (MODE_MICROSERVICES, ModeDetectionError, resolve_installation_mode,
-                                    tls_verify_enabled)
+from mdast_cli_core.factory import (MODE_MICROSERVICES, MODE_MONOLITH, ModeDetectionError,
+                                    resolve_installation_mode, tls_verify_enabled)
 from mdast_cli.cr_report_generator import generate_cr
 from mdast_cli import __version__
 
@@ -52,9 +52,13 @@ Usage examples:
     --google_play_email user@example.com \\
     --google_play_aas_token YOUR_TOKEN
 
-  # Start application scanning:
+  # Start application scanning on a monolith installation:
   mdast_cli --distribution_system file --file_path app.apk \\
     --url https://mdast.example.com --company_id 1 --token YOUR_TOKEN
+
+  # Start application scanning on a microservices installation (no company ID):
+  mdast_cli --distribution_system file --file_path app.apk \\
+    --url https://mdast.example.com --token YOUR_TOKEN
 
 For detailed information about specific distribution system see README.md
         ''',
@@ -303,7 +307,7 @@ For detailed information about specific distribution system see README.md
                                 'Example: https://mdast.example.com')
     scan_group.add_argument('--company_id', type=int,
                            help='Company ID in MDast system. '
-                                'Required parameter when starting scan (without --download_only). '
+                                'Required only for monolith scans; omitted for microservices installations. '
                                 'Can be found in company settings in MDast web interface.')
     scan_group.add_argument('--token', type=str,
                            help='CI/CD token for authentication and starting scan. '
@@ -461,11 +465,12 @@ For detailed information about specific distribution system see README.md
     elif args.distribution_system == 'appgallery' and args.appgallery_app_id is None:
         parser.error('"--distribution_system appgallery" requires "--appgallery_app_id" to be set')
 
-    # F13: при запуске скана (без --download_only) обязательны --url/--company_id/--token.
-    # Прежнее required=(not '-d') вычислялось в False и не работало.
+    # URL and token are required before installation-mode detection. company_id is
+    # validated after detection because microservices resolve the organization from
+    # the Bearer token, while the monolith carries it in /organizations/{id}/ URLs.
     if not args.download_only:
         missing = [name for name, val in (
-            ('--url', args.url), ('--company_id', args.company_id), ('--token', args.token),
+            ('--url', args.url), ('--token', args.token),
         ) if val in (None, '')]
         if missing:
             parser.error(
@@ -909,6 +914,10 @@ def main():
     except ModeDetectionError as ex:
         logger.error(str(ex))
         sys.exit(ExitCode.AUTH_ERROR if ex.auth_error else ExitCode.NETWORK_ERROR)
+
+    if installation_mode == MODE_MONOLITH and company_id is None:
+        logger.error('--company_id is required for monolith mode')
+        sys.exit(ExitCode.INVALID_ARGS)
 
     if installation_mode == MODE_MICROSERVICES:
         tls_verify = tls_verify_enabled()

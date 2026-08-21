@@ -200,14 +200,15 @@ Without `--download_only`, the script will:
 platform, with **no change to the command line**:
 
 - **Monolith** - the classic all-in-one installation (`Token` auth, tenant carried
-  in the `/organizations/{company_id}/...` URL path).
+  in the `/organizations/{company_id}/...` URL path). `--company_id` is required.
 - **Microservices / Kubernetes** - the platform behind the Clark facade (`Bearer`
   auth with an organization token issued in the platform UI; the tenant is resolved
-  server-side, so `--company_id` is accepted but ignored).
+  server-side, so `--company_id` may be omitted).
 
 By default the CLI **auto-detects** the installation by probing `GET /rest/architectures/`
 and inspecting the response shape (it does not merely trust an HTTP 200). The same
-`--url`, `--token`, `--company_id` and scan flags are used either way.
+`--url`, `--token` and scan flags are used either way; `--company_id` is required
+only after the target has been identified as a monolith installation.
 
 ### Selecting the mode explicitly
 
