@@ -155,7 +155,7 @@ class mDastMicroservices(mDastBase):
 
     # --- scan flow (STG-4475) ---
 
-    def precheck_scan(self, md5, profile_id, testcase_id, scan_type):
+    def precheck_scan(self, md5, profile_id, testcase_id, scan_type, os_version=None):
         """Gate pre-check before scan creation (DEC-671-05).
 
         Field is `application_md5` in the scanyon contract (not `md5`).
@@ -168,13 +168,15 @@ class mDastMicroservices(mDastBase):
             'type': scan_type,
             'testcase_id': testcase_id,
         }
+        if os_version is not None:
+            data['os_version'] = os_version
         return requests.post(f'{self.url}/scans/start/precheck/',
                              headers=self.headers,
                              data=json.dumps(data),
                              verify=self.verify,
                              timeout=self.timeout)
 
-    def _create_scan(self, project_id, profile_id, app_md5, test_case_id, scan_type):
+    def _create_scan(self, project_id, profile_id, app_md5, test_case_id, scan_type, os_version=None):
         # scanyon: AUTO requires testcase_id; a scan without a test case is MANUAL
         # (install/launch/wait/stop semantics, wait=True on the server side).
         # testcase_id key is mandatory in ScanIn even when null.
@@ -188,18 +190,22 @@ class mDastMicroservices(mDastBase):
             data['project_id'] = project_id
         if profile_id:
             data['profile_id'] = profile_id
+        if os_version is not None:
+            data['os_version'] = os_version
         return requests.post(f'{self.url}/scans/start/',
                              headers=self.headers,
                              data=json.dumps(data),
                              verify=self.verify,
                              timeout=self.timeout)
 
-    def create_manual_scan(self, project_id, profile_id, app_md5, arch_id=None):
+    def create_manual_scan(self, project_id, profile_id, app_md5, arch_id=None, os_version=None):
         # arch_id accepted and ignored (microservices resolve platform from app metadata)
-        return self._create_scan(project_id, profile_id, app_md5, None, 'MANUAL')
+        return self._create_scan(project_id, profile_id, app_md5, None, 'MANUAL', os_version=os_version)
 
-    def create_auto_scan(self, project_id, profile_id, app_md5, arch_id, test_case_id):
-        return self._create_scan(project_id, profile_id, app_md5, test_case_id, 'AUTO')
+    def create_auto_scan(self, project_id, profile_id, app_md5, arch_id, test_case_id, os_version=None):
+        return self._create_scan(
+            project_id, profile_id, app_md5, test_case_id, 'AUTO', os_version=os_version,
+        )
 
     def create_appium_scan(self, project_id, profile_id, app_id, arch_id, appium_script_path):
         raise NotImplementedError(
