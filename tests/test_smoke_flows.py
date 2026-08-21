@@ -47,12 +47,14 @@ def register_ms_happy_path(rsps, apk_md5, with_testcase=True):
              headers={'Content-Disposition': 'attachment; filename="dast_77.json"'})
 
 
-def ms_argv(tmp_apk, with_testcase=True):
+def ms_argv(tmp_apk, with_testcase=True, include_company_id=True):
     argv = ['--distribution_system', 'file', '--file_path', tmp_apk,
-            '--url', BASE_URL, '--company_id', '1', '--token', TOKEN,
+            '--url', BASE_URL, '--token', TOKEN,
             '--profile_id', '2',
             '--pdf_report_file_name', 'scan_report_pdf',
             '--summary_report_json_file_name', 'scan_report_json']
+    if include_company_id:
+        argv += ['--company_id', '1']
     if with_testcase:
         argv += ['--testcase_id', '5']
     return argv
@@ -76,12 +78,23 @@ def test_ms_full_flow_success(mocked_responses, monkeypatch, tmp_path, tmp_apk, 
     assert body['fsm_locked'] is True
 
 
+def test_ms_full_flow_without_company_id_when_forced(mocked_responses, monkeypatch, tmp_path,
+                                                     tmp_apk, apk_md5, no_sleep, ms_mode):
+    """The Ficus command omits technical organization IDs in microservices mode."""
+    monkeypatch.chdir(tmp_path)
+    register_ms_happy_path(mocked_responses, apk_md5)
+    exit_code = run_main(monkeypatch, ms_argv(tmp_apk, include_company_id=False))
+    assert exit_code == 0
+    assert (tmp_path / 'scan_report_pdf.pdf').read_bytes().startswith(b'%PDF')
+    assert (tmp_path / 'scan_report_json.json').exists()
+
+
 def test_ms_full_flow_with_autodetect(mocked_responses, monkeypatch, tmp_path, tmp_apk,
                                       apk_md5, no_sleep):
     monkeypatch.delenv('MDAST_CLI_MODE', raising=False)
     monkeypatch.chdir(tmp_path)
     register_ms_happy_path(mocked_responses, apk_md5)
-    exit_code = run_main(monkeypatch, ms_argv(tmp_apk))
+    exit_code = run_main(monkeypatch, ms_argv(tmp_apk, include_company_id=False))
     assert exit_code == 0
 
 

@@ -26,6 +26,11 @@ def base_argv(tmp_apk, *extra):
             '--url', BASE_URL, '--company_id', '1', '--token', TOKEN, *extra]
 
 
+def argv_without_company_id(tmp_apk, *extra):
+    return ['--distribution_system', 'file', '--file_path', tmp_apk,
+            '--url', BASE_URL, '--token', TOKEN, *extra]
+
+
 def _register_ms_preamble(rsps, apk_md5, engine_status='STARTED', engine_type='ANDROID',
                           apps=None):
     """Everything up to (not including) upload/create, microservices shaped."""
@@ -228,8 +233,34 @@ def test_missing_file_path_exit_2(monkeypatch, tmp_path):
 
 
 def test_scan_without_credentials_exit_2(monkeypatch, tmp_apk):
-    """No --url/--company_id/--token and not --download_only -> argparse error (2)."""
+    """No --url/--token and not --download_only -> argparse error (2)."""
     assert run_main(monkeypatch, ['--distribution_system', 'file', '--file_path', tmp_apk]) == 2
+
+
+def test_download_only_without_scan_credentials_still_succeeds(monkeypatch, tmp_apk):
+    assert run_main(monkeypatch, [
+        '--download_only', '--distribution_system', 'file', '--file_path', tmp_apk,
+    ]) == 0
+
+
+def test_forced_monolith_without_company_id_exit_2(mocked_responses, monkeypatch, tmp_apk,
+                                                   monolith_mode, caplog):
+    assert run_main(monkeypatch, argv_without_company_id(tmp_apk)) == 2
+    assert '--company_id is required for monolith mode' in caplog.text
+    assert not mocked_responses.calls
+
+
+def test_autodetected_monolith_without_company_id_exit_2(mocked_responses, monkeypatch,
+                                                         tmp_apk, caplog):
+    monkeypatch.delenv('MDAST_CLI_MODE', raising=False)
+    monolith_architectures = [{'id': 1, 'name': 'Android 11', 'type': 1}]
+    mocked_responses.add(responses.GET, ARCH, json=monolith_architectures)
+    mocked_responses.add(responses.GET, ARCH, json=monolith_architectures)
+
+    assert run_main(monkeypatch, argv_without_company_id(tmp_apk)) == 2
+    assert '--company_id is required for monolith mode' in caplog.text
+    assert len(mocked_responses.calls) == 2
+    assert all('/organizations/' not in call.request.url for call in mocked_responses.calls)
 
 
 def test_cr_report_without_credentials_exit_2(monkeypatch, tmp_apk):

@@ -20,7 +20,7 @@ MONO_ARCH = [{'id': 1, 'type': 1, 'name': 'Android 11'}]
 
 def test_env_override_microservices(monkeypatch):
     monkeypatch.setenv('MDAST_CLI_MODE', 'microservices')
-    assert resolve_installation_mode(REST_URL, TOKEN, COMPANY_ID) == MODE_MICROSERVICES
+    assert resolve_installation_mode(REST_URL, TOKEN, None) == MODE_MICROSERVICES
 
 
 def test_env_override_monolith(monkeypatch):
@@ -37,7 +37,7 @@ def test_env_invalid_value(monkeypatch):
 def test_autodetect_microservices_by_payload(mocked_responses, monkeypatch):
     monkeypatch.delenv('MDAST_CLI_MODE', raising=False)
     mocked_responses.add(responses.GET, ARCH_URL, json=MS_ARCH)  # Bearer probe
-    assert resolve_installation_mode(REST_URL, TOKEN, COMPANY_ID) == MODE_MICROSERVICES
+    assert resolve_installation_mode(REST_URL, TOKEN, None) == MODE_MICROSERVICES
     assert mocked_responses.calls[0].request.headers['Authorization'] == f'Bearer {TOKEN}'
 
 
