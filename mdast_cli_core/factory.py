@@ -9,8 +9,9 @@ BOTH directions (monolith -> monolith, k8s -> k8s). It is resolved as:
 2. Auto-detection by *content fingerprint*, not just an HTTP 200. Both
    installations expose ``GET {base}/architectures/`` under ``/rest``, but the
    payloads differ structurally:
-     - microservices (scanyon-native): ``type`` is a string ``ANDROID``/``IOS``
-       and each item carries ``os_version``;
+     - microservices (scanyon-native): a list or paginated ``items`` envelope;
+       ``type`` is a string ``ANDROID``/``IOS`` and each item carries
+       ``os_version``;
      - monolith: ``type`` is an integer code (1/2) and there is no ``os_version``.
    Auth scheme also differs (microservices = ``Bearer``, monolith = ``Token``),
    so each probe uses its own scheme. A monolith that happens to answer 200 to a
@@ -66,11 +67,27 @@ def tls_verify_enabled():
     return raw not in ('0', 'false', 'no', 'off')
 
 
+def architecture_items(payload):
+    """Return architecture rows from legacy list or Scanyon Page envelope.
+
+    STG-4892 paginated ``GET /architectures/`` as
+    ``{items, total, page, size, pages}``. Older Scanyon versions and the
+    monolith still return a bare list, so the CLI must accept both shapes.
+    ``None`` distinguishes a malformed payload from a valid empty catalogue.
+    """
+    if isinstance(payload, list):
+        return payload
+    if isinstance(payload, dict) and isinstance(payload.get('items'), list):
+        return payload['items']
+    return None
+
+
 def _looks_microservices(payload):
     """True if an /architectures/ payload is scanyon-native (microservices)."""
-    if not isinstance(payload, list) or not payload:
+    items = architecture_items(payload)
+    if not items:
         return False
-    item = payload[0]
+    item = items[0]
     if not isinstance(item, dict):
         return False
     # scanyon-native: type is a string ANDROID/IOS and os_version is present
@@ -80,9 +97,10 @@ def _looks_microservices(payload):
 
 def _looks_monolith(payload):
     """True if an /architectures/ payload is monolith-shaped (int type code)."""
-    if not isinstance(payload, list) or not payload:
+    items = architecture_items(payload)
+    if not items:
         return False
-    item = payload[0]
+    item = items[0]
     return isinstance(item, dict) and isinstance(item.get('type'), int)
 
 
@@ -242,7 +260,10 @@ def resolve_installation_mode(base_url, ci_token, company_id, mode=None, verify=
 
     # Ambiguous 200 (payload matched neither shape) — do not guess.
     if ms.status == 200 or mono.status == 200:
-        empty_list = ms.payload == [] or mono.payload == []
+        empty_list = (
+            architecture_items(ms.payload) == [] or
+            architecture_items(mono.payload) == []
+        )
         hint = ('The /architectures/ list is empty, so the installation flavour cannot be '
                 'inferred from it. ' if empty_list else
                 'The payload matched neither the microservices (string type + os_version) '

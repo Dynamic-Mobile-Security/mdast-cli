@@ -26,6 +26,7 @@ from mdast_cli.helpers.const import (ACTIVE_STAGES, ANDROID_EXTENSIONS, DEFAULT_
                                      ENGINE_ACTIVE_STATUS, ScanStage, ScanStageStatus)
 from mdast_cli.helpers.exit_codes import ExitCode
 from mdast_cli.helpers.helpers import check_app_md5, resolve_report_targets
+from mdast_cli_core.factory import architecture_items
 from mdast_cli_core.microservices import extract_error_message, mDastMicroservices
 
 logger = logging.getLogger(__name__)
@@ -78,7 +79,8 @@ def resolve_platform(app_file):
 
 def resolve_ms_os_version(architectures, platform):
     """Choose a deterministic Scanyon OS version for a CLI scan."""
-    if not isinstance(architectures, list):
+    architectures = architecture_items(architectures)
+    if architectures is None:
         return None
 
     candidates = [
@@ -314,7 +316,12 @@ def _run_microservices_flow(arguments, url, token, app_file, user_agent, verify)
     architectures_resp = mdast.get_architectures()
     if architectures_resp.status_code != 200:
         _exit_on_http_error(architectures_resp, 'Getting architectures', ExitCode.NETWORK_ERROR)
-    architectures = _json_or_exit(architectures_resp, 'Getting architectures')
+    architectures_payload = _json_or_exit(architectures_resp, 'Getting architectures')
+    architectures = architecture_items(architectures_payload)
+    if architectures is None:
+        logger.error('Getting architectures: unexpected response shape '
+                     '(expected a list or paginated items envelope)')
+        sys.exit(ExitCode.NETWORK_ERROR)
     logger.info(f'Supported architectures: {architectures}')
 
     platform = resolve_platform(app_file)

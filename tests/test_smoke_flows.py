@@ -16,10 +16,15 @@ from tests.conftest import BASE_URL, REST_URL, TOKEN, application_json, run_main
 pytestmark = pytest.mark.smoke
 
 
-def register_ms_happy_path(rsps, apk_md5, with_testcase=True):
-    rsps.add(responses.GET, f'{REST_URL}/architectures/', json=[
+def register_ms_happy_path(rsps, apk_md5, with_testcase=True, paginated_architectures=False):
+    architectures = [
         {'id': 1, 'type': 'ANDROID', 'os_version': '11', 'name': 'Android 11', 'description': 'API 30'},
-    ])
+    ]
+    if paginated_architectures:
+        architectures = {
+            'items': architectures, 'total': 1, 'page': 1, 'size': 50, 'pages': 1,
+        }
+    rsps.add(responses.GET, f'{REST_URL}/architectures/', json=architectures)
     if with_testcase:
         rsps.add(responses.GET, f'{REST_URL}/testcases/5/', json={'id': 5, 'os': 'ANDROID'})
     rsps.add(responses.GET, f'{REST_URL}/engines/', json=[
@@ -100,6 +105,21 @@ def test_ms_full_flow_with_autodetect(mocked_responses, monkeypatch, tmp_path, t
     register_ms_happy_path(mocked_responses, apk_md5)
     exit_code = run_main(monkeypatch, ms_argv(tmp_apk, include_company_id=False))
     assert exit_code == 0
+
+
+def test_ms_full_flow_with_paginated_architectures(mocked_responses, monkeypatch, tmp_path,
+                                                   tmp_apk, apk_md5, no_sleep):
+    """STG-4892 Page envelope must work through detect, OS selection and create."""
+    monkeypatch.delenv('MDAST_CLI_MODE', raising=False)
+    monkeypatch.chdir(tmp_path)
+    register_ms_happy_path(mocked_responses, apk_md5, paginated_architectures=True)
+    exit_code = run_main(monkeypatch, ms_argv(tmp_apk, include_company_id=False))
+    assert exit_code == 0
+    create_calls = [
+        call for call in mocked_responses.calls
+        if call.request.url == f'{REST_URL}/scans/start/'
+    ]
+    assert json.loads(create_calls[0].request.body)['os_version'] == '11'
 
 
 def test_ms_manual_flow_stops_scan(mocked_responses, monkeypatch, tmp_path, tmp_apk, apk_md5,

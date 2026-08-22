@@ -15,6 +15,7 @@ pytestmark = pytest.mark.unit
 
 ARCH_URL = f'{REST_URL}/architectures/'
 MS_ARCH = [{'id': 1, 'type': 'ANDROID', 'os_version': '11', 'name': 'Android 11'}]
+MS_ARCH_PAGE = {'items': MS_ARCH, 'total': 1, 'page': 1, 'size': 50, 'pages': 1}
 MONO_ARCH = [{'id': 1, 'type': 1, 'name': 'Android 11'}]
 
 
@@ -39,6 +40,13 @@ def test_autodetect_microservices_by_payload(mocked_responses, monkeypatch):
     mocked_responses.add(responses.GET, ARCH_URL, json=MS_ARCH)  # Bearer probe
     assert resolve_installation_mode(REST_URL, TOKEN, None) == MODE_MICROSERVICES
     assert mocked_responses.calls[0].request.headers['Authorization'] == f'Bearer {TOKEN}'
+
+
+def test_autodetect_microservices_by_paginated_payload(mocked_responses, monkeypatch):
+    """STG-4892 wraps the Clark/Scanyon catalogue in a Page envelope."""
+    monkeypatch.delenv('MDAST_CLI_MODE', raising=False)
+    mocked_responses.add(responses.GET, ARCH_URL, json=MS_ARCH_PAGE)
+    assert resolve_installation_mode(REST_URL, TOKEN, None) == MODE_MICROSERVICES
 
 
 def test_autodetect_monolith_by_payload(mocked_responses, monkeypatch):
