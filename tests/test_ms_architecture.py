@@ -26,6 +26,21 @@ def test_falls_back_to_first_platform_version():
     assert resolve_ms_os_version(architectures, OS_IOS) == '16'
 
 
+def test_selects_version_from_paginated_scanyon_catalogue():
+    architectures = {
+        'items': [
+            {'type': 'ANDROID', 'os_version': '14', 'name': 'Android 14'},
+            {'type': 'ANDROID', 'os_version': '11', 'name': 'Android 11'},
+        ],
+        'total': 2,
+        'page': 1,
+        'size': 50,
+        'pages': 1,
+    }
+
+    assert resolve_ms_os_version(architectures, OS_ANDROID) == '11'
+
+
 @pytest.mark.parametrize('architectures', [None, {}, [], [{'type': 'ANDROID', 'os_version': ''}]])
 def test_missing_platform_version_returns_none(architectures):
     assert resolve_ms_os_version(architectures, OS_ANDROID) is None
