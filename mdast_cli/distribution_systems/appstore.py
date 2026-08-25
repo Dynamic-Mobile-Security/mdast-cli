@@ -118,8 +118,9 @@ class AppStore(object):
                 pickle.dump(self.store, file)
                 logger.info(f'Dumped session for {self.apple_id}')
         except StoreException as e:
-            raise RuntimeError(f'Failed to download application. Seems like your credentials are incorrect '
-                               f'or your 2FA code expired. Message: {e.req} {e.err_msg} {e.err_type}')
+            raise RuntimeError(f'Failed to log into iTunes. This is either wrong credentials / an expired 2FA '
+                               f'code, or Apple refusing the request from this host. '
+                               f'Message: {e.req} {e.err_msg} {e.err_type}')
 
     def get_app_info(self, app_id=None, bundle_id=None, country='US'):
         if not app_id and not bundle_id:
