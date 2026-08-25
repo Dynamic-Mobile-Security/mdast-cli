@@ -146,3 +146,18 @@ def test_all_endpoints_blocked_raises_actionable_error(_bag_returns_legacy):
         client.authenticate("user@example.com", "secret123456")
 
     assert "Apple-side/network block" in str(exc.value)
+
+
+@pytest.mark.parametrize("status", [301, 302])
+def test_redirect_without_location_is_retried(_bag_returns_legacy, status):
+    """Apple's edge emits bare 30x responses with no Location; that must not abort login."""
+    client = _client([
+        FakeResponse(status, b""),                       # bag/legacy endpoint, broken redirect
+        FakeResponse(status, b""),                       # native endpoint, same
+        FakeResponse(302, headers={"Location": POD_URL}),  # next round: real redirect
+        FakeResponse(200, plistlib.dumps(SUCCESS_PLIST), url=POD_URL),
+    ])
+
+    client.authenticate("user@example.com", "secret123456")
+
+    assert [c["url"] for c in client.sess.calls][-1] == POD_URL

@@ -1,5 +1,6 @@
 import hashlib
 import logging
+import os
 import plistlib
 import re
 import time
@@ -19,10 +20,14 @@ AUTH_HOST = "auth.itunes.apple.com"
 DEFAULT_AUTH_URL = "https://" + AUTH_HOST + "/auth/v1/native/fast/"
 LEGACY_AUTH_URL = "https://buy.itunes.apple.com/WebObjects/MZFinance.woa/wa/authenticate"
 # Statuses that mean "this endpoint is not usable right now" when the body is not a plist.
-AUTH_FALLBACK_STATUSES = (204, 301, 403, 404, 429, 503)
-# Apple's edge is flaky for these requests: a login may need several rounds to go through.
-AUTH_MAX_ROUNDS = 6
-AUTH_ROUND_BACKOFF = 1.5
+# Apple's edge also emits bare 301/302 responses that carry no Location header at all, so
+# the redirect statuses belong here too: without them a broken redirect aborts the login.
+AUTH_FALLBACK_STATUSES = (204, 301, 302, 303, 307, 308, 403, 404, 429, 500, 502, 503)
+# Apple's edge is flaky for these requests: a login may need several rounds to go through,
+# and how many is entirely up to Apple. Both knobs are overridable so operators can crank
+# the retry budget without a code change while Apple's endpoint misbehaves.
+AUTH_MAX_ROUNDS = int(os.environ.get("MDAST_APPSTORE_AUTH_ROUNDS", "6"))
+AUTH_ROUND_BACKOFF = float(os.environ.get("MDAST_APPSTORE_AUTH_BACKOFF", "1.5"))
 AUTH_MAX_REDIRECTS = 4
 BUY_DOMAIN = "buy.itunes.apple.com"
 
