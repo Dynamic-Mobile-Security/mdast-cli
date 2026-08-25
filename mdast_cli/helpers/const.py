@@ -39,6 +39,7 @@ TRY = 360
 LONG_TRY = 60480  # ~1 week at SLEEP_TIMEOUT=10s (matches --long_wait docs)
 END_SCAN_TIMEOUT = 30
 SLEEP_TIMEOUT = 10
+REPORT_TIMEOUT = 1800  # 30 minutes for async report preparation on microservices
 
 # HTTP timeout constants
 HTTP_REQUEST_TIMEOUT = 30

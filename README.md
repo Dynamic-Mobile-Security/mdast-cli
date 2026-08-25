@@ -752,6 +752,15 @@ and/or `--summary_report_json_file_name` overrides the name and forces that form
 > report service returns 502) is a **warning, not a failure**: the scan already
 > succeeded, so the CLI still exits 0 and any other requested report is still saved.
 
+**Asynchronous reports on microservices.** A large PDF can be prepared
+asynchronously: the report endpoint may return `202 Accepted` while the report is
+still being generated. The CLI waits and retries until the endpoint returns `200`,
+using `Retry-After` when the server provides it as integer seconds, otherwise
+falling back to 10 seconds. Use `--report-timeout <seconds>` (alias:
+`--report_timeout`) to control the maximum wait for report readiness. The default
+is 1800 seconds (30 minutes). If the timeout is reached, the scan still stays
+successful and the report step is reported as a warning.
+
 > **In Docker:** the default `scan_report_<scan_id>.*` name is written to the
 > container's working directory, which is discarded when the container exits. Mount
 > a host directory and point the report there with an absolute path (e.g.

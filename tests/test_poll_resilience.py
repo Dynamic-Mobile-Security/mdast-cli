@@ -88,3 +88,81 @@ def test_report_network_exception_then_success(client, no_sleep):
     fetch = mock.Mock(side_effect=seq)
     resp = ms_flow._download_report(fetch, 55, 'PDF report')
     assert resp is resp_ok
+
+
+def test_report_202_then_202_then_success(client, mocked_responses, monkeypatch):
+    """Async report preparation is polled until the final 200 response."""
+    sleeps = []
+    monkeypatch.setattr(ms_flow.time, 'sleep', sleeps.append)
+    mocked_responses.add(responses.GET, REPORT_URL, status=202,
+                         headers={'Retry-After': '30'})
+    mocked_responses.add(responses.GET, REPORT_URL, status=202)
+    mocked_responses.add(responses.GET, REPORT_URL, body=b'%PDF-1.4 x',
+                         content_type='application/pdf')
+
+    resp = ms_flow._download_report(client.download_report, 55, 'PDF report',
+                                    report_timeout=120)
+
+    assert resp is not None
+    assert resp.content == b'%PDF-1.4 x'
+    assert sleeps == [30, ms_flow.SLEEP_TIMEOUT]
+
+
+def test_report_202_does_not_consume_transient_retry_budget(client, mocked_responses,
+                                                            no_sleep, monkeypatch):
+    """HTTP 202 is a normal pending state, not one of transient retry attempts."""
+    monkeypatch.setattr(ms_flow, 'POLL_TRANSIENT_RETRIES', 2)
+    for _ in range(5):
+        mocked_responses.add(responses.GET, REPORT_URL, status=202)
+    mocked_responses.add(responses.GET, REPORT_URL, body=b'%PDF-1.4 x',
+                         content_type='application/pdf')
+
+    resp = ms_flow._download_report(client.download_report, 55, 'PDF report',
+                                    report_timeout=120)
+
+    assert resp is not None
+    assert len([c for c in mocked_responses.calls if c.request.url.startswith(REPORT_URL)]) == 6
+
+
+def test_report_invalid_retry_after_uses_default_sleep(client, mocked_responses, monkeypatch):
+    """Retry-After is deliberately supported only as integer seconds."""
+    sleeps = []
+    monkeypatch.setattr(ms_flow.time, 'sleep', sleeps.append)
+    mocked_responses.add(responses.GET, REPORT_URL, status=202,
+                         headers={'Retry-After': 'later'})
+    mocked_responses.add(responses.GET, REPORT_URL, body=b'%PDF-1.4 x',
+                         content_type='application/pdf')
+
+    resp = ms_flow._download_report(client.download_report, 55, 'PDF report',
+                                    report_timeout=120)
+
+    assert resp is not None
+    assert sleeps == [ms_flow.SLEEP_TIMEOUT]
+
+
+def test_report_202_timeout_soft_fails_to_none(monkeypatch):
+    """A report that stays pending past the report timeout remains a soft-fail."""
+    resp_pending = mock.Mock(status_code=202, headers={})
+    fetch = mock.Mock(return_value=resp_pending)
+    monotonic_values = iter([0, 2])
+    monkeypatch.setattr(ms_flow.time, 'monotonic', lambda: next(monotonic_values))
+
+    resp = ms_flow._download_report(fetch, 55, 'PDF report', report_timeout=1)
+
+    assert resp is None
+    assert fetch.call_count == 1
+
+
+def test_report_202_then_transient_then_success(client, mocked_responses, no_sleep):
+    """Transient failures during async report waiting use their own retry budget."""
+    mocked_responses.add(responses.GET, REPORT_URL, status=202)
+    mocked_responses.add(responses.GET, REPORT_URL, status=502, json={'error_code': 'busy'})
+    mocked_responses.add(responses.GET, REPORT_URL, status=202)
+    mocked_responses.add(responses.GET, REPORT_URL, body=b'%PDF-1.4 x',
+                         content_type='application/pdf')
+
+    resp = ms_flow._download_report(client.download_report, 55, 'PDF report',
+                                    report_timeout=120)
+
+    assert resp is not None
+    assert resp.content == b'%PDF-1.4 x'
