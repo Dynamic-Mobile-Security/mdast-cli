@@ -12,7 +12,11 @@ from requests.adapters import HTTPAdapter
 from urllib3 import Retry
 from tqdm import tqdm
 
-from mdast_cli.distribution_systems.appstore_client.store import StoreClient, StoreException
+from mdast_cli.distribution_systems.appstore_client.store import (
+    FAILURE_LICENSE_NOT_FOUND,
+    StoreClient,
+    StoreException,
+)
 from mdast_cli.helpers.file_utils import ensure_download_dir, cleanup_file
 
 logger = logging.getLogger(__name__)
@@ -126,7 +130,9 @@ class AppStore(object):
         if not app_id and not bundle_id:
             raise 'One of properties ApplicationID or BundleID should be set'
 
-        self.login(True)
+        # Deliberately not a forced login: Apple's auth endpoint is unreliable, so an
+        # already established session is worth far more than a fresh one.
+        self.login()
         resp_info = self.store.find_app(app_id=app_id, bundle_id=bundle_id, country=country).json()
         try:
             app_info = resp_info['results'][0]
@@ -162,24 +168,23 @@ class AppStore(object):
             app_id = app_info["trackId"]
 
         logger.info(f'Trying to purchase app with id {app_id}')
-        purchase_resp = self.store.purchase(app_id)
-        logger.debug(
-            'Purchase response: status_code=%s, content_length=%s',
-            purchase_resp.status_code,
-            len(purchase_resp.content),
-        )
-        if purchase_resp.status_code == 200:
+        if self.store.purchase(app_id):
             logger.info(f'App was successfully purchased for {self.apple_id} account')
-        elif purchase_resp.status_code == 500:
-            logger.info(f'This app was purchased before for {self.apple_id} account')
         else:
-            logger.warning(
-                'Unexpected purchase response: status_code=%s, body_preview=%r',
-                purchase_resp.status_code,
-                (purchase_resp.text[:500] if purchase_resp.text else ''),
-            )
+            logger.info(f'This app was purchased before for {self.apple_id} account')
         logger.info(f'Retrieving download info for app with id: {app_id}')
         try:
+            download_resp = self.store.download(app_id)
+        except StoreException as e:
+            if e.err_type != FAILURE_LICENSE_NOT_FOUND:
+                logger.warning(
+                    'store.download failed: failureType=%s, app_id=%s', e.err_type, app_id,
+                )
+                raise
+            # Apple occasionally reports the license as missing right after a successful
+            # purchase; buying once more and retrying clears it.
+            logger.info('No license found for this app yet, purchasing again and retrying')
+            self.store.purchase(app_id)
             download_resp = self.store.download(app_id)
         except Exception as e:
             logger.warning(
@@ -189,15 +194,6 @@ class AppStore(object):
                 exc_info=True,
             )
             raise
-        if not download_resp.songList:
-            logger.error(
-                'Download response has no songList: cancel_purchase_batch=%s, '
-                'customerMessage=%r',
-                getattr(download_resp, 'cancel_purchase_batch', None),
-                getattr(download_resp, 'customerMessage', None),
-            )
-            raise RuntimeError('Failed to get app download info! Check your parameters')
-
         downloaded_app_info = download_resp.songList[0]
         logger.debug(
             'Download info: songId=%s, bundleId=%s, version=%s, URL present=%s',

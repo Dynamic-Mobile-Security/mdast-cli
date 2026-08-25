@@ -53,8 +53,27 @@ class _AuthEndpointUnusable(Exception):
         super().__init__("auth endpoint unusable (HTTP %s) %s" % (status_code, detail))
 
 
-PURCHASE_PATH = "/WebObjects/MZBuy.woa/wa/buyProduct"
+# buyProduct lives on MZFinance, not MZBuy: the MZBuy variant answers HTTP 200 with
+# m-allowed=False / cancel-purchase-batch=True ("Unable to process your request.") for
+# every app, so no license is ever created and the download that follows fails with
+# failureType 9610. Verified against Apple in August 2026; ipatool uses the same path.
+PURCHASE_PATH = "/WebObjects/MZFinance.woa/wa/buyProduct"
 DOWNLOAD_PATH = "/WebObjects/MZFinance.woa/wa/volumeStoreDownloadProduct"
+
+# Apple failure types (mirrors ipatool pkg/appstore/constants.go).
+FAILURE_INVALID_CREDENTIALS = '-5000'
+FAILURE_DEVICE_VERIFICATION_FAILED = '1008'
+FAILURE_PASSWORD_TOKEN_EXPIRED = '2034'
+FAILURE_SIGN_IN_REQUIRED = '2042'
+FAILURE_TEMPORARILY_UNAVAILABLE = '2059'
+FAILURE_LICENSE_ALREADY_EXISTS = '5002'
+FAILURE_LICENSE_NOT_FOUND = '9610'
+# Failure types that mean "the session went stale, log in again and retry".
+FAILURES_NEEDING_REAUTH = (
+    FAILURE_DEVICE_VERIFICATION_FAILED,
+    FAILURE_PASSWORD_TOKEN_EXPIRED,
+    FAILURE_SIGN_IN_REQUIRED,
+)
 
 from mdast_cli.distribution_systems.appstore_client.schemas.store_authenticate_req import StoreAuthenticateReq
 from mdast_cli.distribution_systems.appstore_client.schemas.store_authenticate_resp import StoreAuthenticateResp
@@ -321,7 +340,13 @@ class StoreClient(object):
                              },
                              verify=False)
 
-    def purchase(self, app_id, productType='C'):
+    def purchase(self, app_id, productType='C', pricingParameters='STDQ'):
+        """Acquire a license for the app.
+
+        Returns True when a new license was created, False when the account already
+        owned it. Raises StoreException when Apple refuses - notably the response is a
+        HTTP 200 either way, so the plist has to be inspected rather than the status.
+        """
         url = "https://%s%s" % (self._buy_host(), PURCHASE_PATH)
         req = StoreBuyproductReq(
             guid=self.guid,
@@ -330,23 +355,50 @@ class StoreClient(object):
 
             price='0',
             productType=productType,
-            pricingParameters='STDQ',
+            pricingParameters=pricingParameters,
 
             hasAskedToFulfillPreorder='true',
             buyWithoutAuthorization='true',
             hasDoneAgeCheck='true',
         )
-        payload = req.as_dict()
 
-        return self.sess.post(
+        r = self.sess.post(
             url,
             headers={
                 "Content-Type": "application/x-apple-plist",
                 "User-Agent": APPSTORE_USER_AGENT,
             },
-            data=plistlib.dumps(payload),
+            data=plistlib.dumps(req.as_dict()),
             verify=False,
+            timeout=60,
         )
+        logger.debug("buyProduct response: status=%s, content_length=%s", r.status_code, len(r.content))
+
+        try:
+            data = plistlib.loads(r.content)
+        except plistlib.InvalidFileException as e:
+            _log_response_on_plist_error(r, "buyProduct")
+            raise StoreException(
+                "buyProduct", "Server response is not valid plist. See log for response details.", None,
+            ) from e
+
+        failure_type = str(data.get('failureType') or '')
+        message = data.get('customerMessage') or ''
+
+        # Apple reports "already owned" either as failureType 5002 or as a bare HTTP 500.
+        if failure_type == FAILURE_LICENSE_ALREADY_EXISTS or r.status_code == 500:
+            logger.info('App is already licensed for this Apple ID')
+            return False
+        if failure_type or data.get('cancel-purchase-batch') or data.get('m-allowed') is False:
+            logger.warning(
+                "buyProduct rejected: failureType=%r, customerMessage=%r, app_id=%s",
+                failure_type, message, app_id,
+            )
+            raise StoreException('buyProduct', message or 'failed to purchase app', failure_type or None)
+        if data.get('jingleDocType') != 'purchaseSuccess' or data.get('status') != 0:
+            raise StoreException('buyProduct', message or 'failed to purchase app', failure_type or None)
+
+        return True
 
     def download(self, app_id, app_ver_id=""):
         req = StoreDownloadReq(creditDisplay="", guid=self.guid, salableAdamId=app_id, appExtVrsId=app_ver_id)
@@ -375,7 +427,11 @@ class StoreClient(object):
                 "Server response is not valid plist. See log for response details.",
                 None,
             ) from e
-        if resp.cancel_purchase_batch:
+        failure_type = str(resp.failureType or '')
+        # No songList means no download info, whatever the HTTP status says. Surface
+        # Apple's own failure type so callers can react: 9610 means the account holds no
+        # license for the app (buy it first), 1008/2034/2042 mean the session went stale.
+        if resp.cancel_purchase_batch or failure_type or not resp.songList:
             logger.warning(
                 "App Store download rejected: customerMessage=%r, failureType=%r, app_id=%s",
                 resp.customerMessage,
@@ -383,7 +439,9 @@ class StoreClient(object):
                 app_id,
             )
             raise StoreException(
-                "volumeStoreDownloadProduct", resp.customerMessage, resp.failureType
+                "volumeStoreDownloadProduct",
+                resp.customerMessage or 'Apple returned no download info for this app',
+                failure_type or None,
             )
         return resp
 

@@ -161,3 +161,64 @@ def test_redirect_without_location_is_retried(_bag_returns_legacy, status):
     client.authenticate("user@example.com", "secret123456")
 
     assert [c["url"] for c in client.sess.calls][-1] == POD_URL
+
+
+# --- purchase / download -----------------------------------------------------------
+# buyProduct on MZBuy answers HTTP 200 with m-allowed=False for every app, so no license
+# is ever created and the download that follows fails with failureType 9610. The license
+# only gets created on the MZFinance path.
+
+def _authed_client(responses):
+    client = _client(responses)
+    client.pod = "12"
+    return client
+
+
+def test_purchase_uses_mzfinance_path():
+    client = _authed_client([FakeResponse(200, plistlib.dumps({"jingleDocType": "purchaseSuccess", "status": 0}))])
+
+    assert client.purchase("310633997") is True
+    assert client.sess.calls[0]["url"] == "https://p12-buy.itunes.apple.com/WebObjects/MZFinance.woa/wa/buyProduct"
+
+
+def test_purchase_reports_already_owned():
+    client = _authed_client([FakeResponse(200, plistlib.dumps({"failureType": "5002",
+                                                               "customerMessage": "An unknown error has occurred"}))])
+
+    assert client.purchase("310633997") is False
+
+
+def test_purchase_rejection_is_not_reported_as_success():
+    """HTTP 200 + m-allowed=False is a refusal; the old code logged it as a success."""
+    refusal = {"failureType": "", "m-allowed": False, "cancel-purchase-batch": True,
+               "customerMessage": "Unable to process your request."}
+    client = _authed_client([FakeResponse(200, plistlib.dumps(refusal))])
+
+    with pytest.raises(StoreException) as exc:
+        client.purchase("310633997")
+
+    assert "Unable to process your request." in str(exc.value)
+
+
+def test_download_without_songlist_surfaces_failure_type():
+    client = _authed_client([FakeResponse(200, plistlib.dumps({"failureType": "9610",
+                                                               "customerMessage": "License not found."}))])
+
+    with pytest.raises(StoreException) as exc:
+        client.download("284882215")
+
+    assert exc.value.err_type == "9610"
+    assert "License not found." in str(exc.value)
+
+
+def test_download_returns_song_list():
+    payload = {"songList": [{"songId": 1, "URL": "https://example.invalid/app.ipa", "md5": "abc",
+                             "metadata": {"bundleDisplayName": "App", "bundleShortVersionString": "1.0",
+                                          "softwareVersionBundleId": "com.example.app"}}]}
+    client = _authed_client([FakeResponse(200, plistlib.dumps(payload))])
+
+    resp = client.download("389801252")
+
+    assert len(resp.songList) == 1
+    assert client.sess.calls[0]["url"].startswith(
+        "https://p12-buy.itunes.apple.com/WebObjects/MZFinance.woa/wa/volumeStoreDownloadProduct?guid=")
