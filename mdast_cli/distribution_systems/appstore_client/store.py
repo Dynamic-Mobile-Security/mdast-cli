@@ -2,6 +2,7 @@ import hashlib
 import logging
 import os
 import plistlib
+import random
 import re
 import time
 from typing import Optional
@@ -23,11 +24,15 @@ LEGACY_AUTH_URL = "https://buy.itunes.apple.com/WebObjects/MZFinance.woa/wa/auth
 # Apple's edge also emits bare 301/302 responses that carry no Location header at all, so
 # the redirect statuses belong here too: without them a broken redirect aborts the login.
 AUTH_FALLBACK_STATUSES = (204, 301, 302, 303, 307, 308, 403, 404, 429, 500, 502, 503)
-# Apple's edge is flaky for these requests: a login may need several rounds to go through,
-# and how many is entirely up to Apple. Both knobs are overridable so operators can crank
-# the retry budget without a code change while Apple's endpoint misbehaves.
-AUTH_MAX_ROUNDS = int(os.environ.get("MDAST_APPSTORE_AUTH_ROUNDS", "6"))
-AUTH_ROUND_BACKOFF = float(os.environ.get("MDAST_APPSTORE_AUTH_BACKOFF", "1.5"))
+# Apple throttles this endpoint by request rate, not by attempt count: measured in
+# August 2026, 80 closely spaced requests got 0 usable answers, while a single request
+# after two minutes of silence logged in immediately. So the backoff grows exponentially
+# and is what actually matters here - hammering harder makes things strictly worse.
+# Jitter keeps parallel CLI runs from lining up into a burst of their own.
+AUTH_MAX_ROUNDS = int(os.environ.get("MDAST_APPSTORE_AUTH_ROUNDS", "8"))
+AUTH_ROUND_BACKOFF = float(os.environ.get("MDAST_APPSTORE_AUTH_BACKOFF", "20"))
+AUTH_MAX_BACKOFF = float(os.environ.get("MDAST_APPSTORE_AUTH_MAX_BACKOFF", "150"))
+AUTH_BACKOFF_JITTER = 5.0
 AUTH_MAX_REDIRECTS = 4
 BUY_DOMAIN = "buy.itunes.apple.com"
 
@@ -74,6 +79,10 @@ FAILURES_NEEDING_REAUTH = (
     FAILURE_PASSWORD_TOKEN_EXPIRED,
     FAILURE_SIGN_IN_REQUIRED,
 )
+# 5002 is context dependent: on buyProduct it means the account already owns the app
+# (success), but on volumeStoreDownloadProduct Apple reuses it for a stale session and
+# only a fresh login clears it. ipatool maps it the same way (majd/ipatool#468).
+FAILURES_NEEDING_REAUTH_ON_DOWNLOAD = FAILURES_NEEDING_REAUTH + (FAILURE_LICENSE_ALREADY_EXISTS,)
 
 from mdast_cli.distribution_systems.appstore_client.schemas.store_authenticate_req import StoreAuthenticateReq
 from mdast_cli.distribution_systems.appstore_client.schemas.store_authenticate_resp import StoreAuthenticateResp
@@ -283,11 +292,14 @@ class StoreClient(object):
                         auth_url, e.status_code, e.detail,
                     )
             if round_no < AUTH_MAX_ROUNDS:
+                delay = min(AUTH_ROUND_BACKOFF * (2 ** (round_no - 1)), AUTH_MAX_BACKOFF)
+                delay += random.uniform(0, AUTH_BACKOFF_JITTER)
                 logger.info(
-                    "All App Store auth endpoints failed (round %s/%s), retrying in %ss",
-                    round_no, AUTH_MAX_ROUNDS, AUTH_ROUND_BACKOFF,
+                    "All App Store auth endpoints failed (round %s/%s), waiting %.0fs before "
+                    "retrying - Apple throttles by request rate, so backing off is what helps",
+                    round_no, AUTH_MAX_ROUNDS, delay,
                 )
-                time.sleep(min(AUTH_ROUND_BACKOFF * round_no, 8.0))
+                time.sleep(delay)
 
         raise StoreException(
             "authenticate",

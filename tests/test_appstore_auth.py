@@ -222,3 +222,15 @@ def test_download_returns_song_list():
     assert len(resp.songList) == 1
     assert client.sess.calls[0]["url"].startswith(
         "https://p12-buy.itunes.apple.com/WebObjects/MZFinance.woa/wa/volumeStoreDownloadProduct?guid=")
+
+
+def test_5002_means_already_owned_on_purchase_but_stale_session_on_download():
+    """Apple reuses failureType 5002 for two different things; the fix must not conflate them."""
+    from mdast_cli.distribution_systems.appstore_client.store import (
+        FAILURES_NEEDING_REAUTH, FAILURES_NEEDING_REAUTH_ON_DOWNLOAD, FAILURE_LICENSE_ALREADY_EXISTS)
+
+    assert FAILURE_LICENSE_ALREADY_EXISTS not in FAILURES_NEEDING_REAUTH
+    assert FAILURE_LICENSE_ALREADY_EXISTS in FAILURES_NEEDING_REAUTH_ON_DOWNLOAD
+
+    client = _authed_client([FakeResponse(200, plistlib.dumps({"failureType": "5002"}))])
+    assert client.purchase("389801252") is False  # purchase: already owned, not an error

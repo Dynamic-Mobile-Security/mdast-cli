@@ -14,7 +14,7 @@ from tqdm import tqdm
 
 from mdast_cli.distribution_systems.appstore_client.store import (
     FAILURE_LICENSE_NOT_FOUND,
-    FAILURES_NEEDING_REAUTH,
+    FAILURES_NEEDING_REAUTH_ON_DOWNLOAD,
     StoreClient,
     StoreException,
 )
@@ -286,7 +286,7 @@ class AppStore(object):
                 self.login(force=force)
                 return self._download_app_int(download_path, app_id, bundle_id, country, file_name)
             except StoreException as e:
-                session_is_stale = self.login_by_session and e.err_type in FAILURES_NEEDING_REAUTH
+                session_is_stale = self.login_by_session and e.err_type in FAILURES_NEEDING_REAUTH_ON_DOWNLOAD
                 if not session_is_stale:
                     raise RuntimeError(f'Failed to download application from App Store. '
                                        f'Message: {e.req} {e.err_msg} {e.err_type}')
