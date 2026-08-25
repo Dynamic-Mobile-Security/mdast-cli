@@ -14,6 +14,7 @@ from tqdm import tqdm
 
 from mdast_cli.distribution_systems.appstore_client.store import (
     FAILURE_LICENSE_NOT_FOUND,
+    FAILURES_NEEDING_REAUTH,
     StoreClient,
     StoreException,
 )
@@ -275,16 +276,20 @@ class AppStore(object):
         return file_path, md5
 
     def download_app(self, download_path, app_id=None, bundle_id=None, country='US', file_name=None):
-        file_path, md5 = None, None
-        for force in (False, True):  # try first time with possible stored session, second time with forced login
+        # A stored session is retried once with a forced re-login, but only when Apple
+        # says the session itself went stale. Forcing a re-login drops the session cache,
+        # and Apple's auth endpoint is currently unreliable enough that throwing away a
+        # working session over an unrelated error (a missing license, say) can leave the
+        # download unrecoverable.
+        for force in (False, True):
             try:
                 self.login(force=force)
-                file_path, md5 = self._download_app_int(download_path, app_id, bundle_id, country, file_name)
-                break
+                return self._download_app_int(download_path, app_id, bundle_id, country, file_name)
             except StoreException as e:
-                if not self.login_by_session:  # login by credentials, still with error
-                    raise RuntimeError(f'Failed to download application. Seems like your app_id does not exist '
-                                       f'or you did not purchase this paid app from apple account before. '
+                session_is_stale = self.login_by_session and e.err_type in FAILURES_NEEDING_REAUTH
+                if not session_is_stale:
+                    raise RuntimeError(f'Failed to download application from App Store. '
                                        f'Message: {e.req} {e.err_msg} {e.err_type}')
+                logger.info('App Store session went stale (failureType %s), logging in again', e.err_type)
 
-        return file_path, md5
+        return None, None
