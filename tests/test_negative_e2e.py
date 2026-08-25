@@ -67,6 +67,10 @@ def test_mode_detection_unreachable_exit_6(mocked_responses, monkeypatch, tmp_ap
     assert run_main(monkeypatch, base_argv(tmp_apk)) == 6
 
 
+def test_report_timeout_must_be_positive(monkeypatch, tmp_apk):
+    assert run_main(monkeypatch, base_argv(tmp_apk, '--report-timeout', '0')) == 2
+
+
 # --- upload -----------------------------------------------------------------
 
 def test_ms_upload_gateway_502_exhausted_exit_6(mocked_responses, monkeypatch, tmp_apk,

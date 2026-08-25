@@ -21,9 +21,9 @@ import requests
 
 from mdast_cli.helpers.const import (ACTIVE_STAGES, ANDROID_EXTENSIONS, DEFAULT_ANDROID_ARCHITECTURE,
                                      DEFAULT_IOS_ARCHITECTURE, END_SCAN_TIMEOUT, LONG_TRY, OS_ANDROID,
-                                     OS_IOS, PRE_START_STAGES, SLEEP_TIMEOUT, TERMINAL_SCAN_PAIRS, TRY,
-                                     UPLOAD_TIMEOUT_ENV_VAR, UPLOAD_TIMEOUT_MAX, UPLOAD_TIMEOUT_MIN,
-                                     ENGINE_ACTIVE_STATUS, ScanStage, ScanStageStatus)
+                                     OS_IOS, PRE_START_STAGES, REPORT_TIMEOUT, SLEEP_TIMEOUT,
+                                     TERMINAL_SCAN_PAIRS, TRY, UPLOAD_TIMEOUT_ENV_VAR, UPLOAD_TIMEOUT_MAX,
+                                     UPLOAD_TIMEOUT_MIN, ENGINE_ACTIVE_STATUS, ScanStage, ScanStageStatus)
 from mdast_cli.helpers.exit_codes import ExitCode
 from mdast_cli.helpers.helpers import check_app_md5, resolve_report_targets
 from mdast_cli_core.factory import architecture_items
@@ -562,12 +562,13 @@ def download_reports(mdast, scan_id, arguments):
     ignored - the local file name is a CLI argument.
     """
     targets = resolve_report_targets(arguments, scan_id)
+    report_timeout = getattr(arguments, 'report_timeout', REPORT_TIMEOUT)
     failures = []
 
     if 'pdf' in targets:
         target = targets['pdf']
         logger.info(f'Create and download pdf report for scan {scan_id} to file {target}.')
-        resp = _download_report(mdast.download_report, scan_id, 'PDF report')
+        resp = _download_report(mdast.download_report, scan_id, 'PDF report', report_timeout=report_timeout)
         if resp is None:
             failures.append('PDF')
         else:
@@ -578,7 +579,7 @@ def download_reports(mdast, scan_id, arguments):
     if 'json' in targets:
         target = targets['json']
         logger.info(f'Download JSON summary report for scan {scan_id} to file {target}.')
-        resp = _download_report(mdast.download_scan_json_result, scan_id, 'JSON report')
+        resp = _download_report(mdast.download_scan_json_result, scan_id, 'JSON report', report_timeout=report_timeout)
         if resp is None:
             failures.append('JSON')
         else:
@@ -600,28 +601,71 @@ def download_reports(mdast, scan_id, arguments):
                        'Retry the report download later.')
 
 
-def _download_report(fetch, scan_id, label):
-    """Download one report with transient retry. Returns Response or None (soft-fail)."""
+def _retry_after_delay(resp, label):
+    """Retry-After support is intentionally limited to integer seconds."""
+    raw = resp.headers.get('Retry-After')
+    if raw in (None, ''):
+        return SLEEP_TIMEOUT
+    try:
+        delay = int(raw)
+    except ValueError:
+        logger.warning(f'{label} returned invalid Retry-After={sanitize(raw)!r}; '
+                       f'using {SLEEP_TIMEOUT} seconds.')
+        return SLEEP_TIMEOUT
+    if delay < 0:
+        logger.warning(f'{label} returned negative Retry-After={delay}; '
+                       f'using {SLEEP_TIMEOUT} seconds.')
+        return SLEEP_TIMEOUT
+    return delay
+
+
+def _download_report(fetch, scan_id, label, report_timeout=REPORT_TIMEOUT):
+    """Download one report, waiting for async 202 and retrying transient errors."""
     last = None
-    for attempt in range(POLL_TRANSIENT_RETRIES):
+    transient_attempts = 0
+    deadline = time.monotonic() + report_timeout
+
+    while True:
         try:
             resp = fetch(scan_id)
         except requests.RequestException as ex:
+            transient_attempts += 1
             logger.warning(f'{label} request failed ({type(ex).__name__}), '
-                           f'retry {attempt + 1}/{POLL_TRANSIENT_RETRIES}')
-            if attempt + 1 < POLL_TRANSIENT_RETRIES:
+                           f'retry {transient_attempts}/{POLL_TRANSIENT_RETRIES}')
+            if transient_attempts < POLL_TRANSIENT_RETRIES:
                 time.sleep(SLEEP_TIMEOUT)
-            continue
+                continue
+            break
+
         if resp.status_code == 200:
             return resp
-        last = resp
-        if resp.status_code in POLL_TRANSIENT_CODES and attempt + 1 < POLL_TRANSIENT_RETRIES:
-            logger.warning(f'{label} returned {resp.status_code} (transient), '
-                           f'retry {attempt + 1}/{POLL_TRANSIENT_RETRIES}')
-            time.sleep(SLEEP_TIMEOUT)
+
+        if resp.status_code == 202:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                logger.error(f'{label} was not ready within {report_timeout} seconds. '
+                             'Retry the report download later.')
+                return None
+
+            delay = min(_retry_after_delay(resp, label), remaining)
+            logger.info(f'{label} is still being prepared (HTTP 202), '
+                        f'waiting {delay:.0f} seconds before retry.')
+            time.sleep(delay)
             continue
+
+        last = resp
+        if resp.status_code in POLL_TRANSIENT_CODES:
+            transient_attempts += 1
+            if transient_attempts < POLL_TRANSIENT_RETRIES:
+                logger.warning(f'{label} returned {resp.status_code} (transient), '
+                               f'retry {transient_attempts}/{POLL_TRANSIENT_RETRIES}')
+                time.sleep(SLEEP_TIMEOUT)
+                continue
         break
+
     if last is not None:
         logger.error(f'{label} download failed (HTTP {last.status_code}): '
                      f'{sanitize(extract_error_message(last))}')
+    else:
+        logger.error(f'{label} download failed after {POLL_TRANSIENT_RETRIES} attempts (network).')
     return None

@@ -24,7 +24,8 @@ from mdast_cli.distribution_systems.nexus2 import Nexus2Repository
 from mdast_cli.distribution_systems.rumarket import rumarket_download_app
 from mdast_cli.distribution_systems.rustore import rustore_download_app
 from mdast_cli.helpers.const import (ANDROID_EXTENSIONS, DEFAULT_ANDROID_ARCHITECTURE, DEFAULT_IOS_ARCHITECTURE,
-                                     END_SCAN_TIMEOUT, LONG_TRY, SLEEP_TIMEOUT, TRY, DastState, DastStateDict)
+                                     END_SCAN_TIMEOUT, LONG_TRY, REPORT_TIMEOUT, SLEEP_TIMEOUT, TRY, DastState,
+                                     DastStateDict)
 from mdast_cli.helpers.exit_codes import ExitCode
 from mdast_cli.helpers.helpers import check_app_md5, resolve_report_targets
 from mdast_cli_core.token import mDastToken as mDast
@@ -348,6 +349,10 @@ For detailed information about specific distribution system see README.md
                            help='File name for saving PDF report with scan results. '
                                 'Optional parameter. If specified, the PDF report will be saved to this file '
                                 '(implies --report_format pdf).')
+    scan_group.add_argument('--report-timeout', '--report_timeout', dest='report_timeout', type=int,
+                           default=REPORT_TIMEOUT,
+                           help='Maximum time in seconds to wait for asynchronous report preparation '
+                                f'on microservices installations. Default: {REPORT_TIMEOUT}.')
     scan_group.add_argument('--nowait', '-nw', action='store_true',
                            help='Do not wait for scan completion. '
                                 'If set, utility will start scan and exit immediately. '
@@ -399,6 +404,9 @@ For detailed information about specific distribution system see README.md
 
 
     args = parser.parse_args()
+
+    if args.report_timeout <= 0:
+        parser.error('--report-timeout must be a positive integer number of seconds')
 
     if args.distribution_system == 'file' and args.file_path is None:
         parser.error('"--distribution_system file" requires "--file_path" argument to be set')
