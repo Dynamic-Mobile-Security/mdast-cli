@@ -224,13 +224,64 @@ def test_download_returns_song_list():
         "https://p12-buy.itunes.apple.com/WebObjects/MZFinance.woa/wa/volumeStoreDownloadProduct?guid=")
 
 
-def test_5002_means_already_owned_on_purchase_but_stale_session_on_download():
+def test_5002_means_already_owned_on_purchase_but_a_random_failure_on_download():
     """Apple reuses failureType 5002 for two different things; the fix must not conflate them."""
     from mdast_cli.distribution_systems.appstore_client.store import (
-        FAILURES_NEEDING_REAUTH, FAILURES_NEEDING_REAUTH_ON_DOWNLOAD, FAILURE_LICENSE_ALREADY_EXISTS)
+        DOWNLOAD_RETRY_FAILURES, FAILURES_NEEDING_REAUTH, FAILURE_LICENSE_ALREADY_EXISTS)
 
+    # Not a stale session: a fresh login does not clear it, so re-authenticating is wasted.
     assert FAILURE_LICENSE_ALREADY_EXISTS not in FAILURES_NEEDING_REAUTH
-    assert FAILURE_LICENSE_ALREADY_EXISTS in FAILURES_NEEDING_REAUTH_ON_DOWNLOAD
+    assert FAILURE_LICENSE_ALREADY_EXISTS in DOWNLOAD_RETRY_FAILURES
 
     client = _authed_client([FakeResponse(200, plistlib.dumps({"failureType": "5002"}))])
     assert client.purchase("389801252") is False  # purchase: already owned, not an error
+
+
+def test_download_info_retries_through_random_5002(monkeypatch):
+    """Apple throws 5002 at random; repeating the same request clears it."""
+    from mdast_cli.distribution_systems import appstore as appstore_mod
+
+    monkeypatch.setattr(appstore_mod.time, "sleep", lambda *_: None)
+    store = _authed_client([
+        FakeResponse(200, plistlib.dumps({"failureType": "5002"})),
+        FakeResponse(200, plistlib.dumps({"failureType": "5002"})),
+        FakeResponse(200, plistlib.dumps({"songList": [{"songId": 1, "URL": "https://x.invalid",
+                                                        "md5": "abc", "metadata": {}}]})),
+    ])
+    app = appstore_mod.AppStore.__new__(appstore_mod.AppStore)
+    app.store = store
+
+    resp = app._download_info_with_retries("389801252")
+
+    assert len(resp.songList) == 1
+    assert len(store.sess.calls) == 3  # two failures ridden out, no re-login
+
+
+def test_download_info_buys_a_missing_license_then_retries(monkeypatch):
+    from mdast_cli.distribution_systems import appstore as appstore_mod
+
+    monkeypatch.setattr(appstore_mod.time, "sleep", lambda *_: None)
+    store = _authed_client([
+        FakeResponse(200, plistlib.dumps({"failureType": "9610", "customerMessage": "License not found."})),
+        FakeResponse(200, plistlib.dumps({"jingleDocType": "purchaseSuccess", "status": 0})),
+        FakeResponse(200, plistlib.dumps({"songList": [{"songId": 1, "URL": "https://x.invalid",
+                                                        "md5": "abc", "metadata": {}}]})),
+    ])
+    app = appstore_mod.AppStore.__new__(appstore_mod.AppStore)
+    app.store = store
+
+    resp = app._download_info_with_retries("284882215")
+
+    assert len(resp.songList) == 1
+    assert "buyProduct" in store.sess.calls[1]["url"]
+
+
+@pytest.mark.parametrize("raw,expected", [
+    ("‎WhatsApp", "WhatsApp"),          # Apple ships a bidi mark in bundleDisplayName
+    ("Instagram", "Instagram"),
+    ("Foo/Bar", "FooBar"),                   # a separator would redirect the download path
+    ("‎", "application"),               # nothing printable left
+])
+def test_sanitize_file_name(raw, expected):
+    from mdast_cli.distribution_systems.appstore import sanitize_file_name
+    assert sanitize_file_name(raw) == expected

@@ -165,7 +165,7 @@ For detailed information about specific distribution system see README.md
     appstore_group.add_argument('--appstore_bundle_id', type=str,
                                help='Application Bundle ID (package identifier). '
                                     'Either --appstore_app_id or --appstore_bundle_id must be specified. '
-                                    'Example: com.instagram.ios, com.whatsapp.WhatsApp')
+                                    'Example: com.burbn.instagram, net.whatsapp.WhatsApp')
     appstore_group.add_argument('--appstore_apple_id', type=str,
                                help='Apple ID email address for iTunes/App Store login. '
                                     'Required parameter when --distribution_system is set to "appstore". '

@@ -24,10 +24,11 @@ LEGACY_AUTH_URL = "https://buy.itunes.apple.com/WebObjects/MZFinance.woa/wa/auth
 # Apple's edge also emits bare 301/302 responses that carry no Location header at all, so
 # the redirect statuses belong here too: without them a broken redirect aborts the login.
 AUTH_FALLBACK_STATUSES = (204, 301, 302, 303, 307, 308, 403, 404, 429, 500, 502, 503)
-# Apple throttles this endpoint by request rate, not by attempt count: measured in
-# August 2026, 80 closely spaced requests got 0 usable answers, while a single request
-# after two minutes of silence logged in immediately. So the backoff grows exponentially
-# and is what actually matters here - hammering harder makes things strictly worse.
+# Apple answers this endpoint erratically and getting through is partly luck. Measured
+# in August 2026: 80 closely spaced requests got 0 usable answers, another burst got in
+# on the 34th, and a single request after two minutes of silence logged in immediately.
+# Spacing attempts out is not a guarantee, but it reached a working login in ~10 requests
+# where bursts needed dozens, so the backoff grows exponentially rather than hammering.
 # Jitter keeps parallel CLI runs from lining up into a burst of their own.
 AUTH_MAX_ROUNDS = int(os.environ.get("MDAST_APPSTORE_AUTH_ROUNDS", "8"))
 AUTH_ROUND_BACKOFF = float(os.environ.get("MDAST_APPSTORE_AUTH_BACKOFF", "20"))
@@ -80,9 +81,15 @@ FAILURES_NEEDING_REAUTH = (
     FAILURE_SIGN_IN_REQUIRED,
 )
 # 5002 is context dependent: on buyProduct it means the account already owns the app
-# (success), but on volumeStoreDownloadProduct Apple reuses it for a stale session and
-# only a fresh login clears it. ipatool maps it the same way (majd/ipatool#468).
-FAILURES_NEEDING_REAUTH_ON_DOWNLOAD = FAILURES_NEEDING_REAUTH + (FAILURE_LICENSE_ALREADY_EXISTS,)
+# (success), while on volumeStoreDownloadProduct Apple throws it at random. Measured in
+# August 2026 over one session: attempt 1 failed for two apps, attempts 2-4 succeeded for
+# both, attempt 5 failed again for one of them - and a fresh login (13 minutes of auth
+# backoff) did not clear it. So it is retried in place rather than treated as a stale
+# session the way ipatool does (majd/ipatool#468); re-authenticating costs minutes and
+# does not help.
+DOWNLOAD_RETRY_FAILURES = (FAILURE_LICENSE_ALREADY_EXISTS,)
+DOWNLOAD_MAX_ATTEMPTS = int(os.environ.get("MDAST_APPSTORE_DOWNLOAD_ATTEMPTS", "5"))
+DOWNLOAD_RETRY_PAUSE = float(os.environ.get("MDAST_APPSTORE_DOWNLOAD_PAUSE", "6"))
 
 from mdast_cli.distribution_systems.appstore_client.schemas.store_authenticate_req import StoreAuthenticateReq
 from mdast_cli.distribution_systems.appstore_client.schemas.store_authenticate_resp import StoreAuthenticateResp
@@ -296,7 +303,7 @@ class StoreClient(object):
                 delay += random.uniform(0, AUTH_BACKOFF_JITTER)
                 logger.info(
                     "All App Store auth endpoints failed (round %s/%s), waiting %.0fs before "
-                    "retrying - Apple throttles by request rate, so backing off is what helps",
+                    "retrying - Apple's auth endpoint is erratic, spacing attempts out helps",
                     round_no, AUTH_MAX_ROUNDS, delay,
                 )
                 time.sleep(delay)
