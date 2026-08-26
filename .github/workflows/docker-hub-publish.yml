@@ -1,9 +1,11 @@
 name: Publish mdast_cli image to Docker Hub
 
+# Публикация выполняется только по тегу, как и выкладка на PyPI: иначе каждый
+# коммит в main перезаписывал образ latest и заново публиковал тот же номер.
 on:
   push:
-    branches:
-      - main
+    tags:
+      - '*'
 
 jobs:
   tests:
@@ -25,6 +27,22 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # Версия образа берётся из тега, а не прописывается в файле руками:
+      # раньше её приходилось править в двух местах при каждом релизе.
+      - name: Check tag matches package version
+        run: |
+          set -eu
+          pkg_version="$(sed -n "s/.*version=['\"]\([^'\"]*\).*/\1/p" setup.py | head -1)"
+          if [ -z "$pkg_version" ]; then
+            echo "::error::Не удалось определить версию в setup.py"
+            exit 1
+          fi
+          if [ "$GITHUB_REF_NAME" != "$pkg_version" ]; then
+            echo "::error::Тег $GITHUB_REF_NAME не совпадает с версией в setup.py ($pkg_version)"
+            exit 1
+          fi
+          echo "Тег и версия совпадают: $pkg_version"
+
       - name: docker login
         env:
           DOCKER_USER: ${{secrets.DOCKER_USER}}
@@ -33,13 +51,13 @@ jobs:
           docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
 
       - name: Build the Docker image
+        run: >-
+          docker build . --file Dockerfile
+          -t mobilesecurity/mdast_cli:${{ github.ref_name }}
+          -t mobilesecurity/mdast_cli:latest
 
-        run: docker build . --file Dockerfile -t mobilesecurity/mdast_cli:2026.8.6 -t mobilesecurity/mdast_cli:latest
-
+      - name: Docker Hub push tagged image
+        run: docker push mobilesecurity/mdast_cli:${{ github.ref_name }}
 
       - name: Docker Hub push latest image
         run: docker push mobilesecurity/mdast_cli:latest
-
-      - name: Docker Hub push tagged image
-
-        run: docker push mobilesecurity/mdast_cli:2026.8.6
