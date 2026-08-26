@@ -10,8 +10,8 @@ jobs:
     name: Tests gate before publish
     runs-on: ubuntu-22.04
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-python@v5
+    - uses: actions/checkout@v7
+    - uses: actions/setup-python@v7
       with:
         python-version: '3.12'
     - run: pip install -r requirements.txt -r requirements-dev.txt
@@ -22,12 +22,12 @@ jobs:
     needs: tests
     runs-on: ubuntu-22.04
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/checkout@v7
 
     - name: Set up Python 3.12
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v7
       with:
-        python-version: 3.12
+        python-version: '3.12'
 
 #    - name: Linter flake8
 #      uses: py-actions/flake8@v2.2.1
@@ -58,15 +58,15 @@ jobs:
         .
 
     - name: Publish distribution 📦 to Test PyPI
-      uses: pypa/gh-action-pypi-publish@master
+      uses: pypa/gh-action-pypi-publish@release/v1
       with:
         user: __token__
         password: ${{ secrets.TEST_PYPI_API_CLI_TOKEN }}
-        repository_url: https://test.pypi.org/legacy/
+        repository-url: https://test.pypi.org/legacy/
 
     - name: Publish distribution 📦 to PyPI
       if: github.event_name == 'push'
-      uses: pypa/gh-action-pypi-publish@master
+      uses: pypa/gh-action-pypi-publish@release/v1
       with:
         user: __token__
         password: ${{ secrets.PYPI_API_CLI_TOKEN }}
