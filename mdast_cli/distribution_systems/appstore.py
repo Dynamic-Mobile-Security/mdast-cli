@@ -3,6 +3,8 @@ import os
 import pickle
 import plistlib
 import shutil
+import time
+import unicodedata
 import zipfile
 from functools import lru_cache
 
@@ -12,10 +14,33 @@ from requests.adapters import HTTPAdapter
 from urllib3 import Retry
 from tqdm import tqdm
 
-from mdast_cli.distribution_systems.appstore_client.store import StoreClient, StoreException
+from mdast_cli.distribution_systems.appstore_client.store import (
+    FAILURE_LICENSE_NOT_FOUND,
+    DOWNLOAD_MAX_ATTEMPTS,
+    DOWNLOAD_RETRY_FAILURES,
+    DOWNLOAD_RETRY_PAUSE,
+    FAILURES_NEEDING_REAUTH,
+    StoreClient,
+    StoreException,
+)
 from mdast_cli.helpers.file_utils import ensure_download_dir, cleanup_file
 
 logger = logging.getLogger(__name__)
+
+
+def sanitize_file_name(name):
+    """Make an App Store display name safe to use as a file name.
+
+    Apple ships bidi and other invisible control characters inside bundleDisplayName -
+    WhatsApp, for one, starts with U+200E - and a path that begins with an invisible
+    character quietly breaks scripts downstream. Path separators are stripped for the
+    same reason.
+    """
+    cleaned = ''.join(
+        ch for ch in (name or '')
+        if unicodedata.category(ch) not in ('Cc', 'Cf') and ch not in '/\\'
+    ).strip()
+    return cleaned or 'application'
 
 
 def download_file(url, download_path, file_path):
@@ -118,14 +143,17 @@ class AppStore(object):
                 pickle.dump(self.store, file)
                 logger.info(f'Dumped session for {self.apple_id}')
         except StoreException as e:
-            raise RuntimeError(f'Failed to download application. Seems like your credentials are incorrect '
-                               f'or your 2FA code expired. Message: {e.req} {e.err_msg} {e.err_type}')
+            raise RuntimeError(f'Failed to log into iTunes. This is either wrong credentials / an expired 2FA '
+                               f'code, or Apple refusing the request from this host. '
+                               f'Message: {e.req} {e.err_msg} {e.err_type}')
 
     def get_app_info(self, app_id=None, bundle_id=None, country='US'):
         if not app_id and not bundle_id:
             raise 'One of properties ApplicationID or BundleID should be set'
 
-        self.login(True)
+        # Deliberately not a forced login: Apple's auth endpoint is unreliable, so an
+        # already established session is worth far more than a fresh one.
+        self.login()
         resp_info = self.store.find_app(app_id=app_id, bundle_id=bundle_id, country=country).json()
         try:
             app_info = resp_info['results'][0]
@@ -146,6 +174,36 @@ class AppStore(object):
             'icon_url': app_info['artworkUrl100']
         }
 
+    def _download_info_with_retries(self, app_id):
+        """Fetch download info, riding out Apple's random failures.
+
+        9610 means the account holds no license yet, so the app is bought and retried.
+        5002 is Apple failing at random on an app it serves fine moments later, so the
+        same request is simply repeated.
+        """
+        last_error = None
+        for attempt in range(1, DOWNLOAD_MAX_ATTEMPTS + 1):
+            try:
+                return self.store.download(app_id)
+            except StoreException as e:
+                last_error = e
+                if e.err_type == FAILURE_LICENSE_NOT_FOUND:
+                    logger.info('No license found for this app yet, purchasing and retrying')
+                    self.store.purchase(app_id)
+                    continue
+                if e.err_type not in DOWNLOAD_RETRY_FAILURES or attempt == DOWNLOAD_MAX_ATTEMPTS:
+                    logger.warning(
+                        'store.download failed: failureType=%s, app_id=%s', e.err_type, app_id,
+                    )
+                    raise
+                logger.info(
+                    'App Store returned failureType %s for app %s (attempt %s/%s), '
+                    'retrying in %.0fs',
+                    e.err_type, app_id, attempt, DOWNLOAD_MAX_ATTEMPTS, DOWNLOAD_RETRY_PAUSE,
+                )
+                time.sleep(DOWNLOAD_RETRY_PAUSE)
+        raise last_error
+
     def _download_app_int(self, download_path, app_id=None, bundle_id=None, country='US', file_name=None):
         if not app_id:
             logger.info(f'Trying to find app in App Store with bundle id {bundle_id}')
@@ -161,41 +219,12 @@ class AppStore(object):
             app_id = app_info["trackId"]
 
         logger.info(f'Trying to purchase app with id {app_id}')
-        purchase_resp = self.store.purchase(app_id)
-        logger.debug(
-            'Purchase response: status_code=%s, content_length=%s',
-            purchase_resp.status_code,
-            len(purchase_resp.content),
-        )
-        if purchase_resp.status_code == 200:
+        if self.store.purchase(app_id):
             logger.info(f'App was successfully purchased for {self.apple_id} account')
-        elif purchase_resp.status_code == 500:
-            logger.info(f'This app was purchased before for {self.apple_id} account')
         else:
-            logger.warning(
-                'Unexpected purchase response: status_code=%s, body_preview=%r',
-                purchase_resp.status_code,
-                (purchase_resp.text[:500] if purchase_resp.text else ''),
-            )
+            logger.info(f'This app was purchased before for {self.apple_id} account')
         logger.info(f'Retrieving download info for app with id: {app_id}')
-        try:
-            download_resp = self.store.download(app_id)
-        except Exception as e:
-            logger.warning(
-                'store.download failed: exception=%s, app_id=%s',
-                type(e).__name__,
-                app_id,
-                exc_info=True,
-            )
-            raise
-        if not download_resp.songList:
-            logger.error(
-                'Download response has no songList: cancel_purchase_batch=%s, '
-                'customerMessage=%r',
-                getattr(download_resp, 'cancel_purchase_batch', None),
-                getattr(download_resp, 'customerMessage', None),
-            )
-            raise RuntimeError('Failed to get app download info! Check your parameters')
+        download_resp = self._download_info_with_retries(app_id)
 
         downloaded_app_info = download_resp.songList[0]
         logger.debug(
@@ -224,7 +253,7 @@ class AppStore(object):
             f'Downloading app is {app_name} ({app_bundle_id}) with app_id {app_id} and version {app_version}')
 
         if not file_name:
-            file_name = '%s-%s.ipa' % (app_name, app_version)
+            file_name = '%s-%s.ipa' % (sanitize_file_name(app_name), app_version)
         else:
             file_name = '%s-%s.ipa' % (file_name, app_version)
 
@@ -278,16 +307,20 @@ class AppStore(object):
         return file_path, md5
 
     def download_app(self, download_path, app_id=None, bundle_id=None, country='US', file_name=None):
-        file_path, md5 = None, None
-        for force in (False, True):  # try first time with possible stored session, second time with forced login
+        # A stored session is retried once with a forced re-login, but only when Apple
+        # says the session itself went stale. Forcing a re-login drops the session cache,
+        # and Apple's auth endpoint is currently unreliable enough that throwing away a
+        # working session over an unrelated error (a missing license, say) can leave the
+        # download unrecoverable.
+        for force in (False, True):
             try:
                 self.login(force=force)
-                file_path, md5 = self._download_app_int(download_path, app_id, bundle_id, country, file_name)
-                break
+                return self._download_app_int(download_path, app_id, bundle_id, country, file_name)
             except StoreException as e:
-                if not self.login_by_session:  # login by credentials, still with error
-                    raise RuntimeError(f'Failed to download application. Seems like your app_id does not exist '
-                                       f'or you did not purchase this paid app from apple account before. '
+                session_is_stale = self.login_by_session and e.err_type in FAILURES_NEEDING_REAUTH
+                if not session_is_stale:
+                    raise RuntimeError(f'Failed to download application from App Store. '
                                        f'Message: {e.req} {e.err_msg} {e.err_type}')
+                logger.info('App Store session went stale (failureType %s), logging in again', e.err_type)
 
-        return file_path, md5
+        return None, None
