@@ -91,3 +91,5 @@ Thumbs.db
 
 # Application sessions (may contain sensitive data)
 appstore_sessions/
+# Reproducible native SAP helpers are built by CI, not committed.
+mdast_cli/distribution_systems/appstore_client/bin/

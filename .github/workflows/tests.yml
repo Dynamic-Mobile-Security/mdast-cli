@@ -19,6 +19,13 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt -r requirements-dev.txt
 
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.27.1'
+          cache: false
+      - name: Build native SAP helper
+        run: python tools/sap/build.py --target host
+
       - name: Run full test suite
         run: python -m pytest -q
 

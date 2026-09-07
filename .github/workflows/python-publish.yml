@@ -56,6 +56,14 @@ jobs:
         build
         --user
 
+    - uses: actions/setup-go@v6
+      with:
+        go-version: '1.27.1'
+        cache: false
+
+    - name: Build SAP helpers for release platforms
+      run: python tools/sap/build.py --target all
+
     - name: Build a binary wheel and a source tarball
       run: >-
         python -m
@@ -64,6 +72,9 @@ jobs:
         --wheel
         --outdir dist/
         .
+
+    - name: Verify packaged SAP helpers
+      run: python tools/sap/verify_artifacts.py
 
     - name: Publish distribution 📦 to Test PyPI
       uses: pypa/gh-action-pypi-publish@release/v1

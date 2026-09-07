@@ -153,3 +153,8 @@ cython_debug/
 /mdast_cli/downloaded_apps/
 /README_DOCKER.md
 /mdast_cli.egg-info/
+
+# Local credentials and cross-platform binaries are not part of the build context.
+.git
+appstore_sessions/
+mdast_cli/distribution_systems/appstore_client/bin/
