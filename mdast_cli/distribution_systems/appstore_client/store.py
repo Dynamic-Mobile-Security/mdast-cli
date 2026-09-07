@@ -2,61 +2,18 @@ import hashlib
 import logging
 import os
 import plistlib
-import random
 import re
 import time
-from typing import Optional
 import requests
+from requests.adapters import HTTPAdapter
+from mdast_cli.distribution_systems.appstore_client.sap import SAPError, SAPSigner, parse_bag, validate_endpoint
 
 logger = logging.getLogger(__name__)
 
-# Apple "bag" service: returns endpoint definitions (auth URL). Required since ~2025.
 BAG_URL_TEMPLATE = "https://init.itunes.apple.com/bag.xml?guid=%s"
-# Apple's bag advertises the native auth endpoint, which only answers correctly when the
-# path ends with "/fast/" (trailing slash). Since July 2026 that endpoint also answers
-# 204/403/404/503 with an empty, non-plist body for many clients; the legacy MZFinance
-# endpoint still works, but replies 302 to an assigned pod host, and the original plist
-# body (with attempt=1) has to be reposted there. See majd/ipatool#513 / PR #514.
-AUTH_HOST = "auth.itunes.apple.com"
-DEFAULT_AUTH_URL = "https://" + AUTH_HOST + "/auth/v1/native/fast/"
 LEGACY_AUTH_URL = "https://buy.itunes.apple.com/WebObjects/MZFinance.woa/wa/authenticate"
-# Statuses that mean "this endpoint is not usable right now" when the body is not a plist.
-# Apple's edge also emits bare 301/302 responses that carry no Location header at all, so
-# the redirect statuses belong here too: without them a broken redirect aborts the login.
-AUTH_FALLBACK_STATUSES = (204, 301, 302, 303, 307, 308, 403, 404, 429, 500, 502, 503)
-# Apple answers this endpoint erratically and getting through is partly luck. Measured
-# in August 2026: 80 closely spaced requests got 0 usable answers, another burst got in
-# on the 34th, and a single request after two minutes of silence logged in immediately.
-# Spacing attempts out is not a guarantee, but it reached a working login in ~10 requests
-# where bursts needed dozens, so the backoff grows exponentially rather than hammering.
-# Jitter keeps parallel CLI runs from lining up into a burst of their own.
-AUTH_MAX_ROUNDS = int(os.environ.get("MDAST_APPSTORE_AUTH_ROUNDS", "8"))
-AUTH_ROUND_BACKOFF = float(os.environ.get("MDAST_APPSTORE_AUTH_BACKOFF", "20"))
-AUTH_MAX_BACKOFF = float(os.environ.get("MDAST_APPSTORE_AUTH_MAX_BACKOFF", "150"))
-AUTH_BACKOFF_JITTER = 5.0
 AUTH_MAX_REDIRECTS = 4
 BUY_DOMAIN = "buy.itunes.apple.com"
-
-
-def _normalize_auth_endpoint(endpoint):
-    """Add the trailing slash the native auth endpoint requires.
-
-    Apple's bag returns ".../auth/v1/native/fast"; posting without the trailing slash
-    gets a 301/204 with an HTML or empty body that the plist parser chokes on
-    (majd/ipatool#507). The legacy MZFinance endpoint is left untouched.
-    """
-    if endpoint and "/native/" in endpoint and not endpoint.endswith("/"):
-        return endpoint + "/"
-    return endpoint
-
-
-class _AuthEndpointUnusable(Exception):
-    """Raised internally when an auth endpoint should be retried elsewhere."""
-
-    def __init__(self, status_code, detail=""):
-        self.status_code = status_code
-        self.detail = detail
-        super().__init__("auth endpoint unusable (HTTP %s) %s" % (status_code, detail))
 
 
 # buyProduct lives on MZFinance, not MZBuy: the MZBuy variant answers HTTP 200 with
@@ -114,49 +71,6 @@ class StoreException(Exception):
         )
 
 
-def _parse_bag_response(content: bytes) -> Optional[str]:
-    """Extract authenticateAccount URL from Apple bag plist/XML. Returns None if not found."""
-    if not content or len(content) < 10:
-        return None
-    # Try direct plist parse (binary or XML)
-    try:
-        data = plistlib.loads(content)
-        if isinstance(data, dict):
-            # 'authenticateAccount' moved to the bag root (majd/ipatool#486); older bags
-            # keep it under 'urlBag'. Check the root first, then fall back to urlBag.
-            endpoint = data.get("authenticateAccount") or data.get("authenticate")
-            if not endpoint:
-                url_bag = data.get("urlBag") or data.get("URLBag")
-                if isinstance(url_bag, dict):
-                    endpoint = url_bag.get("authenticateAccount") or url_bag.get("authenticate")
-            return endpoint
-        return None
-    except Exception:
-        pass
-    # Try XML: unwrap Document and find plist/dict (ipatool-style normalization)
-    try:
-        text = content.decode("utf-8", errors="replace")
-        # Extract inner body of <Document>...</Document>
-        doc_match = re.search(r"<Document\b[^>]*>(.*)</Document>", text, re.DOTALL | re.IGNORECASE)
-        if doc_match:
-            text = doc_match.group(1).strip()
-        # Find <key>authenticateAccount</key><string>URL</string> or similar
-        key_match = re.search(
-            r"<key>\s*authenticateAccount\s*</key>\s*<string>([^<]+)</string>",
-            text,
-            re.IGNORECASE,
-        )
-        if key_match:
-            return key_match.group(1).strip()
-        # Fallback: any key with "authenticate" and string value
-        for m in re.finditer(r"<key>\s*([^<]+)\s*</key>\s*<string>([^<]+)</string>", text):
-            if "authenticate" in m.group(1).lower():
-                return m.group(2).strip()
-    except Exception:
-        pass
-    return None
-
-
 def _log_response_on_plist_error(r: requests.Response, context: str) -> None:
     """Log raw response details when plist parsing fails (e.g. HTML error page)."""
     content = r.content
@@ -189,133 +103,96 @@ class StoreClient(object):
         self.account_name = None
         self.pod = None  # Pod from auth response; used for purchase/download host (e.g. p25-buy.)
 
-    def get_bag(self) -> str:
-        """Fetch Apple bag and return auth endpoint URL (required since Apple changed endpoints)."""
-        url = BAG_URL_TEMPLATE % self.guid
-        r = self.sess.get(
-            url,
+    def get_bag(self):
+        response = self.sess.get(
+            BAG_URL_TEMPLATE % self.guid,
             headers={"Accept": "application/xml", "User-Agent": APPSTORE_USER_AGENT},
-            verify=False,
-            timeout=30,
+            verify=True, timeout=30,
         )
-        if r.status_code != 200:
-            logger.warning(
-                "Bag request failed: status=%s, falling back to default auth URL",
-                r.status_code,
-            )
-            return DEFAULT_AUTH_URL
-        auth_endpoint = _normalize_auth_endpoint(_parse_bag_response(r.content))
-        if auth_endpoint:
-            logger.debug("Using auth endpoint from bag: %s", auth_endpoint[:60] + "...")
-            return auth_endpoint
-        logger.warning("Could not parse bag response, falling back to default auth URL")
-        return DEFAULT_AUTH_URL
+        if response.status_code != 200:
+            raise SAPError("Apple bag request failed (HTTP %s)" % response.status_code)
+        try:
+            content = response.content
+            # Apple also wraps its plist in an outer Document element.
+            if b"<Document" in content:
+                match = re.search(rb"<plist\b.*?</plist>", content, re.DOTALL)
+                if match:
+                    content = match.group(0)
+            return parse_bag(plistlib.loads(content))
+        except (ValueError, TypeError, plistlib.InvalidFileException):
+            raise SAPError("Apple bag is not a valid SAP configuration") from None
 
-    def _post_authenticate(self, url, appleId, password, attempt):
+    def _post_authenticate(self, url, appleId, password, attempt, signer):
+        validate_endpoint(url, authentication=True)
         req = StoreAuthenticateReq(
-            appleId=appleId,
-            password=password,
-            attempt=str(attempt),
-            createSession=None,
-            guid=self.guid,
-            rmp='0',
-            why='signIn',
+            appleId=appleId, password=password, attempt=str(attempt),
+            createSession=None, guid=self.guid, rmp='0', why='signIn',
         )
+        body = plistlib.dumps(req.as_dict())
+        signature = signer.sign(body)
+        # Signed POST retries are handled explicitly below, including re-signing.
+        # A general-purpose caller may have enabled urllib3 POST retries.
+        self.sess.mount(url.split('?')[0], HTTPAdapter(max_retries=0))
         return self.sess.post(
             url,
             headers={
-                "Accept": "*/*",
-                "Content-Type": "application/x-www-form-urlencoded",
+                "Accept": "*/*", "Content-Type": "application/x-www-form-urlencoded",
                 "User-Agent": APPSTORE_USER_AGENT,
+                "X-Apple-ActionSignature": signature,
             },
-            data=plistlib.dumps(req.as_dict()),
-            allow_redirects=False,
-            verify=False,
-            timeout=60,
+            data=body, allow_redirects=False, verify=True, timeout=60,
         )
 
-    def _authenticate_at(self, auth_url, appleId, password):
-        """Authenticate against a single endpoint, following Apple's pod redirect.
-
-        The legacy endpoint answers 302 with a Location pointing at the account's pod
-        (e.g. https://p7-buy.itunes.apple.com/...?Pod=7&PRH=7). The original plist body
-        must be reposted there unchanged - in particular attempt stays 1, otherwise Apple
-        rejects the request (majd/ipatool#514).
-        """
-        url = auth_url
-        attempt = 1
-        redirects = 0
-        r = None
+    def _authenticate_at(self, auth_url, appleId, password, signer):
+        url, attempt, redirects, transient = auth_url, 1, 0, 0
         while True:
-            r = self._post_authenticate(url, appleId, password, attempt)
-            if r.status_code in (301, 302, 303, 307, 308) and r.headers.get('Location'):
+            response = self._post_authenticate(url, appleId, password, attempt, signer)
+            status = response.status_code
+            logger.info("App Store signed authentication response: HTTP %s", status)
+            if status in (301, 302, 303, 307, 308):
+                location = response.headers.get('Location')
+                if not location:
+                    raise StoreException('authenticate', 'Apple redirect has no Location (HTTP %s)' % status)
+                validate_endpoint(location, authentication=True)
                 redirects += 1
                 if redirects > AUTH_MAX_REDIRECTS:
-                    raise _AuthEndpointUnusable(r.status_code, "too many redirects")
-                url = r.headers['Location']
-                logger.debug("Auth redirected to pod endpoint: %s", url)
-                continue  # attempt is intentionally NOT incremented here
+                    raise StoreException('authenticate', 'Too many Apple authentication redirects')
+                url = location
+                continue
             try:
-                resp = StoreAuthenticateResp.from_dict(plistlib.loads(r.content))
-            except plistlib.InvalidFileException:
-                _log_response_on_plist_error(r, "authenticate")
-                raise _AuthEndpointUnusable(r.status_code, "non-plist body") from None
-            if resp.m_allowed:
-                return r, resp
-            # Apple sometimes rejects the very first attempt with an invalid-credentials
-            # failure; a single retry with attempt=2 clears it (ipatool does the same).
+                data = plistlib.loads(response.content)
+                if not isinstance(data, dict):
+                    raise ValueError
+            except (ValueError, TypeError, plistlib.InvalidFileException):
+                transient += 1
+                if (status in (204, 404) or status >= 500) and transient < 3:
+                    time.sleep(0.25 * transient)
+                    continue
+                raise StoreException('authenticate', 'Apple returned a non-plist authentication response (HTTP %s)' % status) from None
+            resp = StoreAuthenticateResp.from_dict(data)
+            # Both response shapes are in use: older clients read download-queue-info.
+            dsid = data.get('dsPersonId') or (data.get('download-queue-info') or {}).get('dsid')
+            if status == 200 and resp.passwordToken and dsid and not resp.failureType:
+                if not resp.download_queue_info:
+                    resp = StoreAuthenticateResp.from_dict(dict(data, **{'download-queue-info': {'dsid': dsid}}))
+                return response, resp
             if attempt == 1 and str(resp.failureType) == '-5000':
                 attempt = 2
+                transient = 0
                 continue
-            raise StoreException("authenticate", resp.customerMessage, resp.failureType)
+            raise StoreException('authenticate', resp.customerMessage or 'Apple rejected authentication', resp.failureType)
 
     def authenticate(self, appleId, password):
         if not self.guid:
             self.guid = self._generateGuid(appleId)
-
-        endpoints = []
-        for candidate in (self.get_bag(), DEFAULT_AUTH_URL, LEGACY_AUTH_URL):
-            if candidate and candidate not in endpoints:
-                endpoints.append(candidate)
-
-        last_failure = None
-        for round_no in range(1, AUTH_MAX_ROUNDS + 1):
-            for auth_url in endpoints:
-                try:
-                    r, resp = self._authenticate_at(auth_url, appleId, password)
-                    self._store_auth_result(r, resp, auth_url)
-                    return resp
-                except _AuthEndpointUnusable as e:
-                    if e.status_code not in AUTH_FALLBACK_STATUSES:
-                        raise StoreException(
-                            "authenticate",
-                            "Server response is not valid plist (HTTP %s). See log for details."
-                            % e.status_code,
-                            None,
-                        ) from e
-                    last_failure = e
-                    logger.warning(
-                        "Auth endpoint %s unusable (HTTP %s, %s), trying next endpoint",
-                        auth_url, e.status_code, e.detail,
-                    )
-            if round_no < AUTH_MAX_ROUNDS:
-                delay = min(AUTH_ROUND_BACKOFF * (2 ** (round_no - 1)), AUTH_MAX_BACKOFF)
-                delay += random.uniform(0, AUTH_BACKOFF_JITTER)
-                logger.info(
-                    "All App Store auth endpoints failed (round %s/%s), waiting %.0fs before "
-                    "retrying - Apple's auth endpoint is erratic, spacing attempts out helps",
-                    round_no, AUTH_MAX_ROUNDS, delay,
-                )
-                time.sleep(delay)
-
-        raise StoreException(
-            "authenticate",
-            "Apple rejected every authentication endpoint (last status: HTTP %s). "
-            "This is an Apple-side/network block rather than a credentials problem: "
-            "retry later or from a different egress IP (see majd/ipatool#513)."
-            % (last_failure.status_code if last_failure else "unknown"),
-            None,
-        )
+        try:
+            config = self.get_bag()
+            with SAPSigner(config, self.guid) as signer:
+                response, result = self._authenticate_at(config['auth_url'], appleId, password, signer)
+            self._store_auth_result(response, result, config['auth_url'])
+            return result
+        except SAPError as exc:
+            raise StoreException('authenticate', str(exc), 'sap') from exc
 
     def _store_auth_result(self, r, resp, auth_url):
         self.sess.headers['X-Dsid'] = self.sess.headers['iCloud-Dsid'] = str(resp.download_queue_info.dsid)
@@ -336,7 +213,10 @@ class StoreClient(object):
         if self.pod:
             logger.debug("Using pod for buy host: %s", self.pod)
 
-        self.account_name = resp.accountInfo.address.firstName + " " + resp.accountInfo.address.lastName
+        address = getattr(resp.accountInfo, 'address', None)
+        self.account_name = " ".join(filter(None, (
+            getattr(address, 'firstName', None), getattr(address, 'lastName', None),
+        )))
 
     def _buy_host(self) -> str:
         """Host for purchase/download (pod-specific if set)."""

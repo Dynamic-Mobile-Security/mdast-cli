@@ -1,168 +1,179 @@
-"""Regression tests for the App Store authentication flow.
-
-Apple broke the native auth endpoint in July 2026: it answers 204/403/404/503 with an
-empty, non-plist body. The working flow (mirrored from majd/ipatool#514) is:
-
-    native /auth/v1/native/fast/  -> 204/403/404/503
-    legacy MZFinance authenticate -> 302 Location: https://pN-buy.itunes.apple.com/...
-    repost the SAME plist body (attempt still 1) to the pod URL -> 200 + plist
-"""
+"""Signed App Store authentication and existing download regressions."""
+import base64
 import plistlib
 
 import pytest
 
 from mdast_cli.distribution_systems.appstore_client import store as store_mod
-from mdast_cli.distribution_systems.appstore_client.store import (
-    LEGACY_AUTH_URL,
-    StoreClient,
-    StoreException,
-    _normalize_auth_endpoint,
-)
+from mdast_cli.distribution_systems.appstore_client.store import LEGACY_AUTH_URL, StoreClient, StoreException
 
 POD_URL = "https://p7-buy.itunes.apple.com/WebObjects/MZFinance.woa/wa/authenticate?Pod=7&PRH=7"
-
 SUCCESS_PLIST = {
-    "m-allowed": True,
-    "passwordToken": "token-123",
-    "download-queue-info": {"dsid": 4242},
+    "m-allowed": True, "passwordToken": "token-123", "download-queue-info": {"dsid": 4242},
     "accountInfo": {"address": {"firstName": "Test", "lastName": "User"}},
+}
+BAG_CONFIG = {
+    'auth_url': LEGACY_AUTH_URL, 'setup_url': 'https://fpinit.itunes.apple.com/setup',
+    'certificate_url': 'https://s.mzstatic.com/sap/setupCert.plist', 'version': 200,
 }
 
 
 class FakeResponse:
     def __init__(self, status_code, content=b"", headers=None, url=""):
-        self.status_code = status_code
-        self.content = content
-        self.headers = headers or {}
-        self.url = url
-        self.text = content.decode("utf-8", "replace")
+        self.status_code, self.content = status_code, content
+        self.headers, self.url = headers or {}, url
 
 
 class FakeSession:
-    """Records POSTs and replays a scripted list of responses."""
-
     def __init__(self, responses):
-        self._responses = list(responses)
-        self.headers = {}
-        self.calls = []
+        self._responses, self.headers, self.calls = list(responses), {}, []
+
+    def mount(self, *args):
+        pass
 
     def post(self, url, headers=None, data=None, **kwargs):
-        self.calls.append({"url": url, "body": plistlib.loads(data)})
+        self.calls.append({'url': url, 'body': plistlib.loads(data), 'data': data, 'headers': headers, **kwargs})
         return self._responses.pop(0)
 
 
+class FakeSigner:
+    def __init__(self, config, guid):
+        self.payloads, self.closed = [], False
+        FakeSigner.last = self
+
+    def sign(self, payload):
+        self.payloads.append(payload)
+        return base64.b64encode(b'signed:' + payload).decode()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_):
+        self.closed = True
+
+
 def _client(responses):
-    client = StoreClient(FakeSession(responses), guid="12367150C7F5")
-    return client
+    return StoreClient(FakeSession(responses), guid='12367150C7F5')
 
 
 @pytest.fixture(autouse=True)
-def _no_sleep(monkeypatch):
-    monkeypatch.setattr(store_mod.time, "sleep", lambda *_: None)
+def _signed_bag(monkeypatch):
+    monkeypatch.setattr(store_mod.time, 'sleep', lambda *_: None)
+    monkeypatch.setattr(StoreClient, 'get_bag', lambda self: BAG_CONFIG)
+    monkeypatch.setattr(store_mod, 'SAPSigner', FakeSigner)
 
 
-@pytest.fixture
-def _bag_returns_legacy(monkeypatch):
-    monkeypatch.setattr(StoreClient, "get_bag", lambda self: LEGACY_AUTH_URL)
-
-
-@pytest.mark.parametrize(
-    "endpoint,expected",
-    [
-        ("https://auth.itunes.apple.com/auth/v1/native/fast", "https://auth.itunes.apple.com/auth/v1/native/fast/"),
-        ("https://auth.itunes.apple.com/auth/v1/native/fast/", "https://auth.itunes.apple.com/auth/v1/native/fast/"),
-        (LEGACY_AUTH_URL, LEGACY_AUTH_URL),
-        (None, None),
-    ],
-)
-def test_normalize_auth_endpoint(endpoint, expected):
-    assert _normalize_auth_endpoint(endpoint) == expected
-
-
-def test_pod_redirect_reposts_body_with_attempt_one(_bag_returns_legacy):
-    """Apple rejects the pod repost if `attempt` is bumped, so it must stay 1."""
+def test_pod_redirect_reposts_body_with_attempt_one():
     client = _client([
-        FakeResponse(302, headers={"Location": POD_URL}),
-        FakeResponse(200, plistlib.dumps(SUCCESS_PLIST), headers={"pod": "7"}, url=POD_URL),
+        FakeResponse(302, headers={'Location': POD_URL}),
+        FakeResponse(200, plistlib.dumps(SUCCESS_PLIST), headers={'pod': '7'}, url=POD_URL),
     ])
-
-    resp = client.authenticate("user@example.com", "secret123456")
-
-    assert resp.passwordToken == "token-123"
-    assert client.account_name == "Test User"
-    assert client.pod == "7"
-    urls = [c["url"] for c in client.sess.calls]
-    assert urls == [LEGACY_AUTH_URL, POD_URL]
-    assert [c["body"]["attempt"] for c in client.sess.calls] == ["1", "1"]
-    assert client.sess.calls[0]["body"] == client.sess.calls[1]["body"]
-
-
-@pytest.mark.parametrize("status", [204, 403, 404, 503])
-def test_falls_back_to_next_endpoint_on_empty_body(monkeypatch, status):
-    """A non-plist body on the bag endpoint must not abort the login."""
-    monkeypatch.setattr(StoreClient, "get_bag", lambda self: "https://auth.itunes.apple.com/auth/v1/native/fast/")
-    client = _client([
-        FakeResponse(status, b""),
-        FakeResponse(302, headers={"Location": POD_URL}),
-        FakeResponse(200, plistlib.dumps(SUCCESS_PLIST), url=POD_URL),
-    ])
-
-    client.authenticate("user@example.com", "secret123456")
-
-    urls = [c["url"] for c in client.sess.calls]
-    assert urls == ["https://auth.itunes.apple.com/auth/v1/native/fast/", LEGACY_AUTH_URL, POD_URL]
-    assert client.pod == "7"  # derived from the pod URL when the header is absent
+    response = client.authenticate('user@example.com', 'secret123456')
+    assert response.passwordToken == 'token-123'
+    assert client.account_name == 'Test User'
+    assert client.pod == '7'
+    assert [c['url'] for c in client.sess.calls] == [LEGACY_AUTH_URL, POD_URL]
+    assert [c['body']['attempt'] for c in client.sess.calls] == ['1', '1']
+    assert FakeSigner.last.payloads == [c['data'] for c in client.sess.calls]
+    assert len(set(FakeSigner.last.payloads)) == 1
+    assert FakeSigner.last.closed
 
 
-def test_invalid_credentials_are_reported_not_retried_forever(_bag_returns_legacy):
-    failure = {"m-allowed": False, "customerMessage": "Your Apple ID or password was incorrect.",
-               "failureType": "1234"}
+@pytest.mark.parametrize('status', [204, 404, 500, 503, 504])
+def test_transient_response_retries_same_signed_endpoint(status):
+    client = _client([FakeResponse(status), FakeResponse(200, plistlib.dumps(SUCCESS_PLIST))])
+    client.authenticate('user@example.com', 'secret123456')
+    assert [c['url'] for c in client.sess.calls] == [LEGACY_AUTH_URL] * 2
+    assert len(set(FakeSigner.last.payloads)) == 1
+    assert len(FakeSigner.last.payloads) == 2
+
+
+def test_invalid_credentials_are_reported():
+    failure = {'failureType': '1234', 'customerMessage': 'Incorrect password'}
     client = _client([FakeResponse(200, plistlib.dumps(failure))])
+    with pytest.raises(StoreException, match='Incorrect password'):
+        client.authenticate('user@example.com', 'wrong')
+    assert len(client.sess.calls) == 1
+    assert FakeSigner.last.closed
 
-    with pytest.raises(StoreException) as exc:
-        client.authenticate("user@example.com", "wrong")
 
-    assert "incorrect" in str(exc.value)
+def test_first_attempt_invalid_credentials_retried_once():
+    failure = {'failureType': '-5000', 'customerMessage': 'retry'}
+    client = _client([FakeResponse(200, plistlib.dumps(failure)), FakeResponse(200, plistlib.dumps(SUCCESS_PLIST))])
+    client.authenticate('user@example.com', 'secret')
+    assert [c['body']['attempt'] for c in client.sess.calls] == ['1', '2']
+    assert FakeSigner.last.payloads[0] != FakeSigner.last.payloads[1]
+
+
+def test_forbidden_response_fails_without_unsigned_fallback():
+    client = _client([FakeResponse(403)])
+    with pytest.raises(StoreException, match='HTTP 403'):
+        client.authenticate('user@example.com', 'secret')
+    assert len(client.sess.calls) == 1
+    assert FakeSigner.last.closed
+
+
+def test_transient_response_budget_is_three():
+    client = _client([FakeResponse(204) for _ in range(3)])
+    with pytest.raises(StoreException, match='HTTP 204'):
+        client.authenticate('user@example.com', 'secret')
+    assert len(client.sess.calls) == 3
+
+
+@pytest.mark.parametrize('status', [301, 302])
+def test_redirect_without_location_is_rejected(status):
+    client = _client([FakeResponse(status)])
+    with pytest.raises(StoreException, match='no Location'):
+        client.authenticate('user@example.com', 'secret')
     assert len(client.sess.calls) == 1
 
 
-def test_first_attempt_invalid_credentials_is_retried_once(_bag_returns_legacy):
-    """Apple spuriously fails attempt 1 with -5000; attempt 2 clears it."""
-    failure = {"m-allowed": False, "customerMessage": "retry", "failureType": "-5000"}
-    client = _client([
-        FakeResponse(200, plistlib.dumps(failure)),
-        FakeResponse(200, plistlib.dumps(SUCCESS_PLIST)),
-    ])
-
-    client.authenticate("user@example.com", "secret123456")
-
-    assert [c["body"]["attempt"] for c in client.sess.calls] == ["1", "2"]
-
-
-def test_all_endpoints_blocked_raises_actionable_error(_bag_returns_legacy):
-    client = _client([FakeResponse(403, b"") for _ in range(2 * store_mod.AUTH_MAX_ROUNDS)])
-
-    with pytest.raises(StoreException) as exc:
-        client.authenticate("user@example.com", "secret123456")
-
-    assert "Apple-side/network block" in str(exc.value)
+@pytest.mark.parametrize('url', [
+    'https://evil.example/WebObjects/MZFinance.woa/wa/authenticate',
+    'http://buy.itunes.apple.com/WebObjects/MZFinance.woa/wa/authenticate',
+    'https://buy.itunes.apple.com.evil.example/WebObjects/MZFinance.woa/wa/authenticate',
+    'https://user:pass@buy.itunes.apple.com/WebObjects/MZFinance.woa/wa/authenticate',
+    'https://buy.itunes.apple.com:8443/WebObjects/MZFinance.woa/wa/authenticate',
+    'https://buy.itunes.apple.com/unexpected',
+])
+def test_redirect_does_not_forward_credentials_to_invalid_endpoint(url):
+    client = _client([FakeResponse(302, headers={'Location': url})])
+    with pytest.raises(StoreException, match='endpoint'):
+        client.authenticate('user@example.com', 'secret')
+    assert len(client.sess.calls) == 1
+    assert FakeSigner.last.closed
 
 
-@pytest.mark.parametrize("status", [301, 302])
-def test_redirect_without_location_is_retried(_bag_returns_legacy, status):
-    """Apple's edge emits bare 30x responses with no Location; that must not abort login."""
-    client = _client([
-        FakeResponse(status, b""),                       # bag/legacy endpoint, broken redirect
-        FakeResponse(status, b""),                       # native endpoint, same
-        FakeResponse(302, headers={"Location": POD_URL}),  # next round: real redirect
-        FakeResponse(200, plistlib.dumps(SUCCESS_PLIST), url=POD_URL),
-    ])
-
-    client.authenticate("user@example.com", "secret123456")
-
-    assert [c["url"] for c in client.sess.calls][-1] == POD_URL
+def test_action_signature_covers_exact_request_bytes():
+    client = _client([FakeResponse(200, plistlib.dumps(SUCCESS_PLIST))])
+    client.authenticate('user@example.com', 'password123456')
+    call = client.sess.calls[0]
+    assert base64.b64decode(call['headers']['X-Apple-ActionSignature']) == b'signed:' + call['data']
+    assert call['body']['password'] == 'password123456'
+    assert call['verify'] is True
+    assert call['allow_redirects'] is False
 
 
+def test_current_response_shape_without_download_queue():
+    data = dict(SUCCESS_PLIST, dsPersonId='4242')
+    del data['download-queue-info']
+    client = _client([FakeResponse(200, plistlib.dumps(data))])
+    client.authenticate('user@example.com', 'secret')
+    assert str(client.dsid) == '4242'
+
+
+def test_redirect_loop_is_bounded():
+    client = _client([FakeResponse(302, headers={'Location': POD_URL}) for _ in range(5)])
+    with pytest.raises(StoreException, match='Too many'):
+        client.authenticate('user@example.com', 'secret')
+    assert len(client.sess.calls) == 5
+
+
+def test_two_factor_required_is_reported_without_retries():
+    client = _client([FakeResponse(200, plistlib.dumps({'customerMessage': 'MZFinance.BadLogin.Configurator_message'}))])
+    with pytest.raises(StoreException, match='BadLogin'):
+        client.authenticate('user@example.com', 'secret')
+    assert len(client.sess.calls) == 1
 # --- purchase / download -----------------------------------------------------------
 # buyProduct on MZBuy answers HTTP 200 with m-allowed=False for every app, so no license
 # is ever created and the download that follows fails with failureType 9610. The license

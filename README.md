@@ -1179,3 +1179,22 @@ See LICENSE file for details.
 For issues, questions, or contributions, please visit the GitHub repository or contact support.
 
 **Note:** This documentation is maintained alongside the codebase. For the latest information, always refer to the version-specific documentation or the `--help` command output.
+
+### App Store authentication (2026.9.1)
+
+App Store login uses SAP-signed requests. The PyPI wheel includes native helpers
+for Linux, macOS and Windows (x86-64 and ARM64); Go is not required at runtime.
+On first login the signer downloads checksum-pinned Unicorn and Apple runtime
+assets. Allow outbound HTTPS to Apple, `swcdn.apple.com`, `s.mzstatic.com` and
+`files.pythonhosted.org` (Windows also uses the upstream runtime download hosts).
+The runtime cache is under the OS user cache directory in `ipatool/sap` and
+`ipatool/unicorn`. It contains runtime assets, not account sessions. A writable
+user cache directory is required. Alpine/musl is supported through its system
+loader. Offline first login is not supported; warm runtime assets avoid repeating
+these downloads. Account session caching continues to use `appstore_sessions`.
+
+For development from a source checkout, install Go 1.27.1 and run
+`python tools/sap/build.py --target host`. Release builds use `--target all`
+before building the wheel. See `docs/STG-5076-appstore-sap.md` for the protocol,
+source pin and acceptance criteria. The Apple frameworks are fetched directly
+from Apple at runtime and are not included in the package.

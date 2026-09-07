@@ -6,7 +6,7 @@ with open("README.md", "r") as fh:
 setup(
     name="mdast_cli",
 
-    version='2026.8.6',
+    version='2026.9.1',
 
     python_requires='>=3.12',
 
@@ -17,7 +17,8 @@ setup(
     url="https://github.com/Dynamic-Mobile-Security/mdast-cli",
     packages=find_packages(),
     include_package_data=True,
-    package_data={'': ['device.properties']},
+    package_data={'': ['device.properties'],
+                  'mdast_cli.distribution_systems.appstore_client': ['bin/mdast-sap-*', 'IPATOOL-LICENSE']},
     install_requires=[
         'altgraph==0.17',
         'beautifulsoup4==4.10.0',
