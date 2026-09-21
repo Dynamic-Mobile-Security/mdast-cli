@@ -318,7 +318,13 @@ class StoreClient(object):
             len(r.content),
         )
         try:
-            resp = StoreDownloadResp.from_dict(plistlib.loads(r.content))
+            data = plistlib.loads(r.content)
+            from .download_fallback import is_empty_download, recover_empty_download
+            if is_empty_download(r.status_code, data):
+                recovered = recover_empty_download(self, app_id, app_ver_id)
+                if recovered is not None:
+                    data = recovered
+            resp = StoreDownloadResp.from_dict(data)
         except plistlib.InvalidFileException as e:
             _log_response_on_plist_error(r, "volumeStoreDownloadProduct")
             raise StoreException(

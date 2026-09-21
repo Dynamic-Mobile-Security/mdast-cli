@@ -3,3 +3,4 @@ include docs/STG-5076-appstore-sap.md
 recursive-include mdast_cli/distribution_systems/appstore_client/bin mdast-sap-*
 include mdast_cli/distribution_systems/appstore_client/IPATOOL-LICENSE
 include tools/sap/verify_artifacts.py
+include docs/appstore-download-recovery.md
