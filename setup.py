@@ -6,7 +6,7 @@ with open("README.md", "r") as fh:
 setup(
     name="mdast_cli",
 
-    version='2026.9.2',
+    version='2026.9.3',
 
     python_requires='>=3.12',
 
@@ -18,6 +18,7 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     package_data={'': ['device.properties'],
+                  'mdast_cli': ['bin/apkeep-*', 'bin/APKEEP-LICENSE', 'bin/GPAPI-LICENSE'],
                   'mdast_cli.distribution_systems.appstore_client': ['bin/mdast-sap-*', 'IPATOOL-LICENSE']},
     install_requires=[
         'altgraph==0.17',
