@@ -4,3 +4,7 @@ recursive-include mdast_cli/distribution_systems/appstore_client/bin mdast-sap-*
 include mdast_cli/distribution_systems/appstore_client/IPATOOL-LICENSE
 include tools/sap/verify_artifacts.py
 include docs/appstore-download-recovery.md
+
+recursive-include mdast_cli/bin apkeep-* *-LICENSE
+recursive-include tools/apkeep *.py *.json *.md
+include specs/google-play-apkeep-20260930/spec.md

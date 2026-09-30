@@ -1,12 +1,14 @@
 import asyncio
 import logging
 import os
-import shutil
-import zipfile
 import argparse
 import sys
-from typing import Final, Optional, List, Mapping
+from typing import Final, Optional, Mapping
 import re
+import tempfile
+from pathlib import Path
+
+from mdast_cli.helpers.apk_artifacts import inspect_apk_artifact, _find_artifact
 
 from mdast_cli.helpers.logging_utils import redact
 from mdast_cli.helpers.platform_utils import get_apkeep_binary_path
@@ -45,7 +47,7 @@ async def fetch_aas_token(email: str, oauth2_token: str, timeout_sec: int) -> st
             sanitized_output.append('AAS Token: ***')
         else:
             sanitized_output.append(line)
-    sanitized_output_text = '\n'.join(sanitized_output)
+    sanitized_output_text = _safe_output('\n'.join(sanitized_output), email, oauth2_token)
     logger.debug(f'Google Play - apkeep output when fetching token (fragment): {sanitized_output_text[:1000]}')
     logger.debug(f'Google Play - full apkeep output when fetching token: {sanitized_output_text}')
 
@@ -65,8 +67,14 @@ async def fetch_aas_token(email: str, oauth2_token: str, timeout_sec: int) -> st
 
     token_value = parsed[1].strip()
     logger.info('Google Play - AAS token successfully obtained')
-    logger.debug(f'Google Play - AAS token (DEBUG): {token_value}')
     return token_value
+
+
+def _safe_output(output: str, *secrets: str) -> str:
+    for secret in sorted((value for value in secrets if value), key=len, reverse=True):
+        output = output.replace(secret, '[redacted]')
+    output = re.sub(r'https?://\S+', '[url]', output)
+    return output[-3000:]
 
 
 async def download_app(
@@ -76,230 +84,62 @@ async def download_app(
     aas_token: str,
     timeout_sec: int,
 ) -> str:
+    if not re.fullmatch(r'[A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)+', package_name):
+        raise RuntimeError('Google Play: invalid package name')
     apkeep_path = get_apkeep_binary_path()
-    logger.debug(f'Google Play - using apkeep binary: {apkeep_path} (package: {package_name})')
-
-    proc = await asyncio.create_subprocess_exec(
-        apkeep_path,
-        '-a', package_name,
-        '-d', 'google-play',
-        '-e', email,
-        '-o', 'split_apk=true,locale=ru_RU',
-        '-t', aas_token,
-        download_dir,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-    )
-    try:
-        stdout_b, stderr_b = await asyncio.wait_for(proc.communicate(), timeout=timeout_sec)
-    except asyncio.TimeoutError:
-        proc.kill()
-        logger.error(f'Google Play - download timeout exceeded, package: {package_name}')
-        raise RuntimeError('Google Play: timeout while executing apkeep for download')
-
-    output = (stdout_b or b'').decode(errors='ignore') + '\n' + (stderr_b or b'').decode(errors='ignore')
-    sanitized_output = []
-    for line in output.splitlines():
-        if line.strip().startswith('AAS Token: '):
-            sanitized_output.append('AAS Token: ***')
-        else:
-            sanitized_output.append(line)
-    sanitized_output_text = '\n'.join(sanitized_output)
-    logger.debug(f'Google Play - apkeep output during download (fragment): {sanitized_output_text[:1000]} (package: {package_name})')
-    logger.debug(f'Google Play - full apkeep output during download (package: {package_name}): {sanitized_output_text}')
-
-    if proc.returncode != 0:
-        raise RuntimeError(sanitized_output_text.strip() or 'apkeep returned non-zero exit code')
-
-    success_marker_found = f'{package_name} downloaded successfully!' in output
-    if not success_marker_found:
-        logger.warning(f'Google Play - success marker not found in output, continuing artifact check (package: {package_name})')
-
-    split_dir = os.path.join(download_dir, package_name)
-    single_apk = os.path.join(download_dir, f'{package_name}.apk')
-    if os.path.isdir(split_dir):
-        # Rename main APK to base-master.apk before zipping
-        original_base_apk = os.path.join(split_dir, f'{package_name}.apk')
-        renamed_base_apk = os.path.join(split_dir, 'base-master.apk')
-        try:
-            if os.path.exists(original_base_apk):
-                if os.path.exists(renamed_base_apk):
-                    try:
-                        os.remove(renamed_base_apk)
-                    except Exception:
-                        pass
-                os.replace(original_base_apk, renamed_base_apk)
-                logger.info(f'Google Play - renamed base APK: {original_base_apk} → {renamed_base_apk} (package: {package_name})')
-        except Exception as ex:
-            logger.warning(f'Google Play - failed to rename base APK: {ex} (package: {package_name})')
-
-        zip_base = os.path.join(download_dir, f'{package_name}')
-        try:
-            archive_path = shutil.make_archive(zip_base, 'zip', split_dir)
-            logger.info(f'Google Play - artifact ready: {archive_path} (package: {package_name})')
+    directory = Path(download_dir).resolve()
+    directory.mkdir(parents=True, exist_ok=True)
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + timeout_sec
+    for device in ('sting_x86_64', 'px_9a'):
+        logger.info('Google Play: запрос профиля %s', device)
+        with tempfile.TemporaryDirectory(prefix='.google-play-', dir=directory) as work:
+            remaining = deadline - loop.time()
+            if remaining <= 0:
+                raise RuntimeError('Google Play: download timeout exceeded')
+            proc = await asyncio.create_subprocess_exec(
+                apkeep_path, '-a', package_name, '-d', 'google-play', '-e', email,
+                '-o', f'split_apk=true,locale=ru_RU,device={device}', '-t', aas_token, work,
+                stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+            )
             try:
-                shutil.rmtree(split_dir)
-                logger.debug(f'Google Play - temporary split directory removed: {split_dir} (package: {package_name})')
-            except Exception as ex:
-                logger.warning('gp:cleanup_split_dir_failed', extra={'package': package_name, 'dir': split_dir, 'error': str(ex)})
-            return archive_path
-        except Exception as ex:
-            logger.error(f'Google Play - failed to archive split APKs: {ex} (package: {package_name})')
-            raise RuntimeError(f'Google Play: failed to archive split APKs: {ex}')
-    if os.path.isfile(single_apk):
-        # Keep single APK as the final artifact (no zipping)
-        logger.info(f'Google Play - artifact ready: {single_apk} (package: {package_name})')
-        return single_apk
-
-    # Try to infer artifact path(s) from apkeep output (absolute .apk/.apks paths)
-    candidate_paths = set()
-    try:
-        for match in re.findall(r'(/[^ \n"]+\.(?:apks?|zip))', output):
-            candidate_paths.add(match)
-    except Exception:
-        pass
-    if candidate_paths:
-        logger.debug(f'Google Play - candidates from apkeep output: {list(candidate_paths)[:10]} (package: {package_name})')
-        for path in candidate_paths:
-            if os.path.isdir(path):
-                # Directory with splits; zip it
-                original_base_apk = os.path.join(path, f'{package_name}.apk')
-                renamed_base_apk = os.path.join(path, 'base-master.apk')
-                try:
-                    if os.path.exists(original_base_apk):
-                        if os.path.exists(renamed_base_apk):
-                            try:
-                                os.remove(renamed_base_apk)
-                            except Exception:
-                                pass
-                        os.replace(original_base_apk, renamed_base_apk)
-                        logger.info(f'Google Play - renamed base APK: {original_base_apk} → {renamed_base_apk} (package: {package_name})')
-                except Exception as ex:
-                    logger.warning(f'Google Play - failed to rename base APK: {ex} (package: {package_name})')
-                try:
-                    archive_path = shutil.make_archive(path, 'zip', path)
-                    logger.info(f'Google Play - artifact ready: {archive_path} (package: {package_name})')
-                    try:
-                        shutil.rmtree(path)
-                        logger.debug(f'Google Play - temporary split directory removed: {path} (package: {package_name})')
-                    except Exception as ex:
-                        logger.warning('gp:cleanup_split_dir_failed', extra={'package': package_name, 'dir': path, 'error': str(ex)})
-                    return archive_path
-                except Exception as ex:
-                    logger.error(f'Google Play - failed to archive split APKs: {ex} (package: {package_name})')
-            elif os.path.isfile(path):
-                # If apkeep produced an .apks file, repackage to .zip and remove source
-                if path.endswith('.apks'):
-                    zip_path = os.path.splitext(path)[0] + '.zip'
-                    try:
-                        with zipfile.ZipFile(zip_path, 'w', compression=zipfile.ZIP_DEFLATED) as zf:
-                            zf.write(path, arcname=os.path.basename(path))
-                        logger.info(f'Google Play - artifact ready: {zip_path} (package: {package_name})')
-                        try:
-                            os.remove(path)
-                            logger.debug(f'Google Play - temporary .apks removed: {path} (package: {package_name})')
-                        except Exception as ex:
-                            logger.debug(f'Google Play - failed to remove temporary .apks: {path}, error: {ex} (package: {package_name})')
-                        return zip_path
-                    except Exception as ex:
-                        logger.error(f'Google Play - failed to repackage .apks to .zip: {ex} (package: {package_name})')
-                elif path.endswith('.apk'):
-                    # Keep single APK as the final artifact
-                    logger.info(f'Google Play - artifact ready: {path} (package: {package_name})')
-                    return path
-                elif path.endswith('.zip'):
-                    logger.info(f'Google Play - artifact ready: {path} (package: {package_name})')
-                    return path
-
-    # Fallback: scan download_dir for recent files/dirs matching the package
-    try:
-        candidates = []
-        for root, dirs, files in os.walk(download_dir):
-            for f in files:
-                if f.startswith(package_name) and (f.endswith('.apk') or f.endswith('.apks') or f.endswith('.zip')):
-                    candidates.append(os.path.join(root, f))
-            for d in dirs:
-                if d.startswith(package_name):
-                    candidates.append(os.path.join(root, d))
-        if candidates:
-            logger.debug(f'Google Play - found candidates: {candidates[:10]} (package: {package_name})')
-            # Prefer .apks/.zip, then split dir, then .apk
-            for ext in ('.zip',):
-                for c in candidates:
-                    if c.endswith(ext) and os.path.isfile(c):
-                        logger.info('gp:artifact_ready', extra={'package': package_name, 'artifact': c})
-                        return c
-            # Repack .apks files to .zip
-            for c in candidates:
-                if c.endswith('.apks') and os.path.isfile(c):
-                    zip_path = os.path.splitext(c)[0] + '.zip'
-                    try:
-                        with zipfile.ZipFile(zip_path, 'w', compression=zipfile.ZIP_DEFLATED) as zf:
-                            zf.write(c, arcname=os.path.basename(c))
-                        logger.info(f'Google Play - artifact ready: {zip_path} (package: {package_name})')
-                        try:
-                            os.remove(c)
-                            logger.debug(f'Google Play - temporary .apks removed: {c} (package: {package_name})')
-                        except Exception as ex:
-                            logger.debug(f'Google Play - failed to remove temporary .apks: {c}, error: {ex} (package: {package_name})')
-                        return zip_path
-                    except Exception as ex:
-                        logger.error('gp:repack_apks_failed', extra={'package': package_name, 'error': str(ex)})
-            # split dir
-            for c in candidates:
-                if os.path.isdir(c):
-                    original_base_apk = os.path.join(c, f'{package_name}.apk')
-                    renamed_base_apk = os.path.join(c, 'base-master.apk')
-                    try:
-                        if os.path.exists(original_base_apk):
-                            if os.path.exists(renamed_base_apk):
-                                try:
-                                    os.remove(renamed_base_apk)
-                                except Exception:
-                                    pass
-                            os.replace(original_base_apk, renamed_base_apk)
-                            logger.info('gp:rename_base_apk', extra={'package': package_name, 'from': original_base_apk, 'to': renamed_base_apk})
-                    except Exception as ex:
-                        logger.warning('gp:rename_base_apk_failed', extra={'package': package_name, 'error': str(ex)})
-                    try:
-                        archive_path = shutil.make_archive(c, 'zip', c)
-                        logger.info(f'Google Play - artifact ready: {archive_path} (package: {package_name})')
-                        try:
-                            shutil.rmtree(c)
-                            logger.debug(f'Google Play - temporary split directory removed: {c} (package: {package_name})')
-                        except Exception as ex:
-                            logger.debug(f'Google Play - failed to remove temporary split directory: {c}, error: {ex} (package: {package_name})')
-                        return archive_path
-                    except Exception as ex:
-                        logger.error(f'Google Play - failed to archive split APKs: {ex} (package: {package_name})')
-            # single apk (keep as-is)
-            for c in candidates:
-                if c.endswith('.apk') and os.path.isfile(c):
-                    logger.info(f'Google Play - artifact ready: {c} (package: {package_name})')
-                    return c
-    except Exception as ex:
-        logger.debug(f'Google Play - failed to scan directory for candidates: {ex} (package: {package_name})')
-
-    if not success_marker_found:
-        # apkeep exited without printing the "downloaded successfully!" marker and produced no file.
-        # This is how Google Play behaves when it refuses to deliver the APK for the requested
-        # device profile: most commonly the app has no native build for the device's CPU ABI
-        # (e.g. requesting an x86_64 emulator profile for an arm64-only app), but it can also mean
-        # the app is unavailable for the account's region or is not acquired in its library.
-        # Not a real download failure on our side.
-        logger.error(f'Google Play - apkeep produced no success marker and no artifact; '
-                     f'Google Play did not deliver the app for the requested device profile '
-                     f'(likely CPU ABI/architecture mismatch, e.g. no x86_64 build for an arm64-only app; '
-                     f'or region/availability/acquisition) (package: {package_name})')
-        raise RuntimeError(
-            'Google Play: apkeep finished without a success marker and produced no artifact - '
-            'Google Play did not deliver the app for the requested device profile. Most likely the app '
-            'has no native build for the requested CPU ABI (e.g. requesting x86_64 for an arm64-only app); '
-            'also check region/availability and that the app is acquired in the account library'
-        )
-
-    logger.error(f'Google Play - success marker present but artifact not found (package: {package_name})')
-    raise RuntimeError('Google Play: apkeep reported success but the artifact could not be located')
+                stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=remaining)
+            except asyncio.TimeoutError as error:
+                if proc.returncode is None:
+                    proc.kill()
+                await proc.wait()
+                raise RuntimeError('Google Play: download timeout exceeded') from error
+            except asyncio.CancelledError:
+                if proc.returncode is None:
+                    proc.kill()
+                await proc.wait()
+                raise
+            output = (stdout or b'').decode(errors='replace') + '\n' + (stderr or b'').decode(errors='replace')
+            unavailable = 'STING_APP_UNAVAILABLE:' in output
+            if proc.returncode != 0:
+                if proc.returncode == 3 and unavailable and device == 'sting_x86_64':
+                    logger.warning('Google Play: приложение недоступно профилю x86_64; пробую ARM fallback')
+                    continue
+                raise RuntimeError('Google Play: apkeep failed: ' + _safe_output(output, email, aas_token))
+            found = _find_artifact(work, package_name, output)
+            if found is None:
+                raise RuntimeError('Google Play: apkeep produced no valid APK artifact')
+            artifact = Path(found)
+            info = inspect_apk_artifact(artifact)
+            abis = info['abis']
+            if not abis:
+                logger.info('Google Play: APK без native libraries, не зависит от ABI')
+            elif 'x86_64' in abis:
+                logger.info('Google Play: получена сборка x86_64; ABI=%s', ','.join(abis))
+            elif set(abis) & {'arm64-v8a', 'armeabi-v7a', 'armeabi'}:
+                logger.warning('Google Play: ARM fallback, x86_64 в выдаче отсутствует; ABI=%s', ','.join(abis))
+            else:
+                raise RuntimeError('Google Play: unsupported native ABIs: ' + ','.join(abis))
+            target = directory / artifact.name
+            os.replace(artifact, target)
+            logger.info('Google Play: проверено APK=%s, ABI=%s', info['apk_count'], ','.join(abis) or 'universal')
+            return str(target)
+    raise RuntimeError('Google Play: app is unavailable for x86_64 and ARM profiles')
 
 
 def _ensure_dir_exists(path: str) -> None:
@@ -337,8 +177,6 @@ async def _run_cli(
             logger.info(f'Google Play - AAS token not provided, will be fetched via OAuth2 (package: {package_name})')
             token_to_use = await fetch_aas_token(email=email, oauth2_token=oauth2_token or '', timeout_sec=DEFAULT_TIMEOUT_SEC)
             logger.info(f'Google Play - AAS token obtained (package: {package_name})')
-        else:
-            logger.debug(f'Google Play - AAS token (DEBUG): {token_to_use}')
 
         artifact = await download_app(
             download_dir=DEFAULT_DOWNLOAD_DIR,
@@ -354,7 +192,7 @@ async def _run_cli(
         return 1
 
 
-def _parse_args(argv: List[str]) -> argparse.Namespace:
+def _parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description='Google Play downloader (apkeep-based)')
     parser.add_argument('--email', required=True, help='Google account email')
     parser.add_argument('--package', required=True, help='Android package name')
@@ -364,7 +202,7 @@ def _parse_args(argv: List[str]) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def main(argv: Optional[List[str]] = None) -> int:
+def main(argv: Optional[list[str]] = None) -> int:
     args = _parse_args(argv if argv is not None else sys.argv[1:])
     _configure_logging(DEFAULT_LOG_LEVEL)
 
@@ -389,5 +227,4 @@ def main(argv: Optional[List[str]] = None) -> int:
 
 if __name__ == '__main__':
     sys.exit(main())
-
 

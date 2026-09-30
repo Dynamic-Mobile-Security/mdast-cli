@@ -14,7 +14,6 @@ COPY --from=sap-builder /src/mdast_cli/distribution_systems/appstore_client/bin/
     /mdast_cli/mdast_cli/distribution_systems/appstore_client/bin/
 COPY --from=sap-builder /src/mdast_cli/distribution_systems/appstore_client/IPATOOL-LICENSE \
     /mdast_cli/mdast_cli/distribution_systems/appstore_client/IPATOOL-LICENSE
-RUN if [ -f /mdast_cli/apkeep_linux ]; then chmod +x /mdast_cli/apkeep_linux; fi
 RUN pip install --no-cache-dir -r requirements.txt
 ENV PYTHONPATH="/mdast_cli"
 ENTRYPOINT ["python3", "mdast_cli/mdast_scan.py"]

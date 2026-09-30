@@ -1,0 +1,13 @@
+{
+  "binaries": {
+    "apkeep-darwin-arm64": "41fefc9f276943c9cf1cd0d473ed53b4e4f3963a51e2d3808eed7e9abdcfe425",
+    "apkeep-darwin-x86_64": "afcf0e353c4a437ec5c9e9384541402969707415b9e7767854b69fefeffa67b0",
+    "apkeep-linux-arm64": "a1aee4578d4aaf20c84e4a89ed491682a12b160dcafa16f705379f392eef007e",
+    "apkeep-linux-x86_64": "06fab452c671ef79e050039f77eaa5a9483a0b1ccf4055d714cba06d2f51bb27"
+  },
+  "platforms": [
+    "x86_64"
+  ],
+  "profile": "sting_x86_64",
+  "version": "1.0.0-sting.1"
+}

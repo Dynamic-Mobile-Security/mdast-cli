@@ -1,0 +1,26 @@
+{
+  "apkeep": {
+    "version": "1.0.0",
+    "sha256": "26c2989763ea86e839c6aadce2dcfa9f8f4cbd2850554e75d688362985c72b89"
+  },
+  "gpapi": {
+    "version": "6.1.0",
+    "sha256": "01531d5c64819b400f0fa805806d1b71ba1ce732c3b17f253538fe6bf72f1335"
+  },
+  "patched_version": "1.0.0-sting.1",
+  "profile": "sting_x86_64",
+  "base_profile": "px_9a",
+  "platforms": "x86_64",
+  "identity_profile": "google_kiwi_x86_64",
+  "identity_fields": [
+    "Build.FINGERPRINT",
+    "Build.HARDWARE",
+    "Build.DEVICE",
+    "Build.PRODUCT",
+    "Build.MODEL",
+    "Build.MANUFACTURER",
+    "Build.BRAND",
+    "Build.BOOTLOADER",
+    "Build.RADIO"
+  ]
+}
