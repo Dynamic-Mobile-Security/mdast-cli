@@ -6,7 +6,7 @@ with open("README.md", "r") as fh:
 setup(
     name="mdast_cli",
 
-    version='2026.9.3',
+    version='2026.10.1',
 
     python_requires='>=3.12',
 

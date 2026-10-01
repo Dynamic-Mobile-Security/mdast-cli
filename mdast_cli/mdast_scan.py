@@ -224,8 +224,8 @@ For detailed information about specific distribution system see README.md
                                        'Example: instagram_latest, whatsapp_production')
     google_play_group.add_argument('--google_play_proxy', type=str,
                                   help='Proxy settings for connecting to Google Play. '
-                                       'Optional parameter. '
-                                       'Format: socks5://user:pass@host:port or http://user:pass@host:port. '
+                                       'Optional; omitted means direct, ignoring proxy environment variables. '
+                                       'Format: socks5h://user:pass@host:port (remote DNS), socks5://, http:// or https://. '
                                        'Example: socks5://proxy.example.com:1080')
 
     # RuStore distribution system
@@ -866,7 +866,8 @@ def main():
                         gp_apkeep.fetch_aas_token(
                             email=arguments.google_play_email or '',
                             oauth2_token=arguments.google_play_oauth2_token,
-                            timeout_sec=gp_apkeep.DEFAULT_TIMEOUT_SEC
+                            timeout_sec=gp_apkeep.DEFAULT_TIMEOUT_SEC,
+                            proxy=arguments.google_play_proxy,
                         )
                     )
                 except Exception as ex:

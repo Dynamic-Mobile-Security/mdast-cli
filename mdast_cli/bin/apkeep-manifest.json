@@ -1,13 +1,13 @@
 {
   "binaries": {
-    "apkeep-darwin-arm64": "41fefc9f276943c9cf1cd0d473ed53b4e4f3963a51e2d3808eed7e9abdcfe425",
-    "apkeep-darwin-x86_64": "afcf0e353c4a437ec5c9e9384541402969707415b9e7767854b69fefeffa67b0",
-    "apkeep-linux-arm64": "a1aee4578d4aaf20c84e4a89ed491682a12b160dcafa16f705379f392eef007e",
-    "apkeep-linux-x86_64": "06fab452c671ef79e050039f77eaa5a9483a0b1ccf4055d714cba06d2f51bb27"
+    "apkeep-darwin-arm64": "199558a7c2588e97b435afb0aadf4a12b2b1bcd0e80b7071e69769d60b666909",
+    "apkeep-darwin-x86_64": "3dfcd497812f32ca363e614e6d7f8e9bb11916e516be4134ef02366b6111cf03",
+    "apkeep-linux-arm64": "d80145c7102b3954fdf3d892798128c2e0b8e895ad4424a71890efa0de2ad915",
+    "apkeep-linux-x86_64": "688d9c07924a906343d08cb2f28552ae166c51f16381856cd0f9621147ffb997"
   },
   "platforms": [
     "x86_64"
   ],
   "profile": "sting_x86_64",
-  "version": "1.0.0-sting.1"
+  "version": "1.0.0-sting.2"
 }

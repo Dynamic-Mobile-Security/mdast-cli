@@ -7,6 +7,7 @@ from typing import Final, Optional, Mapping
 import re
 import tempfile
 from pathlib import Path
+from urllib.parse import urlsplit, unquote
 
 from mdast_cli.helpers.apk_artifacts import inspect_apk_artifact, _find_artifact
 
@@ -20,7 +21,37 @@ DEFAULT_DOWNLOAD_DIR: Final[str] = 'downloaded_apps'
 DEFAULT_LOG_LEVEL: Final[str] = 'INFO'
 
 
-async def fetch_aas_token(email: str, oauth2_token: str, timeout_sec: int) -> str:
+def _proxy_environment(proxy: Optional[str]) -> dict[str, str]:
+    """Select one route for this child only; explicit proxy never falls back to direct."""
+    if proxy is not None:
+        try:
+            parsed = urlsplit(proxy)
+            if (parsed.scheme not in ('http', 'https', 'socks5', 'socks5h')
+                    or not parsed.hostname or parsed.port == 0
+                    or parsed.path not in ('', '/') or parsed.query or parsed.fragment
+                    or any(char.isspace() or ord(char) < 32 for char in proxy)):
+                raise ValueError
+            # Accessing port validates malformed/out-of-range values without echoing input.
+            _ = parsed.port
+        except (ValueError, TypeError):
+            raise ValueError('Google Play: invalid proxy URL; expected http(s):// or socks5(h)://host:port') from None
+    env = os.environ.copy()
+    for key in ('HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY'):
+        env[key] = env[key.lower()] = proxy or ''
+    env['NO_PROXY'] = env['no_proxy'] = '' if proxy else '*'
+    return env
+
+
+def _proxy_secrets(proxy: Optional[str]) -> tuple[str, ...]:
+    if not proxy:
+        return ()
+    parsed = urlsplit(proxy)
+    return tuple(value for value in (proxy, parsed.username, parsed.password,
+                                     unquote(parsed.username or ''), unquote(parsed.password or '')) if value)
+
+
+async def fetch_aas_token(email: str, oauth2_token: str, timeout_sec: int, proxy: Optional[str] = None) -> str:
+    env = _proxy_environment(proxy)
     apkeep_path = get_apkeep_binary_path()
     logger.debug(f'Google Play - using apkeep binary: {apkeep_path}')
 
@@ -32,13 +63,22 @@ async def fetch_aas_token(email: str, oauth2_token: str, timeout_sec: int) -> st
         '--oauth-token', oauth2_token,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
+        env=env,
     )
     try:
         stdout_b, stderr_b = await asyncio.wait_for(proc.communicate(), timeout=timeout_sec)
     except asyncio.TimeoutError:
-        proc.kill()
+        if proc.returncode is None:
+            proc.kill()
+        await proc.wait()
         logger.error('gp:token_fetch_timeout')
         raise RuntimeError('Google Play: timeout while executing apkeep for token fetch')
+
+    except asyncio.CancelledError:
+        if proc.returncode is None:
+            proc.kill()
+        await proc.wait()
+        raise
 
     output = (stdout_b or b'').decode(errors='ignore') + '\n' + (stderr_b or b'').decode(errors='ignore')
     sanitized_output = []
@@ -47,7 +87,7 @@ async def fetch_aas_token(email: str, oauth2_token: str, timeout_sec: int) -> st
             sanitized_output.append('AAS Token: ***')
         else:
             sanitized_output.append(line)
-    sanitized_output_text = _safe_output('\n'.join(sanitized_output), email, oauth2_token)
+    sanitized_output_text = _safe_output('\n'.join(sanitized_output), email, oauth2_token, *_proxy_secrets(proxy))
     logger.debug(f'Google Play - apkeep output when fetching token (fragment): {sanitized_output_text[:1000]}')
     logger.debug(f'Google Play - full apkeep output when fetching token: {sanitized_output_text}')
 
@@ -73,7 +113,7 @@ async def fetch_aas_token(email: str, oauth2_token: str, timeout_sec: int) -> st
 def _safe_output(output: str, *secrets: str) -> str:
     for secret in sorted((value for value in secrets if value), key=len, reverse=True):
         output = output.replace(secret, '[redacted]')
-    output = re.sub(r'https?://\S+', '[url]', output)
+    output = re.sub(r'(?:https?|socks5h?)://\S+', '[url]', output)
     return output[-3000:]
 
 
@@ -83,9 +123,11 @@ async def download_app(
     email: str,
     aas_token: str,
     timeout_sec: int,
+    proxy: Optional[str] = None,
 ) -> str:
     if not re.fullmatch(r'[A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)+', package_name):
         raise RuntimeError('Google Play: invalid package name')
+    env = _proxy_environment(proxy)
     apkeep_path = get_apkeep_binary_path()
     directory = Path(download_dir).resolve()
     directory.mkdir(parents=True, exist_ok=True)
@@ -93,52 +135,57 @@ async def download_app(
     deadline = loop.time() + timeout_sec
     for device in ('sting_x86_64', 'px_9a'):
         logger.info('Google Play: запрос профиля %s', device)
-        with tempfile.TemporaryDirectory(prefix='.google-play-', dir=directory) as work:
-            remaining = deadline - loop.time()
-            if remaining <= 0:
-                raise RuntimeError('Google Play: download timeout exceeded')
-            proc = await asyncio.create_subprocess_exec(
-                apkeep_path, '-a', package_name, '-d', 'google-play', '-e', email,
-                '-o', f'split_apk=true,locale=ru_RU,device={device}', '-t', aas_token, work,
-                stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
-            )
-            try:
-                stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=remaining)
-            except asyncio.TimeoutError as error:
-                if proc.returncode is None:
-                    proc.kill()
-                await proc.wait()
-                raise RuntimeError('Google Play: download timeout exceeded') from error
-            except asyncio.CancelledError:
-                if proc.returncode is None:
-                    proc.kill()
-                await proc.wait()
-                raise
-            output = (stdout or b'').decode(errors='replace') + '\n' + (stderr or b'').decode(errors='replace')
-            unavailable = 'STING_APP_UNAVAILABLE:' in output
-            if proc.returncode != 0:
-                if proc.returncode == 3 and unavailable and device == 'sting_x86_64':
-                    logger.warning('Google Play: приложение недоступно профилю x86_64; пробую ARM fallback')
-                    continue
-                raise RuntimeError('Google Play: apkeep failed: ' + _safe_output(output, email, aas_token))
-            found = _find_artifact(work, package_name, output)
-            if found is None:
-                raise RuntimeError('Google Play: apkeep produced no valid APK artifact')
-            artifact = Path(found)
-            info = inspect_apk_artifact(artifact)
-            abis = info['abis']
-            if not abis:
-                logger.info('Google Play: APK без native libraries, не зависит от ABI')
-            elif 'x86_64' in abis:
-                logger.info('Google Play: получена сборка x86_64; ABI=%s', ','.join(abis))
-            elif set(abis) & {'arm64-v8a', 'armeabi-v7a', 'armeabi'}:
-                logger.warning('Google Play: ARM fallback, x86_64 в выдаче отсутствует; ABI=%s', ','.join(abis))
-            else:
-                raise RuntimeError('Google Play: unsupported native ABIs: ' + ','.join(abis))
-            target = directory / artifact.name
-            os.replace(artifact, target)
-            logger.info('Google Play: проверено APK=%s, ABI=%s', info['apk_count'], ','.join(abis) or 'universal')
-            return str(target)
+        for attempt in range(3):
+            with tempfile.TemporaryDirectory(prefix='.google-play-', dir=directory) as work:
+                remaining = deadline - loop.time()
+                if remaining <= 0:
+                    raise RuntimeError('Google Play: download timeout exceeded')
+                proc = await asyncio.create_subprocess_exec(
+                    apkeep_path, '-a', package_name, '-d', 'google-play', '-e', email,
+                    '-o', f'split_apk=true,locale=ru_RU,device={device}', '-t', aas_token, work,
+                    stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE, env=env,
+                )
+                try:
+                    stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=remaining)
+                except asyncio.TimeoutError as error:
+                    if proc.returncode is None:
+                        proc.kill()
+                    await proc.wait()
+                    raise RuntimeError('Google Play: download timeout exceeded') from error
+                except asyncio.CancelledError:
+                    if proc.returncode is None:
+                        proc.kill()
+                    await proc.wait()
+                    raise
+                output = (stdout or b'').decode(errors='replace') + '\n' + (stderr or b'').decode(errors='replace')
+                unavailable = 'STING_APP_UNAVAILABLE:' in output
+                if proc.returncode != 0:
+                    if proc.returncode == 3 and unavailable and device == 'sting_x86_64':
+                        logger.warning('Google Play: приложение недоступно профилю x86_64; пробую ARM fallback')
+                        break
+                    if proc.returncode == 3 and 'STING_DOWNLOAD_ERROR:' in output and not unavailable and attempt < 2:
+                        logger.warning('Google Play: ошибка загрузки, повторная попытка %s/3', attempt + 2)
+                        continue
+                    route = ' through configured proxy' if proxy else ''
+                    raise RuntimeError('Google Play: apkeep failed' + route + ': ' + _safe_output(output, email, aas_token, *_proxy_secrets(proxy)))
+                found = _find_artifact(work, package_name, output)
+                if found is None:
+                    raise RuntimeError('Google Play: apkeep produced no valid APK artifact')
+                artifact = Path(found)
+                info = inspect_apk_artifact(artifact)
+                abis = info['abis']
+                if not abis:
+                    logger.info('Google Play: APK без native libraries, не зависит от ABI')
+                elif 'x86_64' in abis:
+                    logger.info('Google Play: получена сборка x86_64; ABI=%s', ','.join(abis))
+                elif set(abis) & {'arm64-v8a', 'armeabi-v7a', 'armeabi'}:
+                    logger.warning('Google Play: ARM fallback, x86_64 в выдаче отсутствует; ABI=%s', ','.join(abis))
+                else:
+                    raise RuntimeError('Google Play: unsupported native ABIs: ' + ','.join(abis))
+                target = directory / artifact.name
+                os.replace(artifact, target)
+                logger.info('Google Play: проверено APK=%s, ABI=%s', info['apk_count'], ','.join(abis) or 'universal')
+                return str(target)
     raise RuntimeError('Google Play: app is unavailable for x86_64 and ARM profiles')
 
 
@@ -165,6 +212,7 @@ async def _run_cli(
     package_name: str,
     oauth2_token: Optional[str],
     aas_token: Optional[str],
+    proxy: Optional[str] = None,
 ) -> int:
     red_email: Optional[Mapping[str, object]] = redact({'email': email})
     logger.info(f'Google Play - start: package {package_name}, email {(red_email or {}).get("email")}, '
@@ -175,7 +223,7 @@ async def _run_cli(
         token_to_use = aas_token
         if not token_to_use:
             logger.info(f'Google Play - AAS token not provided, will be fetched via OAuth2 (package: {package_name})')
-            token_to_use = await fetch_aas_token(email=email, oauth2_token=oauth2_token or '', timeout_sec=DEFAULT_TIMEOUT_SEC)
+            token_to_use = await fetch_aas_token(email=email, oauth2_token=oauth2_token or '', timeout_sec=DEFAULT_TIMEOUT_SEC, proxy=proxy)
             logger.info(f'Google Play - AAS token obtained (package: {package_name})')
 
         artifact = await download_app(
@@ -184,6 +232,7 @@ async def _run_cli(
             email=email,
             aas_token=token_to_use or '',
             timeout_sec=DEFAULT_TIMEOUT_SEC,
+            proxy=proxy,
         )
         logger.info(f'Google Play - success: artifact {artifact} (package: {package_name})')
         return 0
@@ -195,6 +244,7 @@ async def _run_cli(
 def _parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description='Google Play downloader (apkeep-based)')
     parser.add_argument('--email', required=True, help='Google account email')
+    parser.add_argument('--proxy', help='Optional HTTP(S) or SOCKS5(H) proxy; omitted means direct')
     parser.add_argument('--package', required=True, help='Android package name')
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('--oauth2-token', help='OAuth2 token to fetch AAS token')
@@ -217,6 +267,7 @@ def main(argv: Optional[list[str]] = None) -> int:
                 package_name=args.package,
                 oauth2_token=args.oauth2_token,
                 aas_token=args.aas_token,
+                proxy=args.proxy,
             )
         )
         return exit_code

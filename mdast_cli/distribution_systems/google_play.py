@@ -39,7 +39,6 @@ class GooglePlay(object):
         }
 
     def download_app(self, download_path, package_name, file_name=None, proxy=None):
-        # proxy is not used in the apkeep flow; preserved for signature compatibility
         ensure_download_dir(download_path)
 
         aas_token = self.aas_token or ''
@@ -53,6 +52,7 @@ class GooglePlay(object):
                 email=email,
                 aas_token=aas_token,
                 timeout_sec=gp_apkeep.DEFAULT_TIMEOUT_SEC,
+                proxy=proxy,
             )
         )
 
