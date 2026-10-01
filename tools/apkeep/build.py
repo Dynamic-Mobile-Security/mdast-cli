@@ -68,12 +68,23 @@ def prepare(directory):
     for marker in ('File already exists', 'Split APK directory already exists', 'STING_APP_UNAVAILABLE', 'Permission denied', 'An error has occurred attempting to download {}. Skipping', 'Specific versions can not'):
         text = re.sub(r'(\s*)(eprintln!\("' + re.escape(marker) + ')', r'\1failed.set(true);\1\2', text)
     text = text.replace('    ).buffer_unordered(parallel).collect::<Vec<()>>().await;', '    ).buffer_unordered(parallel).collect::<Vec<()>>().await;\n    if failed.get() { std::process::exit(3); }')
-    download, token = text.split('pub async fn request_aas_token', 1)
-    download = download.replace('Err(_) => {', 'Err(error) => {\n                            let message = format!("{:?}", error);\n                            let redacted = regex::Regex::new(r"https?://\\S+").unwrap().replace_all(&message, "[url]");\n                            eprintln!("STING_DOWNLOAD_ERROR: {}", redacted);')
-    text = download + 'pub async fn request_aas_token' + token
+    # Retry in the CLI instead: every attempt owns a fresh temporary directory.
+    start = text.index('                        Err(_) => {', text.index('match gpa.download'))
+    end = text.index('\n                    }\n                } else {', start)
+    text = text[:start] + '''                        Err(error) => {
+                            failed.set(true);
+                            let message = format!("{:?}", error);
+                            let redacted = regex::Regex::new(r"(?:https?|socks5h?)://\\S+").unwrap().replace_all(&message, "[url]");
+                            eprintln!("STING_DOWNLOAD_ERROR: {}", redacted);
+                        }''' + text[end:]
+    for name in ('mp_dl2', 'mp_dl3'):
+        text = text.replace(f'            let {name} = Rc::clone(&mp);\n', '')
     rust.write_text(text)
     cargo = app / 'Cargo.toml'
     text = cargo.read_text().replace('version = "1.0.0"', f'version = "{META["patched_version"]}"', 1)
+    text, count = re.subn(r'(\[dependencies.reqwest\]\nversion = [^\n]+\nfeatures = )\[\"stream\"\]', r'\1["stream", "socks"]', text)
+    if count != 1:
+        raise RuntimeError('Pinned upstream reqwest features changed')
     text += f'\n[patch.crates-io]\ngpapi = {{ path = "../{gp.name}" }}\n'
     cargo.write_text(text)
     lock = app / 'Cargo.lock'

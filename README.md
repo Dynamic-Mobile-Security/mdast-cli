@@ -318,7 +318,7 @@ docker run -it \
 Download applications from Google Play Store using `apkeep`.
 
 **Prerequisites:**
-1. Google Play uses the verified `apkeep 1.0.0-sting.1` bundled with the wheel and Docker image. A separate system installation is not required. The bundled phone profile prefers Android `x86_64`; ARM delivery is accepted with an explicit `ARM fallback` warning. Applications without native libraries work independently of CPU ABI. The downloaded APKs are checked before success is reported.
+1. Google Play uses the verified `apkeep 1.0.0-sting.2` bundled with the wheel and Docker image. A separate system installation is not required. The bundled phone profile prefers Android `x86_64`; ARM delivery is accepted with an explicit `ARM fallback` warning. Applications without native libraries work independently of CPU ABI. The downloaded APKs are checked before success is reported.
 
 2. Obtain authentication:
    - **Option A**: OAuth2 token (recommended for first-time setup)
@@ -1190,3 +1190,23 @@ For development from a source checkout, install Go 1.27.1 and run
 before building the wheel. See `docs/STG-5076-appstore-sap.md` for the protocol,
 source pin and acceptance criteria. The Apple frameworks are fetched directly
 from Apple at runtime and are not included in the package.
+
+### Optional Google Play proxy
+
+`--google_play_proxy` is optional and applies to both OAuth2-to-AAS authentication
+and APK/CDN downloads. Supported schemes: `http`, `https`, `socks5` (local DNS),
+`socks5h` (DNS through the proxy). For example:
+
+```sh
+mdast_cli -d --distribution_system google_play \
+  --google_play_package_name com.example.app \
+  --google_play_email user@example.com --google_play_aas_token "$AAS_TOKEN" \
+  --google_play_proxy "$GOOGLE_PLAY_PROXY"
+```
+
+Omit `--google_play_proxy` for a direct connection. Proxy environment variables
+are ignored for Google Play unless the explicit argument is supplied. A proxy
+failure never silently switches to a direct connection or ARM. Python callers
+use `GooglePlay.download_app(..., proxy=None)` or pass the same proxy URL.
+Credentials are redacted from downloader logs. Network retries use fresh temporary
+directories, at most three attempts within the overall download timeout.

@@ -7,7 +7,7 @@
     "version": "6.1.0",
     "sha256": "01531d5c64819b400f0fa805806d1b71ba1ce732c3b17f253538fe6bf72f1335"
   },
-  "patched_version": "1.0.0-sting.1",
+  "patched_version": "1.0.0-sting.2",
   "profile": "sting_x86_64",
   "base_profile": "px_9a",
   "platforms": "x86_64",
