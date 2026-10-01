@@ -51,6 +51,44 @@ def prepare(directory):
             raise RuntimeError(f'Missing base identity field: {key}')
     (gp / 'device.properties').write_text(props + f'\n[{META["profile"]}]\n' + profile)
     (gp / 'src/device_properties.bin').unlink(missing_ok=True)
+    # gpapi enables native-tls globally, overriding reqwest's rustls default
+    # even for the APK downloader. SecureTransport rejects certificates on
+    # affected macOS hosts (-9808). Keep native TLS on other platforms.
+    gp_cargo = gp / 'Cargo.toml'
+    gp_text = gp_cargo.read_text()
+    gp_text, count = re.subn(
+        r'(\[dependencies.reqwest\]\nversion = "0\.13"\n)features = \["native-tls-no-alpn"\]\n',
+        r'\1', gp_text,
+    )
+    if count != 1:
+        raise RuntimeError('Pinned upstream gpapi TLS features changed')
+    gp_text += """
+[target.'cfg(not(target_os = "macos"))'.dependencies.reqwest]
+version = "0.13"
+features = ["native-tls-no-alpn"]
+"""
+    gp_cargo.write_text(gp_text)
+    # native-tls-no-alpn also kept gpapi on HTTP/1.1. Preserve that protocol
+    # on macOS: Google rejects gpapi auth requests over negotiated HTTP/2.
+    gp_rust = gp / 'src/lib.rs'
+    gp_source = gp_rust.read_text()
+    if gp_source.count('Box::new(reqwest::Client::new())') != 2:
+        raise RuntimeError('Pinned upstream gpapi client construction changed')
+    gp_source = gp_source.replace('Box::new(reqwest::Client::new())', 'Box::new(sting_http_client())')
+    gp_source += '''
+fn sting_http_client() -> reqwest::Client {
+    #[cfg(target_os = "macos")]
+    {
+        reqwest::Client::builder().http1_only().build()
+            .expect("Could not initialize Google Play HTTPS client")
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        reqwest::Client::new()
+    }
+}
+'''
+    gp_rust.write_text(gp_source)
     rust = app / 'src/download_sources/google_play.rs'
     text = rust.read_text()
     if text.count('unwrap_or("px_9a")') != 2:

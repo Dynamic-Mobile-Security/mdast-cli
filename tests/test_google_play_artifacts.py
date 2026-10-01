@@ -134,7 +134,7 @@ def test_bundled_binary_selected_over_path(monkeypatch):
     monkeypatch.setattr(shutil, 'which', lambda _: pytest.fail('PATH must not be used'))
     path = platform_utils.get_apkeep_binary_path()
     assert '/mdast_cli/bin/apkeep-' in path
-    assert subprocess.check_output([path, '--version'], text=True).strip() == 'apkeep 1.0.0-sting.2'
+    assert subprocess.check_output([path, '--version'], text=True).strip() == 'apkeep 1.0.0-sting.3'
 
 
 def test_corrupt_binary_rejected_before_credentials(monkeypatch):

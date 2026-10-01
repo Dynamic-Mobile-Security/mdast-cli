@@ -318,7 +318,7 @@ docker run -it \
 Download applications from Google Play Store using `apkeep`.
 
 **Prerequisites:**
-1. Google Play uses the verified `apkeep 1.0.0-sting.2` bundled with the wheel and Docker image. A separate system installation is not required. The bundled phone profile prefers Android `x86_64`; ARM delivery is accepted with an explicit `ARM fallback` warning. Applications without native libraries work independently of CPU ABI. The downloaded APKs are checked before success is reported.
+1. Google Play uses the verified `apkeep 1.0.0-sting.3` bundled with the wheel and Docker image. A separate system installation is not required. The bundled phone profile prefers Android `x86_64`; ARM delivery is accepted with an explicit `ARM fallback` warning. Applications without native libraries work independently of CPU ABI. The downloaded APKs are checked before success is reported.
 
 2. Obtain authentication:
    - **Option A**: OAuth2 token (recommended for first-time setup)
