@@ -2,6 +2,7 @@
 import base64
 import json
 import logging
+import os
 import platform
 import queue
 import subprocess
@@ -58,6 +59,13 @@ def helper_path():
     system = platform.system().lower()
     arch = {'x86_64': 'amd64', 'aarch64': 'arm64', 'arm64': 'arm64',
             'amd64': 'amd64'}.get(platform.machine().lower())
+    requested = os.environ.get('MDAST_APPSTORE_SAP_ARCH')
+    if requested:
+        if system != 'darwin' or requested not in ('amd64', 'arm64'):
+            raise SAPError('MDAST_APPSTORE_SAP_ARCH supports amd64 or arm64 on macOS only')
+        if arch == 'amd64' and requested != arch:
+            raise SAPError('An Intel Mac cannot run the ARM64 SAP helper')
+        arch = requested
     suffix = '.exe' if system == 'windows' else ''
     path = Path(__file__).with_name('bin') / f'mdast-sap-{system}-{arch}{suffix}'
     if arch is None or not path.is_file():
@@ -67,6 +75,10 @@ def helper_path():
 
 def helper_command():
     binary = helper_path()
+    if (platform.system() == 'Darwin'
+            and platform.machine().lower() in ('aarch64', 'arm64')
+            and os.environ.get('MDAST_APPSTORE_SAP_ARCH') == 'amd64'):
+        return ['arch', '-x86_64', str(binary)]
     # Go/purego embeds the glibc interpreter in its Linux binary. On musl,
     # invoke the installed system loader explicitly; upstream selects the
     # corresponding checksum-pinned musllinux Unicorn runtime itself.
@@ -83,6 +95,9 @@ def helper_command():
 class SAPSigner:
     def __init__(self, config, guid):
         self.process = None
+        cache = os.environ.get('MDAST_SAP_CACHE_DIR')
+        if cache and not Path(cache).is_absolute():
+            raise SAPError('MDAST_SAP_CACHE_DIR must be an absolute directory')
         try:
             hardware = bytes.fromhex(guid)
             if len(hardware) != 6:

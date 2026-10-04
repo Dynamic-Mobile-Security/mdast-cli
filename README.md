@@ -1186,6 +1186,13 @@ user cache directory is required. Alpine/musl is supported through its system
 loader. Offline first login is not supported; warm runtime assets avoid repeating
 these downloads. Account session caching continues to use `appstore_sessions`.
 
+`MDAST_SAP_CACHE_DIR` optionally selects an absolute directory for these verified
+public runtime assets. It does not change account-session storage or `HOME`.
+On Apple Silicon, `MDAST_APPSTORE_SAP_ARCH=amd64` explicitly selects the bundled
+Intel helper through installed Rosetta. The default remains the native helper;
+no automatic architecture fallback occurs. This setting affects SAP signing
+only, not the downloaded application's ABI or Google Play.
+
 For development from a source checkout, install Go 1.27.1 and run
 `python tools/sap/build.py --target host`. Release builds use `--target all`
 before building the wheel. See `docs/STG-5076-appstore-sap.md` for the protocol,

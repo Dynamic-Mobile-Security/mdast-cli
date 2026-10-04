@@ -137,3 +137,42 @@ def test_musl_uses_system_loader(monkeypatch, machine, loader):
     monkeypatch.setattr(sap.platform, 'machine', lambda: machine)
     monkeypatch.setattr(sap.Path, 'is_file', lambda self: str(self) == loader)
     assert sap.helper_command() == [loader, '/test/mdast-sap']
+
+
+def test_explicit_intel_helper_on_apple_silicon_uses_rosetta(monkeypatch):
+    monkeypatch.setattr(sap.platform, 'system', lambda: 'Darwin')
+    monkeypatch.setattr(sap.platform, 'machine', lambda: 'arm64')
+    monkeypatch.setattr(sap.Path, 'is_file', lambda self: True)
+    monkeypatch.setenv('MDAST_APPSTORE_SAP_ARCH', 'amd64')
+    command = sap.helper_command()
+    assert command[:2] == ['arch', '-x86_64']
+    assert command[2].endswith('mdast-sap-darwin-amd64')
+
+
+def test_default_apple_silicon_helper_is_unchanged(monkeypatch):
+    monkeypatch.setattr(sap.platform, 'system', lambda: 'Darwin')
+    monkeypatch.setattr(sap.platform, 'machine', lambda: 'arm64')
+    monkeypatch.setattr(sap.Path, 'is_file', lambda self: True)
+    monkeypatch.delenv('MDAST_APPSTORE_SAP_ARCH', raising=False)
+    assert sap.helper_command()[0].endswith('mdast-sap-darwin-arm64')
+
+
+@pytest.mark.parametrize('system,machine,requested', [
+    ('Darwin', 'arm64', '../other'), ('Darwin', 'x86_64', 'arm64'),
+    ('Linux', 'aarch64', 'amd64'), ('Windows', 'AMD64', 'amd64'),
+])
+def test_unsupported_helper_override_fails_closed(monkeypatch, system, machine, requested):
+    monkeypatch.setattr(sap.platform, 'system', lambda: system)
+    monkeypatch.setattr(sap.platform, 'machine', lambda: machine)
+    monkeypatch.setenv('MDAST_APPSTORE_SAP_ARCH', requested)
+    with pytest.raises(sap.SAPError):
+        sap.helper_command()
+
+
+def test_relative_cache_rejected_before_helper_start(monkeypatch):
+    monkeypatch.setenv('MDAST_SAP_CACHE_DIR', 'relative/cache')
+    def forbidden(*args, **kwargs):
+        pytest.fail('invalid cache reached subprocess')
+    monkeypatch.setattr(sap.subprocess, 'Popen', forbidden)
+    with pytest.raises(sap.SAPError, match='absolute'):
+        sap.SAPSigner(sap.parse_bag(BAG), 'AABBCCDDEEFF')
