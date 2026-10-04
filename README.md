@@ -404,9 +404,9 @@ Download iOS applications (.ipa) from the App Store.
   - `--appstore_bundle_id <bundle>` - Bundle identifier
 - `--appstore_apple_id <email>` - iTunes account email
 - `--appstore_password <password>` - iTunes account password
-- `--appstore_2FA <code>` - 6-digit 2FA code
 
 **Optional Parameters:**
+- `--appstore_2FA <code>` - Fresh 6-digit code when Apple requires verification
 - `--appstore_file_name <name>` - Custom filename for downloaded IPA
 
 **Getting App ID:**
@@ -418,10 +418,10 @@ Download iOS applications (.ipa) from the App Store.
 1. Run the script with email and password
 2. You'll receive a 2FA code on your device
 3. Use the code with `--appstore_2FA`
-4. **Save the combined password+2FA** format for 6 months: `password2FA` (e.g., `P@ssword742877`)
+4. A successful login is cached in `appstore_sessions` under the current working directory. Reuse that session from the same directory; an old one-time code is not a reusable credential.
 
 **Deprecated Parameter:**
-- `--appstore_password2FA` - Will be removed on 01.05.2023. Use separate `--appstore_password` and `--appstore_2FA` instead.
+- `--appstore_password2FA` - Retained for compatibility. Prefer separate `--appstore_password` and optional `--appstore_2FA`.
 
 **Example:**
 ```bash
@@ -441,8 +441,9 @@ mdast_cli \
 
 **Troubleshooting:**
 - **"Wrong Apple ID" error**: Contact support to coordinate the Apple ID for AppStore integration
-- **Session expired**: Re-authenticate and save the new 2FA code
+- **Session expired**: Re-authenticate with a fresh code if Apple requests it
 - **Login errors**: Ensure 2FA is enabled and code is current (6-digit format)
+- **HTTP 204/403/404/429/5xx without an account response**: The CLI retries transient responses at most three times with backoff and respects `Retry-After`. A malformed redirect or an exhausted retry budget remains a download failure; these statuses alone do not establish that the password is incorrect.
 
 **Note:** This integration uses [ipatool](https://github.com/majd/ipatool) - thanks to all contributors!
 
@@ -976,9 +977,9 @@ mdast_cli -d \
 **Solutions:**
 1. Ensure 2FA is enabled on the Apple ID
 2. Use the 6-digit 2FA code (not the longer backup code)
-3. Format password+2FA correctly: `password2FA` (e.g., `P@ssword742877`)
+3. Pass the password via `--appstore_password` and a fresh code via `--appstore_2FA` when requested
 4. Contact support if Apple ID needs to be whitelisted
-5. Re-authenticate if session expired (sessions last ~6 months)
+5. Re-authenticate if the saved session expires; its lifetime is controlled by Apple
 
 #### Firebase Service Account Errors
 

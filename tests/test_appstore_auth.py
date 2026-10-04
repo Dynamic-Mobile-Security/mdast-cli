@@ -3,6 +3,7 @@ import base64
 import plistlib
 
 import pytest
+import requests
 
 from mdast_cli.distribution_systems.appstore_client import store as store_mod
 from mdast_cli.distribution_systems.appstore_client.store import LEGACY_AUTH_URL, StoreClient, StoreException
@@ -118,6 +119,144 @@ def test_transient_response_budget_is_three():
     with pytest.raises(StoreException, match='HTTP 204'):
         client.authenticate('user@example.com', 'secret')
     assert len(client.sess.calls) == 3
+
+
+def test_html_forbidden_is_retried_with_backoff(monkeypatch):
+    waits = []
+    monkeypatch.setattr(store_mod.time, 'sleep', waits.append)
+    client = _client([
+        FakeResponse(403, b'<html>Forbidden</html>', {'Content-Type': 'text/html'}),
+        FakeResponse(404), FakeResponse(200, plistlib.dumps(SUCCESS_PLIST)),
+    ])
+    client.authenticate('user@example.com', 'secret')
+    assert waits == [10, 20]
+    assert len(set(FakeSigner.last.payloads)) == 1
+    assert [c['body']['attempt'] for c in client.sess.calls] == ['1'] * 3
+
+
+def test_html_301_without_location_retries_only_original_endpoint():
+    client = _client([FakeResponse(301, b'<html>Moved</html>', {'Content-Type': 'text/html'}),
+                      FakeResponse(302, headers={'Location': POD_URL}),
+                      FakeResponse(200, plistlib.dumps(SUCCESS_PLIST))])
+    client.authenticate('user@example.com', 'secret')
+    assert [c['url'] for c in client.sess.calls] == [LEGACY_AUTH_URL, LEGACY_AUTH_URL, POD_URL]
+    assert len(set(FakeSigner.last.payloads)) == 1
+
+
+def test_html_301_without_location_remains_bounded():
+    client = _client([FakeResponse(301, b'<html>Moved</html>') for _ in range(3)])
+    with pytest.raises(StoreException, match='3 requests'):
+        client.authenticate('user@example.com', 'secret')
+    assert len(client.sess.calls) == 3
+
+
+def test_html_301_with_unsafe_location_fails_without_retry():
+    client = _client([FakeResponse(301, b'<html>Moved</html>', {'Location': 'https://evil.example/'})])
+    with pytest.raises(StoreException, match='endpoint'):
+        client.authenticate('user@example.com', 'secret')
+    assert len(client.sess.calls) == 1
+
+
+@pytest.mark.parametrize('status', [403, 429, 503])
+def test_populated_account_refusal_is_not_retried(status):
+    failure = {'failureType': '1234', 'customerMessage': 'Incorrect password'}
+    client = _client([FakeResponse(status, plistlib.dumps(failure))])
+    with pytest.raises(StoreException, match='Incorrect password'):
+        client.authenticate('user@example.com', 'secret')
+    assert len(client.sess.calls) == 1
+
+
+def test_retry_after_takes_precedence(monkeypatch):
+    waits = []
+    monkeypatch.setattr(store_mod.time, 'sleep', waits.append)
+    client = _client([FakeResponse(429, headers={'Retry-After': '15'}),
+                      FakeResponse(200, plistlib.dumps(SUCCESS_PLIST))])
+    client.authenticate('user@example.com', 'secret')
+    assert waits == [15]
+
+
+def test_retry_after_date_is_respected(monkeypatch):
+    from email.utils import formatdate
+    monkeypatch.setattr(store_mod.time, 'time', lambda: 1000)
+    waits = []
+    monkeypatch.setattr(store_mod.time, 'sleep', waits.append)
+    client = _client([FakeResponse(429, headers={'Retry-After': formatdate(1025, usegmt=True)}),
+                      FakeResponse(200, plistlib.dumps(SUCCESS_PLIST))])
+    client.authenticate('user@example.com', 'secret')
+    assert waits == [25]
+
+
+@pytest.mark.parametrize('value', ['31', '99999999999999999999999999999999999'])
+def test_long_retry_after_stops_without_early_retry(value):
+    client = _client([FakeResponse(429, headers={'Retry-After': value})])
+    with pytest.raises(StoreException, match='longer wait'):
+        client.authenticate('user@example.com', 'secret')
+    assert len(client.sess.calls) == 1
+
+
+@pytest.mark.parametrize('error', [requests.exceptions.Timeout, requests.exceptions.ConnectionError])
+def test_transport_retry_is_bounded_and_sanitized(monkeypatch, error):
+    calls = []
+    def failed(*args, **kwargs):
+        calls.append(args)
+        raise error('private password signature')
+    client = _client([])
+    monkeypatch.setattr(client.sess, 'post', failed)
+    with pytest.raises(StoreException, match='3 requests') as result:
+        client.authenticate('user@example.com', 'secret')
+    assert 'private' not in str(result.value)
+    assert len(calls) == 3
+    assert FakeSigner.last.closed
+
+
+def test_certificate_error_is_not_retried_or_exposed(monkeypatch):
+    calls = []
+    def failed(*args, **kwargs):
+        calls.append(args)
+        raise requests.exceptions.SSLError('private request')
+    client = _client([])
+    monkeypatch.setattr(client.sess, 'post', failed)
+    with pytest.raises(StoreException, match='TLS verification') as result:
+        client.authenticate('user@example.com', 'secret')
+    assert 'private' not in str(result.value)
+    assert len(calls) == 1
+    assert FakeSigner.last.closed
+
+
+def test_relative_pod_redirect_is_validated():
+    client = _client([FakeResponse(302, headers={'Location': '//p7-buy.itunes.apple.com/WebObjects/MZFinance.woa/wa/authenticate?Pod=7'}),
+                      FakeResponse(200, plistlib.dumps(SUCCESS_PLIST))])
+    client.authenticate('user@example.com', 'secret')
+    assert client.sess.calls[1]['url'] == POD_URL.split('&PRH=7')[0]
+
+
+@pytest.mark.parametrize('location', ['   ', '//evil.example/WebObjects/MZFinance.woa/wa/authenticate'])
+def test_invalid_relative_redirect_never_receives_credentials(location):
+    client = _client([FakeResponse(302, headers={'Location': location})])
+    with pytest.raises(StoreException):
+        client.authenticate('user@example.com', 'secret')
+    assert len(client.sess.calls) == 1
+
+
+@pytest.mark.parametrize('flags,password', [
+    (['--appstore_password', 'secret'], 'secret'),
+    (['--appstore_password', 'secret', '--appstore_2FA', ''], 'secret'),
+    (['--appstore_password', 'secret', '--appstore_2FA', '123 456'], 'secret123456'),
+    (['--appstore_password2FA', 'secret123456'], 'secret123456'),
+])
+def test_cli_passes_password_to_real_download_boundary(monkeypatch, tmp_path, flags, password):
+    from tests.conftest import run_main
+    captured = []
+    def download(self, directory, *args):
+        captured.append(self.pass2FA)
+        artifact = tmp_path / 'application.ipa'
+        artifact.write_bytes(b'ipa download fixture')
+        return str(artifact), 'md5'
+    monkeypatch.setattr('mdast_cli.mdast_scan.AppStore.download_app', download)
+    assert run_main(monkeypatch, ['--distribution_system', 'appstore', '--download_only',
+                                 '--appstore_app_id', '1234', '--appstore_apple_id', 'user@example.com',
+                                 '--download_path', str(tmp_path)] + flags) == 0
+    assert captured == [password]
 
 
 @pytest.mark.parametrize('status', [301, 302])

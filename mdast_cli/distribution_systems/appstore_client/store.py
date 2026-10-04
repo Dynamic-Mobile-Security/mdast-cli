@@ -4,6 +4,8 @@ import os
 import plistlib
 import re
 import time
+from email.utils import parsedate_to_datetime
+from urllib.parse import urljoin
 import requests
 from requests.adapters import HTTPAdapter
 from mdast_cli.distribution_systems.appstore_client.sap import SAPError, SAPSigner, parse_bag, validate_endpoint
@@ -13,6 +15,9 @@ logger = logging.getLogger(__name__)
 BAG_URL_TEMPLATE = "https://init.itunes.apple.com/bag.xml?guid=%s"
 LEGACY_AUTH_URL = "https://buy.itunes.apple.com/WebObjects/MZFinance.woa/wa/authenticate"
 AUTH_MAX_REDIRECTS = 4
+AUTH_MAX_REQUEST_ATTEMPTS = 3
+AUTH_RETRY_DELAY = 10
+AUTH_MAX_RETRY_DELAY = 30
 BUY_DOMAIN = "buy.itunes.apple.com"
 
 
@@ -143,31 +148,71 @@ class StoreClient(object):
             data=body, allow_redirects=False, verify=True, timeout=60,
         )
 
+    def _auth_retry_delay(self, response, retry):
+        delay = min(AUTH_RETRY_DELAY * 2 ** retry, AUTH_MAX_RETRY_DELAY)
+        value = response.headers.get('Retry-After', '').strip() if response is not None else ''
+        if not value:
+            return delay
+        try:
+            requested = int(value) if value.isdigit() else parsedate_to_datetime(value).timestamp() - time.time()
+        except (ValueError, TypeError, OverflowError):
+            return delay
+        if requested > AUTH_MAX_RETRY_DELAY:
+            raise StoreException('authenticate', 'Apple requested a longer wait; try again later')
+        return max(1, requested)
+
+    def _auth_request(self, url, appleId, password, attempt, signer):
+        outcomes = []
+        for retry in range(AUTH_MAX_REQUEST_ATTEMPTS):
+            response = None
+            try:
+                response = self._post_authenticate(url, appleId, password, attempt, signer)
+            except requests.exceptions.SSLError:
+                raise StoreException('authenticate', 'Apple TLS verification failed') from None
+            except (requests.exceptions.Timeout, requests.exceptions.ConnectionError):
+                outcomes.append('transport error')
+            else:
+                status = response.status_code
+                logger.info('App Store signed authentication response: HTTP %s', status)
+                try:
+                    data = plistlib.loads(response.content)
+                    if not isinstance(data, dict):
+                        raise ValueError
+                except (ValueError, TypeError, plistlib.InvalidFileException):
+                    data = None
+                # Populated Apple account responses and redirects are protocol
+                # outcomes, never network retries. Re-sign exactly the same body
+                # for each transient request without changing protocol attempt.
+                html = ('text/html' in response.headers.get('Content-Type', '').lower()
+                        or response.content.lstrip().lower().startswith((b'<html', b'<!doctype html')))
+                transient = (status in (204, 404, 429) or status >= 500
+                             or (status == 403 and html)
+                             or (status == 301 and html and not response.headers.get('Location')))
+                if data is not None or not transient:
+                    return response, data
+                outcomes.append('HTTP %s' % status)
+            if retry + 1 == AUTH_MAX_REQUEST_ATTEMPTS:
+                raise StoreException('authenticate', 'Apple authentication failed after %s requests (%s)' % (
+                    AUTH_MAX_REQUEST_ATTEMPTS, ', '.join(outcomes))) from None
+            time.sleep(self._auth_retry_delay(response, retry))
+
     def _authenticate_at(self, auth_url, appleId, password, signer):
-        url, attempt, redirects, transient = auth_url, 1, 0, 0
+        url, attempt, redirects = auth_url, 1, 0
         while True:
-            response = self._post_authenticate(url, appleId, password, attempt, signer)
+            response, data = self._auth_request(url, appleId, password, attempt, signer)
             status = response.status_code
-            logger.info("App Store signed authentication response: HTTP %s", status)
             if status in (301, 302, 303, 307, 308):
                 location = response.headers.get('Location')
-                if not location:
+                if not location or not location.strip():
                     raise StoreException('authenticate', 'Apple redirect has no Location (HTTP %s)' % status)
+                location = urljoin(url, location.strip())
                 validate_endpoint(location, authentication=True)
                 redirects += 1
                 if redirects > AUTH_MAX_REDIRECTS:
                     raise StoreException('authenticate', 'Too many Apple authentication redirects')
                 url = location
                 continue
-            try:
-                data = plistlib.loads(response.content)
-                if not isinstance(data, dict):
-                    raise ValueError
-            except (ValueError, TypeError, plistlib.InvalidFileException):
-                transient += 1
-                if (status in (204, 404) or status >= 500) and transient < 3:
-                    time.sleep(0.25 * transient)
-                    continue
+            if data is None:
                 raise StoreException('authenticate', 'Apple returned a non-plist authentication response (HTTP %s)' % status) from None
             resp = StoreAuthenticateResp.from_dict(data)
             # Both response shapes are in use: older clients read download-queue-info.
@@ -178,8 +223,9 @@ class StoreClient(object):
                 return response, resp
             if attempt == 1 and str(resp.failureType) == '-5000':
                 attempt = 2
-                transient = 0
                 continue
+            if not resp.failureType and resp.customerMessage == 'MZFinance.BadLogin.Configurator_message':
+                raise StoreException('authenticate', 'Apple requires verification; provide a fresh --appstore_2FA code (MZFinance.BadLogin.Configurator_message)')
             raise StoreException('authenticate', resp.customerMessage or 'Apple rejected authentication', resp.failureType)
 
     def authenticate(self, appleId, password):

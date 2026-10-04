@@ -176,7 +176,7 @@ For detailed information about specific distribution system see README.md
                                     'It is recommended to use environment variables for security.')
     appstore_group.add_argument('--appstore_2FA', type=str,
                                help='Two-factor authentication code (6 digits). '
-                                    'Required parameter when --distribution_system is set to "appstore". '
+                                    'Optional; provide a fresh code if Apple requests verification. '
                                     'Code is sent to trusted Apple devices. '
                                     'Example: 123456')
     appstore_group.add_argument('--appstore_file_name', type=str,
@@ -445,9 +445,9 @@ For detailed information about specific distribution system see README.md
     elif args.distribution_system == 'appstore' and (
             (args.appstore_app_id is None and args.appstore_bundle_id is None) or
             args.appstore_apple_id is None or
-            (args.appstore_password is None or args.appstore_2FA is None) and args.appstore_password2FA is None):
+            args.appstore_password is None and args.appstore_password2FA is None):
         parser.error('"--distribution_system appstore" requires either "--appstore_app_id" or "--appstore_bundle_id", '
-                     '"--appstore_apple_id" and ("--appstore_password" + "--appstore_2FA")/'
+                     '"--appstore_apple_id" and "--appstore_password" (optional "--appstore_2FA")/'
                      '(deprecated "--appstore_password2FA") arguments to be set')
 
     elif args.distribution_system == 'google_play':
@@ -843,8 +843,8 @@ def main():
                                              arguments.firebase_file_extension)
 
         elif distribution_system == 'appstore':
-            if arguments.appstore_password and arguments.appstore_2FA:
-                password2FA = arguments.appstore_password + arguments.appstore_2FA
+            if arguments.appstore_password is not None:
+                password2FA = arguments.appstore_password + (arguments.appstore_2FA or '').replace(' ', '')
             else:
                 password2FA = arguments.appstore_password2FA
             appstore = AppStore(arguments.appstore_apple_id,
