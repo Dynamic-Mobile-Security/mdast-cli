@@ -8,7 +8,7 @@ import queue
 import subprocess
 import threading
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, urlunsplit
 
 logger = logging.getLogger(__name__)
 AUTH_PATH = '/WebObjects/MZFinance.woa/wa/authenticate'
@@ -29,7 +29,7 @@ def validate_endpoint(value, authentication=False):
                  and not url.username and not url.password and not url.fragment
                  and (host.endswith('.apple.com') or host == 's.mzstatic.com'))
         if authentication:
-            valid = (valid and url.path == AUTH_PATH
+            valid = (valid and url.path in (AUTH_PATH, AUTH_PATH + '/')
                      and (host == 'buy.itunes.apple.com'
                           or host.endswith('-buy.itunes.apple.com')))
         if not valid:
@@ -47,8 +47,13 @@ def parse_bag(data):
         raise SAPError('Apple bag has no SAP configuration')
     if str(values.get('sign-sap-version')) != '200':
         raise SAPError('Apple bag has missing or unsupported SAP version')
+    auth_url = validate_endpoint(values.get('authenticateAccount'), True)
+    # Match the working Store request path, without changing the bag host/query
+    # or guessing another endpoint after a refusal. Both path forms are valid
+    # in upstream ipatool PR603; the C++ client uses the trailing-slash form.
+    auth_url = urlunsplit(urlsplit(auth_url)._replace(path=AUTH_PATH + '/'))
     return {
-        'auth_url': validate_endpoint(values.get('authenticateAccount'), True),
+        'auth_url': auth_url,
         'setup_url': validate_endpoint(values.get('sign-sap-setup')),
         'certificate_url': validate_endpoint(values.get('sign-sap-setup-cert')),
         'version': 200,

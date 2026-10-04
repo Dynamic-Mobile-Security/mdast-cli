@@ -25,6 +25,30 @@ def test_bag_accepts_apple_certificate_cdn(wrapper):
     assert sap.parse_bag(wrapper(BAG))['certificate_url'] == BAG['sign-sap-setup-cert']
 
 
+@pytest.mark.parametrize('suffix', ['', '/'])
+@pytest.mark.parametrize('host', ['buy.itunes.apple.com', 'p12-buy.itunes.apple.com'])
+def test_bag_selects_trailing_slash_without_losing_pod_query(host, suffix):
+    endpoint = f'https://{host}{sap.AUTH_PATH}{suffix}?Pod=12&PRH=12'
+    config = sap.parse_bag(dict(BAG, authenticateAccount=endpoint))
+    assert config['auth_url'] == f'https://{host}{sap.AUTH_PATH}/?Pod=12&PRH=12'
+
+
+@pytest.mark.parametrize('endpoint', [
+    f'https://buy.itunes.apple.com{sap.AUTH_PATH}//',
+    f'https://buy.itunes.apple.com{sap.AUTH_PATH}/extra',
+    f'https://buy.itunes.apple.com{sap.AUTH_PATH}%2f',
+    f'https://evil.example{sap.AUTH_PATH}/',
+    f'https://buy.itunes.apple.com.evil.example{sap.AUTH_PATH}/',
+    f'http://buy.itunes.apple.com{sap.AUTH_PATH}/',
+    f'https://user@buy.itunes.apple.com{sap.AUTH_PATH}/',
+    f'https://buy.itunes.apple.com:444{sap.AUTH_PATH}/',
+    f'https://buy.itunes.apple.com{sap.AUTH_PATH}/#fragment',
+])
+def test_bag_does_not_repair_unsafe_endpoint_by_normalizing_path(endpoint):
+    with pytest.raises(sap.SAPError):
+        sap.parse_bag(dict(BAG, authenticateAccount=endpoint))
+
+
 @pytest.mark.parametrize('field,value', [
     ('sign-sap-version', None), ('sign-sap-version', '201'),
     ('authenticateAccount', 'https://evil.example/'),

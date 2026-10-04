@@ -1185,6 +1185,10 @@ The runtime cache is under the OS user cache directory in `ipatool/sap` and
 user cache directory is required. Alpine/musl is supported through its system
 loader. Offline first login is not supported; warm runtime assets avoid repeating
 these downloads. Account session caching continues to use `appstore_sessions`.
+The validated authentication URL from Apple’s bag uses the known
+`/WebObjects/MZFinance.woa/wa/authenticate/` path with a trailing slash.
+Both path forms are accepted for validated Store redirects; the bag host and
+query are preserved, and no alternate endpoint is guessed after a failure.
 
 `MDAST_SAP_CACHE_DIR` optionally selects an absolute directory for these verified
 public runtime assets. It does not change account-session storage or `HOME`.

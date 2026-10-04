@@ -64,16 +64,18 @@ def _signed_bag(monkeypatch):
     monkeypatch.setattr(store_mod, 'SAPSigner', FakeSigner)
 
 
-def test_pod_redirect_reposts_body_with_attempt_one():
+@pytest.mark.parametrize('slash', ['', '/'])
+def test_pod_redirect_reposts_body_with_attempt_one(slash):
+    pod_url = POD_URL.replace('authenticate?', 'authenticate' + slash + '?')
     client = _client([
-        FakeResponse(302, headers={'Location': POD_URL}),
-        FakeResponse(200, plistlib.dumps(SUCCESS_PLIST), headers={'pod': '7'}, url=POD_URL),
+        FakeResponse(302, headers={'Location': pod_url}),
+        FakeResponse(200, plistlib.dumps(SUCCESS_PLIST), headers={'pod': '7'}, url=pod_url),
     ])
     response = client.authenticate('user@example.com', 'secret123456')
     assert response.passwordToken == 'token-123'
     assert client.account_name == 'Test User'
     assert client.pod == '7'
-    assert [c['url'] for c in client.sess.calls] == [LEGACY_AUTH_URL, POD_URL]
+    assert [c['url'] for c in client.sess.calls] == [LEGACY_AUTH_URL, pod_url]
     assert [c['body']['attempt'] for c in client.sess.calls] == ['1', '1']
     assert FakeSigner.last.payloads == [c['data'] for c in client.sess.calls]
     assert len(set(FakeSigner.last.payloads)) == 1
