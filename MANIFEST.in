@@ -1,4 +1,6 @@
 include tools/sap/main.go tools/sap/build.py tools/sap/upstream.json
+include tools/sap/cache.go tools/sap/cache_test.go
+include docs/STG-5356-appstore-download.md specs/appstore-download-20261005/spec.md
 include docs/STG-5076-appstore-sap.md
 recursive-include mdast_cli/distribution_systems/appstore_client/bin mdast-sap-*
 include mdast_cli/distribution_systems/appstore_client/IPATOOL-LICENSE

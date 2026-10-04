@@ -25,6 +25,30 @@ def test_bag_accepts_apple_certificate_cdn(wrapper):
     assert sap.parse_bag(wrapper(BAG))['certificate_url'] == BAG['sign-sap-setup-cert']
 
 
+@pytest.mark.parametrize('suffix', ['', '/'])
+@pytest.mark.parametrize('host', ['buy.itunes.apple.com', 'p12-buy.itunes.apple.com'])
+def test_bag_selects_trailing_slash_without_losing_pod_query(host, suffix):
+    endpoint = f'https://{host}{sap.AUTH_PATH}{suffix}?Pod=12&PRH=12'
+    config = sap.parse_bag(dict(BAG, authenticateAccount=endpoint))
+    assert config['auth_url'] == f'https://{host}{sap.AUTH_PATH}/?Pod=12&PRH=12'
+
+
+@pytest.mark.parametrize('endpoint', [
+    f'https://buy.itunes.apple.com{sap.AUTH_PATH}//',
+    f'https://buy.itunes.apple.com{sap.AUTH_PATH}/extra',
+    f'https://buy.itunes.apple.com{sap.AUTH_PATH}%2f',
+    f'https://evil.example{sap.AUTH_PATH}/',
+    f'https://buy.itunes.apple.com.evil.example{sap.AUTH_PATH}/',
+    f'http://buy.itunes.apple.com{sap.AUTH_PATH}/',
+    f'https://user@buy.itunes.apple.com{sap.AUTH_PATH}/',
+    f'https://buy.itunes.apple.com:444{sap.AUTH_PATH}/',
+    f'https://buy.itunes.apple.com{sap.AUTH_PATH}/#fragment',
+])
+def test_bag_does_not_repair_unsafe_endpoint_by_normalizing_path(endpoint):
+    with pytest.raises(sap.SAPError):
+        sap.parse_bag(dict(BAG, authenticateAccount=endpoint))
+
+
 @pytest.mark.parametrize('field,value', [
     ('sign-sap-version', None), ('sign-sap-version', '201'),
     ('authenticateAccount', 'https://evil.example/'),
@@ -137,3 +161,42 @@ def test_musl_uses_system_loader(monkeypatch, machine, loader):
     monkeypatch.setattr(sap.platform, 'machine', lambda: machine)
     monkeypatch.setattr(sap.Path, 'is_file', lambda self: str(self) == loader)
     assert sap.helper_command() == [loader, '/test/mdast-sap']
+
+
+def test_explicit_intel_helper_on_apple_silicon_uses_rosetta(monkeypatch):
+    monkeypatch.setattr(sap.platform, 'system', lambda: 'Darwin')
+    monkeypatch.setattr(sap.platform, 'machine', lambda: 'arm64')
+    monkeypatch.setattr(sap.Path, 'is_file', lambda self: True)
+    monkeypatch.setenv('MDAST_APPSTORE_SAP_ARCH', 'amd64')
+    command = sap.helper_command()
+    assert command[:2] == ['arch', '-x86_64']
+    assert command[2].endswith('mdast-sap-darwin-amd64')
+
+
+def test_default_apple_silicon_helper_is_unchanged(monkeypatch):
+    monkeypatch.setattr(sap.platform, 'system', lambda: 'Darwin')
+    monkeypatch.setattr(sap.platform, 'machine', lambda: 'arm64')
+    monkeypatch.setattr(sap.Path, 'is_file', lambda self: True)
+    monkeypatch.delenv('MDAST_APPSTORE_SAP_ARCH', raising=False)
+    assert sap.helper_command()[0].endswith('mdast-sap-darwin-arm64')
+
+
+@pytest.mark.parametrize('system,machine,requested', [
+    ('Darwin', 'arm64', '../other'), ('Darwin', 'x86_64', 'arm64'),
+    ('Linux', 'aarch64', 'amd64'), ('Windows', 'AMD64', 'amd64'),
+])
+def test_unsupported_helper_override_fails_closed(monkeypatch, system, machine, requested):
+    monkeypatch.setattr(sap.platform, 'system', lambda: system)
+    monkeypatch.setattr(sap.platform, 'machine', lambda: machine)
+    monkeypatch.setenv('MDAST_APPSTORE_SAP_ARCH', requested)
+    with pytest.raises(sap.SAPError):
+        sap.helper_command()
+
+
+def test_relative_cache_rejected_before_helper_start(monkeypatch):
+    monkeypatch.setenv('MDAST_SAP_CACHE_DIR', 'relative/cache')
+    def forbidden(*args, **kwargs):
+        pytest.fail('invalid cache reached subprocess')
+    monkeypatch.setattr(sap.subprocess, 'Popen', forbidden)
+    with pytest.raises(sap.SAPError, match='absolute'):
+        sap.SAPSigner(sap.parse_bag(BAG), 'AABBCCDDEEFF')

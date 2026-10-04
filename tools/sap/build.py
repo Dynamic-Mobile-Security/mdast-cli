@@ -14,6 +14,21 @@ TARGETS = ('linux-amd64', 'linux-arm64', 'darwin-amd64', 'darwin-arm64',
            'windows-amd64', 'windows-arm64')
 
 
+def configure_runtime_cache(source):
+    """Apply one guarded cache-location hook to verified upstream sources."""
+    for name in ('internal/sap/assets/assets.go', 'internal/sap/unicorn/cache.go'):
+        path = source / name
+        content = path.read_text()
+        if content.count('os.UserCacheDir()') != 1 or content.count('import (') != 1:
+            raise SystemExit('Pinned SAP cache hook no longer matches upstream')
+        content = content.replace('import (', 'import (\n\t"github.com/majd/ipatool/v2/internal/sap/cachepath"', 1)
+        path.write_text(content.replace('os.UserCacheDir()', 'cachepath.Directory()'))
+    directory = source / 'internal/sap/cachepath'
+    directory.mkdir()
+    for name in ('cache.go', 'cache_test.go'):
+        shutil.copy2(ROOT / 'tools/sap' / name, directory / name)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--go', default='go')
@@ -37,6 +52,9 @@ def main():
         # Go module cache files are read-only; leave the cache untouched.
         for path in source.rglob('*'):
             path.chmod(0o755 if path.is_dir() else 0o644)
+        configure_runtime_cache(source)
+        subprocess.run([args.go, 'test', '-mod=readonly', './internal/sap/cachepath'],
+                       cwd=source, check=True)
         command = source / 'cmd/mdast-sap'
         command.mkdir()
         shutil.copy2(ROOT / 'tools/sap/main.go', command / 'main.go')
