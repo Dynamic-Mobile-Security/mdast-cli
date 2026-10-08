@@ -23,7 +23,7 @@ from mdast_cli.distribution_systems.nexus import NexusRepository
 from mdast_cli.distribution_systems.nexus2 import Nexus2Repository
 from mdast_cli.distribution_systems.rumarket import rumarket_download_app
 from mdast_cli.distribution_systems.rustore import rustore_download_app
-from mdast_cli.helpers.const import (ANDROID_EXTENSIONS, DEFAULT_ANDROID_ARCHITECTURE, DEFAULT_IOS_ARCHITECTURE,
+from mdast_cli.helpers.const import (ANDROID_EXTENSIONS, DEFAULT_ANDROID_ARCHITECTURE, IOS_ARCHITECTURE_PRIORITY,
                                      END_SCAN_TIMEOUT, LONG_TRY, REPORT_TIMEOUT, SLEEP_TIMEOUT, TRY, DastState,
                                      DastStateDict)
 from mdast_cli.helpers.exit_codes import ExitCode
@@ -542,8 +542,8 @@ def run_monolith_flow(arguments, url, token, company_id, app_file, appstore_app_
             architecture = next((arch.get('id') for arch in architectures
                                  if isinstance(arch, dict) and arch.get('name') == DEFAULT_ANDROID_ARCHITECTURE), None)
         if file_extension == '.ipa':
-            architecture = next((arch.get('id') for arch in architectures
-                                 if isinstance(arch, dict) and arch.get('name') == DEFAULT_IOS_ARCHITECTURE), None)
+            architecture = next((arch.get('id') for name in IOS_ARCHITECTURE_PRIORITY for arch in architectures
+                                 if isinstance(arch, dict) and arch.get('name') == name), None)
         if architecture is None:
             logger.error("Cannot create scan - no suitable architecture for this app, try to set it manually with --architecture_id")
             sys.exit(ExitCode.INVALID_ARGS)

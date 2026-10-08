@@ -20,7 +20,7 @@ import time
 import requests
 
 from mdast_cli.helpers.const import (ACTIVE_STAGES, ANDROID_EXTENSIONS, DEFAULT_ANDROID_ARCHITECTURE,
-                                     DEFAULT_IOS_ARCHITECTURE, END_SCAN_TIMEOUT, LONG_TRY, OS_ANDROID,
+                                     IOS_ARCHITECTURE_PRIORITY, END_SCAN_TIMEOUT, LONG_TRY, OS_ANDROID,
                                      OS_IOS, PRE_START_STAGES, REPORT_TIMEOUT, SLEEP_TIMEOUT,
                                      TERMINAL_SCAN_PAIRS, TRY, UPLOAD_TIMEOUT_ENV_VAR, UPLOAD_TIMEOUT_MAX,
                                      UPLOAD_TIMEOUT_MIN, ENGINE_ACTIVE_STATUS, ScanStage, ScanStageStatus)
@@ -92,12 +92,11 @@ def resolve_ms_os_version(architectures, platform):
     if not candidates:
         return None
 
-    preferred_name = {
-        OS_ANDROID: DEFAULT_ANDROID_ARCHITECTURE,
-        OS_IOS: DEFAULT_IOS_ARCHITECTURE,
-    }.get(platform)
+    preferred_names = (IOS_ARCHITECTURE_PRIORITY if platform == OS_IOS
+                       else (DEFAULT_ANDROID_ARCHITECTURE,))
     selected = next(
-        (architecture for architecture in candidates if architecture.get('name') == preferred_name),
+        (architecture for name in preferred_names for architecture in candidates
+         if architecture.get('name') == name),
         candidates[0],
     )
     return str(selected['os_version']).strip()
