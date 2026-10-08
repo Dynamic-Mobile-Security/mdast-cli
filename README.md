@@ -693,7 +693,7 @@ mdast_cli \
 **Parameter:** `--architecture_id <id>`
 
 Select the target architecture/OS version for scanning:
-- If not specified, defaults to Android 11 or iOS 14 (depending on file type)
+- If not specified, defaults to Android 11 or prefers iOS 16, then iOS 15, then iOS 14 (depending on file type and the server catalogue)
 - Use specific architecture ID for testing on different OS versions
 - Available architectures depend on your DAST platform configuration
 

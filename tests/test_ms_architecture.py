@@ -1,5 +1,7 @@
 """Unit tests for microservices OS-version selection (STG-4588)."""
 
+from itertools import permutations
+
 import pytest
 
 from mdast_cli.helpers.const import OS_ANDROID, OS_IOS
@@ -44,3 +46,19 @@ def test_selects_version_from_paginated_scanyon_catalogue():
 @pytest.mark.parametrize('architectures', [None, {}, [], [{'type': 'ANDROID', 'os_version': ''}]])
 def test_missing_platform_version_returns_none(architectures):
     assert resolve_ms_os_version(architectures, OS_ANDROID) is None
+
+
+@pytest.mark.parametrize('versions,expected', [
+    *[(versions, '16') for versions in permutations(('14', '15', '16'))],
+    (('14', '15'), '15'),
+    (('15', '14'), '15'),
+    (('14',), '14'),
+    (('26.1', '14', '15', '16'), '16'),
+    (('26.1',), '26.1'),
+    ((), None),
+])
+@pytest.mark.parametrize('paginated', [False, True])
+def test_ios_priority(versions, expected, paginated):
+    catalogue = [{'type': 'IOS', 'name': f'iOS {v}', 'os_version': v} for v in versions]
+    payload = {'items': catalogue} if paginated else catalogue
+    assert resolve_ms_os_version(payload, OS_IOS) == expected

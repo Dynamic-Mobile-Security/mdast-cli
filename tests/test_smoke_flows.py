@@ -7,6 +7,7 @@ The monolith flow is pinned as a regression guard (dual-mode must not break it).
 """
 import json
 import os
+from itertools import permutations
 
 import pytest
 import responses
@@ -14,6 +15,45 @@ import responses
 from tests.conftest import BASE_URL, REST_URL, TOKEN, application_json, run_main, scan_json
 
 pytestmark = pytest.mark.smoke
+
+
+@pytest.mark.parametrize('versions,explicit,expected', [
+    *[(versions, None, 16) for versions in permutations((14, 15, 16))],
+    ((14, 15), None, 15),
+    ((15, 14), None, 15),
+    ((14,), None, 14),
+    ((14, 15, 16), 14, 14),
+    ((26,), None, None),
+    ((), None, None),
+])
+def test_monolith_ios_priority(mocked_responses, monkeypatch, tmp_path,
+                               monolith_mode, versions, explicit, expected):
+    ipa = tmp_path / 'app.ipa'
+    ipa.write_bytes(b'local test payload')
+    mocked_responses.add(responses.GET, f'{REST_URL}/architectures/', json=[
+        {'id': v, 'name': f'iOS {v}', 'type': 2} for v in versions
+    ])
+    mocked_responses.add(responses.GET, f'{REST_URL}/organizations/1/engines/', json=[
+        {'architecture': expected, 'state': 3},
+    ])
+    mocked_responses.add(responses.GET, f'{REST_URL}/organizations/1/applications/',
+                         json=[{'id': 10}])
+    mocked_responses.add(responses.POST, f'{REST_URL}/organizations/1/dasts/',
+                         json={'id': 77}, status=201)
+    mocked_responses.add(responses.POST, f'{REST_URL}/dasts/77/start/', json={})
+    argv = ['--distribution_system', 'file', '--file_path', str(ipa),
+            '--url', BASE_URL, '--company_id', '1', '--token', TOKEN, '--nowait']
+    if explicit is not None:
+        argv += ['--architecture_id', str(explicit)]
+    result = run_main(monkeypatch, argv)
+    if expected is None:
+        assert result == 2
+        assert len(mocked_responses.calls) == 1
+        return
+    assert result == 0
+    created = next(call for call in mocked_responses.calls
+                   if call.request.url.endswith('/organizations/1/dasts/'))
+    assert json.loads(created.request.body)['architecture_id'] == expected
 
 
 def register_ms_happy_path(rsps, apk_md5, with_testcase=True, paginated_architectures=False):

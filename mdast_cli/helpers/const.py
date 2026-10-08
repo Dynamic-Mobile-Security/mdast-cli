@@ -32,7 +32,8 @@ ANDROID_EXTENSIONS = ['.apk', '.apks', '.zip', '.aab']
 
 # Default architecture names for auto-selection
 DEFAULT_ANDROID_ARCHITECTURE = 'Android 11'
-DEFAULT_IOS_ARCHITECTURE = 'iOS 14'
+DEFAULT_IOS_ARCHITECTURE = 'iOS 16'
+IOS_ARCHITECTURE_PRIORITY = (DEFAULT_IOS_ARCHITECTURE, 'iOS 15', 'iOS 14')
 
 # Timeout constants (in seconds)
 TRY = 360
