@@ -10,6 +10,7 @@ import os
 from itertools import permutations
 
 import pytest
+import requests
 import responses
 
 from tests.conftest import BASE_URL, REST_URL, TOKEN, application_json, run_main, scan_json
@@ -340,3 +341,23 @@ def test_monolith_regression_flow(mocked_responses, monkeypatch, tmp_path, tmp_a
                     if '/organizations/1/engines/' in c.request.url]
     assert engine_calls
     assert engine_calls[0].request.headers['Authorization'] == f'Token {TOKEN}'
+
+
+@pytest.mark.parametrize('nowait', [True, False])
+def test_ms_lost_start_response_continues_existing_scan(mocked_responses, monkeypatch,
+                                                        tmp_path, tmp_apk, apk_md5,
+                                                        no_sleep, ms_mode, nowait):
+    monkeypatch.chdir(tmp_path)
+    register_ms_happy_path(mocked_responses, apk_md5)
+    mocked_responses.replace(responses.POST, f'{REST_URL}/scans/77/start/',
+                             body=requests.ReadTimeout('response lost after acceptance'))
+    # Reconciliation reads WORKING; the normal flow subsequently reads SUCCESS.
+    args = ms_argv(tmp_apk) + (['--nowait'] if nowait else [])
+    assert run_main(monkeypatch, args) == 0
+    calls = mocked_responses.calls
+    assert sum(call.request.method == 'POST' and call.request.url == f'{REST_URL}/scans/start/'
+               for call in calls) == 1
+    assert sum(call.request.method == 'POST' and call.request.url == f'{REST_URL}/scans/77/start/'
+               for call in calls) == 1
+    assert any(call.request.method == 'GET' and call.request.url == f'{REST_URL}/scans/77/'
+               for call in calls)

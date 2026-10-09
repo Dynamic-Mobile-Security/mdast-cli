@@ -50,6 +50,7 @@ POLL_TRANSIENT_CODES = (429, 502, 503, 504)
 # upload path returns 429/502/503, worth a few retries, but not the full 5 min.
 UPLOAD_TRANSIENT_RETRIES = 3
 UPLOAD_TRANSIENT_CODES = (429, 502, 503)
+START_CONFIRM_ATTEMPTS = 6
 
 # Strip C0/C1 control chars from server-controlled strings before logging, keeping
 # only TAB (\x09). CRUCIALLY this includes LF (\x0a) and CR (\x0d): otherwise a
@@ -208,6 +209,69 @@ def _get_scan(mdast, scan_id):
     resp = _retry_request(lambda: mdast.get_scan_info(scan_id),
                           f'Getting scan info for scan {scan_id}', POLL_TRANSIENT_RETRIES)
     return _json_or_exit(resp, f'Getting scan info for scan {scan_id}')
+
+
+def _confirm_scan_started(mdast, scan_id, conflict=False):
+    """Reconcile an ambiguous POST using bounded reads, never another POST."""
+    action = f'Confirming start of scan {scan_id}'
+    last_stage = None
+    for attempt in range(START_CONFIRM_ATTEMPTS):
+        last_stage = None
+        try:
+            resp = mdast.get_scan_info(scan_id)
+        except (requests.Timeout, requests.ConnectionError) as exc:
+            logger.warning(f'{action}: {type(exc).__name__}')
+        else:
+            if resp.status_code in (401, 403):
+                _exit_on_http_error(resp, action)
+            if resp.status_code == 200:
+                try:
+                    current = resp.json()
+                except ValueError:
+                    current = None
+                if not isinstance(current, dict) or current.get('id') != scan_id:
+                    break
+                last_stage = current.get('stage')
+                if last_stage in (ScanStage.FAIL, 'CANCELLED'):
+                    logger.error(f'Scan {scan_id} failed or was cancelled: '
+                                 f'{sanitize(current.get("message"))}')
+                    sys.exit(ExitCode.SCAN_FAILED)
+                status = current.get('status')
+                if (last_stage in (ScanStage.START, ScanStage.WORKING,
+                                   ScanStage.STOP, ScanStage.SUCCESS)
+                        and isinstance(status, str) and status.strip()
+                        and status != ScanStageStatus.FAIL):
+                    logger.info(f'Start confirmed for scan {scan_id}: '
+                                f'{sanitize(scan_pair(current))}')
+                    return
+                if last_stage != ScanStage.CREATED:
+                    break
+            elif resp.status_code not in POLL_TRANSIENT_CODES:
+                break
+        if attempt + 1 < START_CONFIRM_ATTEMPTS:
+            time.sleep(SLEEP_TIMEOUT)
+    logger.error(f'Cannot confirm start of scan {scan_id}; the request may have been accepted. '
+                 'Check this existing scan before running the CLI again.')
+    sys.exit(ExitCode.SCAN_FAILED if conflict and last_stage == ScanStage.CREATED
+             else ExitCode.NETWORK_ERROR)
+
+
+def _start_scan(mdast, scan_id):
+    """Submit once; a lost response does not imply that the scan did not start."""
+    try:
+        resp = mdast.start_scan(scan_id)
+    except (requests.Timeout, requests.ConnectionError) as exc:
+        logger.warning(f'Start of scan {scan_id}: {type(exc).__name__}; checking scan state.')
+        _confirm_scan_started(mdast, scan_id)
+        return
+    if resp.status_code == 200:
+        return
+    if resp.status_code in (409, 502, 503, 504):
+        logger.warning(f'Start of scan {scan_id} returned HTTP {resp.status_code}; '
+                       'checking scan state.')
+        _confirm_scan_started(mdast, scan_id, conflict=resp.status_code == 409)
+        return
+    _exit_on_http_error(resp, f'Starting scan {scan_id}')
 
 
 def run_precheck_gate(mdast, md5, profile_id, testcase_id, scan_type, os_version=None):
@@ -414,19 +478,7 @@ def _run_microservices_flow(arguments, url, token, app_file, user_agent, verify)
     logger.info(f'Scan was created successfully. Scan id: {scan_id}')
 
     logger.info(f'Start scan with id {scan_id}')
-    start_resp = mdast.start_scan(scan_id)
-    if start_resp.status_code == 409:
-        # POST /scans/{id}/start/ is not idempotent: a facade retry (network/timeout
-        # after the first call already unlocked the scan) surfaces as 409 "not in
-        # initial state" even though the scan did start. Confirm by state before failing.
-        current = _get_scan(mdast, scan_id)
-        if current.get('stage') != ScanStage.CREATED:
-            logger.warning(f'Start returned 409 but scan {scan_id} is already past initial '
-                           f'state ({scan_pair(current)}) - treating as started (facade retry).')
-        else:
-            _exit_on_http_error(start_resp, f'Starting scan {scan_id}')
-    elif start_resp.status_code != 200:
-        _exit_on_http_error(start_resp, f'Starting scan {scan_id}')
+    _start_scan(mdast, scan_id)
 
     if arguments.nowait:
         logger.info('Scan successfully started. Don`t wait for end, exit with zero code')
