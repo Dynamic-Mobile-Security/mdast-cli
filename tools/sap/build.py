@@ -33,6 +33,33 @@ def configure_runtime_cache(source):
         shutil.copy2(ROOT / 'tools/sap' / name, directory / name)
 
 
+def configure_dependencies(source, go, overrides):
+    """Apply only checksum-verified security updates to pinned upstream modules."""
+    for pin in overrides:
+        dependency = pin['module'] + '@' + pin['version']
+        module = json.loads(subprocess.check_output([go, 'mod', 'download', '-json', dependency]))
+        if (module.get('Error') or module.get('Sum') != pin['sum']
+                or module.get('GoModSum') != pin['go_mod_sum']):
+            raise SystemExit('Pinned SAP dependency checksum verification failed')
+        path = source / 'go.mod'
+        content = path.read_text()
+        old = '\t' + pin['module'] + ' ' + pin['from_version'] + '\n'
+        if content.count(old) != 1:
+            raise SystemExit('Pinned SAP dependency no longer matches upstream')
+        path.write_text(content.replace(old, '\t' + pin['module'] + ' ' + pin['version'] + '\n', 1))
+        sums = source / 'go.sum'
+        lines = sums.read_text().splitlines()
+        for suffix, checksum in [('', pin['sum']), ('/go.mod', pin['go_mod_sum'])]:
+            prefix = pin['module'] + ' ' + pin['version'] + suffix + ' '
+            existing = [line for line in lines if line.startswith(prefix)]
+            expected = prefix + checksum
+            if existing and existing != [expected]:
+                raise SystemExit('Conflicting SAP dependency checksum in upstream')
+            if not existing:
+                lines.append(expected)
+        sums.write_text('\n'.join(sorted(lines)) + '\n')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--go', default='go')
@@ -56,6 +83,7 @@ def main():
         # Go module cache files are read-only; leave the cache untouched.
         for path in source.rglob('*'):
             path.chmod(0o755 if path.is_dir() else 0o644)
+        configure_dependencies(source, args.go, pin['dependency_overrides'])
         configure_runtime_cache(source)
         subprocess.run([args.go, 'test', '-mod=readonly', './internal/sap/cachepath'],
                        cwd=source, check=True)

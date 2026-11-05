@@ -31,3 +31,7 @@ python tools/sap/verify_artifacts.py
 
 - [Upstream: kbsync и новый download flow](https://github.com/majd/ipatool/commit/3411d57f451f5111ae115641c22f7ed17bbd5fbe).
 - [Закреплённый upstream v2.7.0](https://github.com/majd/ipatool/tree/4484b55d366e177ae6c89758c61588712c572fad).
+
+## Security follow-up 2026.11.2 (STG-5538)
+
+Go helper пересобран Go 1.27.3 с checksum-pinned klauspost/compress 1.18.7. Исходный ipatool v2.7.0 и протокол ent/download не меняются. Два pin Go в CI обновлены по отдельному согласованию. Для локальной воспроизводимой сборки использовать Go 1.27.3; перед публикацией сканировать готовый Linux helper через Trivy. План и критерии приёмки: specs/STG-5538.md.
