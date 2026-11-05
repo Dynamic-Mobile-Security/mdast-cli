@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"github.com/majd/ipatool/v2/internal/sap"
+	"github.com/majd/ipatool/v2/internal/sap/assets"
+	"github.com/majd/ipatool/v2/internal/sap/machine"
 )
 
 type request struct {
@@ -20,11 +22,13 @@ type request struct {
 	CertificateURL string `json:"certificate_url"`
 	HardwareID     string `json:"hardware_id"`
 	Payload        []byte `json:"payload"`
+	DSID           uint64 `json:"dsid"`
 }
 
 type response struct {
 	OK        bool   `json:"ok"`
 	Signature []byte `json:"signature,omitempty"`
+	KBSync    []byte `json:"kbsync,omitempty"`
 	Error     string `json:"error,omitempty"`
 	Detail    string `json:"detail,omitempty"`
 }
@@ -52,7 +56,7 @@ func run() error {
 				return encoder.Encode(response{Error: "already_initialized"})
 			}
 			hardware, err := hex.DecodeString(req.HardwareID)
-			if err != nil {
+			if err != nil || len(hardware) != 6 {
 				return encoder.Encode(response{Error: "invalid_hardware_id"})
 			}
 			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
@@ -65,6 +69,24 @@ func run() error {
 				return encoder.Encode(response{Error: "initialization_failed", Detail: err.Error()})
 			}
 			if err := encoder.Encode(response{OK: true}); err != nil {
+				return err
+			}
+		case "kbsync":
+			hardware, err := hex.DecodeString(req.HardwareID)
+			if err != nil || len(hardware) != 6 || req.DSID == 0 {
+				return encoder.Encode(response{Error: "invalid_kbsync_identity"})
+			}
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+			bundle, err := assets.Load(ctx)
+			var data []byte
+			if err == nil {
+				data, err = machine.GenerateKBSync(ctx, bundle, hardware, req.DSID)
+			}
+			cancel()
+			if err != nil || len(data) == 0 || len(data) > 65536 {
+				return encoder.Encode(response{Error: "kbsync_failed"})
+			}
+			if err := encoder.Encode(response{OK: true, KBSync: data}); err != nil {
 				return err
 			}
 		case "sign":

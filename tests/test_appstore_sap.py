@@ -200,3 +200,33 @@ def test_relative_cache_rejected_before_helper_start(monkeypatch):
     monkeypatch.setattr(sap.subprocess, 'Popen', forbidden)
     with pytest.raises(sap.SAPError, match='absolute'):
         sap.SAPSigner(sap.parse_bag(BAG), 'AABBCCDDEEFF')
+
+
+def test_kbsync_protocol_keeps_identity_and_blob_out_of_arguments(monkeypatch):
+    process, captured = make_signer(monkeypatch, b'{"ok":true,"kbsync":"YWJj"}\n')
+    assert sap.generate_kbsync('AABBCCDDEEFF', '42') == 'YWJj'
+    assert captured['args'] == ['/test/mdast-sap']
+    assert process.terminated
+
+
+@pytest.mark.parametrize('guid,dsid', [
+    ('bad', '42'), ('AABBCCDDEEFF', '0'), ('AABBCCDDEEFF', '-1'),
+    ('AABBCCDDEEFF', True), ('AABBCCDDEEFF', 2**64),
+    ('AABBCCDDEEFF', '42x'), ('AABBCCDDEEFF', None),
+    ('AA BB CC DD EE FF', '42'),
+])
+def test_invalid_kbsync_identity_is_rejected_before_subprocess(monkeypatch, guid, dsid):
+    def forbidden(*args, **kwargs):pytest.fail('invalid identity reached helper')
+    monkeypatch.setattr(sap.subprocess, 'Popen', forbidden)
+    with pytest.raises(sap.SAPError):sap.generate_kbsync(guid, dsid)
+
+
+@pytest.mark.parametrize('output', [
+    b'{"ok":true,"kbsync":""}\n', b'{"ok":true,"kbsync":"@@@"}\n',
+    b'{"ok":false,"detail":"private token"}\n',
+])
+def test_invalid_kbsync_response_is_private_and_reaps_helper(monkeypatch, output):
+    process, _ = make_signer(monkeypatch, output)
+    with pytest.raises(sap.SAPError) as error:sap.generate_kbsync('AABBCCDDEEFF', '42')
+    assert 'private token' not in str(error.value)
+    assert process.terminated

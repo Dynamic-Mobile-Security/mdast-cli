@@ -152,6 +152,9 @@ def recover_empty_download(client, app_id, requested_version=''):
     values = bag.get('urlBag') or bag.get('URLBag') or bag
     if not isinstance(values, dict):
         raise _error('download bag', 'Apple bag has no download configuration')
+    if values.get('volumeStoreDownloadProduct'):
+        from .download_ent import download_ent
+        return download_ent(client, values['volumeStoreDownloadProduct'], app_id, requested_version)
     if not values.get('redownloadProduct'):
         return None
     redownload = _endpoint(values['redownloadProduct'], '/r/redownload')
