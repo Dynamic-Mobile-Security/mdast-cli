@@ -2,5 +2,14 @@
   "module": "github.com/majd/ipatool/v2",
   "version": "v2.7.0",
   "commit": "4484b55d366e177ae6c89758c61588712c572fad",
-  "sum": "h1:vUnVsSfH4TQNCgxouApwcQgiliwtNCwv7/OK6QfFaSE="
+  "sum": "h1:vUnVsSfH4TQNCgxouApwcQgiliwtNCwv7/OK6QfFaSE=",
+  "dependency_overrides": [
+    {
+      "module": "github.com/klauspost/compress",
+      "from_version": "v1.18.6",
+      "version": "v1.18.7",
+      "sum": "h1:aUyZsS4kH3QTKurYhAOwAHxllVPnOthb3vPfnF1Ehjw=",
+      "go_mod_sum": "h1:cwPg85FWrGar70rWktvGQj8/hthj3wpl0PGDogxkrSQ="
+    }
+  ]
 }
