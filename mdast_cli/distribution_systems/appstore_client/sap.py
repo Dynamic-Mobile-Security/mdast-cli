@@ -97,32 +97,28 @@ def helper_command():
     return [str(binary)]
 
 
-class SAPSigner:
-    def __init__(self, config, guid):
+def _validate_guid(guid):
+    try:
+        if not isinstance(guid, str) or len(guid) != 12:
+            raise ValueError
+        hardware = bytes.fromhex(guid)
+        if len(hardware) != 6:
+            raise ValueError
+    except (ValueError, TypeError):
+        raise SAPError('SAP requires a 12-character hexadecimal GUID') from None
+    return hardware
+
+
+class _SAPHelper:
+    def __init__(self):
         self.process = None
         cache = os.environ.get('MDAST_SAP_CACHE_DIR')
         if cache and not Path(cache).is_absolute():
             raise SAPError('MDAST_SAP_CACHE_DIR must be an absolute directory')
-        try:
-            hardware = bytes.fromhex(guid)
-            if len(hardware) != 6:
-                raise ValueError
-        except (ValueError, TypeError):
-            raise SAPError('SAP requires a 12-character hexadecimal GUID') from None
-        try:
-            self.process = subprocess.Popen(
-                helper_command(), stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                stderr=subprocess.DEVNULL,
-            )
-            logger.info('Preparing App Store SAP signer; first use downloads verified runtime assets')
-            self._exchange({
-                'op': 'init', 'version': config['version'], 'hardware_id': guid,
-                'setup_url': config['setup_url'], 'certificate_url': config['certificate_url'],
-            }, SETUP_TIMEOUT)
-            logger.info('App Store SAP signer ready')
-        except BaseException:
-            self.close()
-            raise
+        self.process = subprocess.Popen(
+            helper_command(), stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+        )
 
     def _exchange(self, message, timeout):
         data = json.dumps(message, separators=(',', ':')).encode() + b'\n'
@@ -162,16 +158,6 @@ class SAPSigner:
             if self.process is None or self.process.poll() is not None:
                 worker.join(timeout=1)
 
-    def sign(self, payload):
-        reply = self._exchange({'op': 'sign', 'payload': base64.b64encode(payload).decode()}, SIGN_TIMEOUT)
-        try:
-            signature = base64.b64decode(reply['signature'], validate=True)
-            if not signature or len(signature) > 65536:
-                raise ValueError
-            return base64.b64encode(signature).decode('ascii')
-        except (KeyError, ValueError, TypeError):
-            raise SAPError('SAP helper returned an invalid signature') from None
-
     def close(self):
         process = self.process
         if process is None:
@@ -195,3 +181,51 @@ class SAPSigner:
 
     def __exit__(self, *_):
         self.close()
+
+
+class SAPSigner(_SAPHelper):
+    def __init__(self, config, guid):
+        self.process = None
+        _validate_guid(guid)
+        try:
+            super().__init__()
+            logger.info('Preparing App Store SAP signer; first use downloads verified runtime assets')
+            self._exchange({
+                'op': 'init', 'version': config['version'], 'hardware_id': guid,
+                'setup_url': config['setup_url'], 'certificate_url': config['certificate_url'],
+            }, SETUP_TIMEOUT)
+            logger.info('App Store SAP signer ready')
+        except BaseException:
+            self.close()
+            raise
+
+    def sign(self, payload):
+        reply = self._exchange({'op': 'sign', 'payload': base64.b64encode(payload).decode()}, SIGN_TIMEOUT)
+        try:
+            signature = base64.b64decode(reply['signature'], validate=True)
+            if not signature or len(signature) > 65536:
+                raise ValueError
+            return base64.b64encode(signature).decode('ascii')
+        except (KeyError, ValueError, TypeError):
+            raise SAPError('SAP helper returned an invalid signature') from None
+
+def generate_kbsync(guid, dsid):
+    """Generate account/device-bound download data; never persist or log it."""
+    _validate_guid(guid)
+    try:
+        if isinstance(dsid, bool) or not str(dsid).isascii() or not str(dsid).isdigit():
+            raise ValueError
+        dsid = int(dsid)
+        if not 0 < dsid < 2**64:
+            raise ValueError
+    except (ValueError, TypeError):
+        raise SAPError('KBSync requires a nonzero numeric account DSID') from None
+    with _SAPHelper() as helper:
+        reply = helper._exchange({'op': 'kbsync', 'hardware_id': guid, 'dsid': dsid}, 130)
+        try:
+            data = base64.b64decode(reply['kbsync'], validate=True)
+            if not data or len(data) > 65536:
+                raise ValueError
+        except (KeyError, ValueError, TypeError):
+            raise SAPError('SAP helper returned invalid KBSync data') from None
+        return base64.b64encode(data).decode('ascii')

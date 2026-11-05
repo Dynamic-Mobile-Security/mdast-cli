@@ -16,13 +16,17 @@ TARGETS = ('linux-amd64', 'linux-arm64', 'darwin-amd64', 'darwin-arm64',
 
 def configure_runtime_cache(source):
     """Apply one guarded cache-location hook to verified upstream sources."""
-    for name in ('internal/sap/assets/assets.go', 'internal/sap/unicorn/cache.go'):
+    for name in ('internal/sap/assets/assets.go', 'internal/sap/assets/storeagent.go',
+                 'internal/sap/unicorn/cache_runtime.go'):
         path = source / name
         content = path.read_text()
         if content.count('os.UserCacheDir()') != 1 or content.count('import (') != 1:
             raise SystemExit('Pinned SAP cache hook no longer matches upstream')
         content = content.replace('import (', 'import (\n\t"github.com/majd/ipatool/v2/internal/sap/cachepath"', 1)
-        path.write_text(content.replace('os.UserCacheDir()', 'cachepath.Directory()'))
+        content = content.replace('os.UserCacheDir()', 'cachepath.Directory()')
+        if 'os.' not in content:
+            content = content.replace('\t"os"\n', '')
+        path.write_text(content)
     directory = source / 'internal/sap/cachepath'
     directory.mkdir()
     for name in ('cache.go', 'cache_test.go'):
