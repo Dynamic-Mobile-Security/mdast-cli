@@ -1197,7 +1197,7 @@ Intel helper through installed Rosetta. The default remains the native helper;
 no automatic architecture fallback occurs. This setting affects SAP signing
 only, not the downloaded application's ABI or Google Play.
 
-For development from a source checkout, install Go 1.27.1 and run
+For development from a source checkout, install Go 1.27.3 and run
 `python tools/sap/build.py --target host`. Release builds use `--target all`
 before building the wheel. See `docs/STG-5076-appstore-sap.md` for the protocol,
 source pin and acceptance criteria. The Apple frameworks are fetched directly

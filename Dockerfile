@@ -1,4 +1,4 @@
-FROM golang:1.27.1-bookworm AS go-toolchain
+FROM golang:1.27.3-bookworm AS go-toolchain
 FROM python:3.12-slim-bookworm AS sap-builder
 COPY --from=go-toolchain /usr/local/go /usr/local/go
 ENV PATH="/usr/local/go/bin:${PATH}"
