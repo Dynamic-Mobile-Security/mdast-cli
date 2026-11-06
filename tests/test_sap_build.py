@@ -65,3 +65,24 @@ def test_conflicting_checksum_is_rejected(source):
     })):
         with pytest.raises(SystemExit, match='Conflicting SAP dependency checksum'):
             build.configure_dependencies(source, 'go', [PIN])
+
+
+def test_go_toolchain_matches_every_build_path():
+    """Docker must not silently rebuild the release helper with an older Go."""
+    import re
+
+    root = Path(__file__).resolve().parents[1]
+    patterns = {
+        'Dockerfile': r'^FROM golang:([0-9.]+)-bookworm AS go-toolchain$',
+        '.github/workflows/python-publish.yml': r"go-version: '([0-9.]+)'",
+        '.github/workflows/tests.yml': r"go-version: '([0-9.]+)'",
+        'README.md': r'install Go ([0-9.]+) and run',
+    }
+    versions = {}
+    for name, pattern in patterns.items():
+        found = re.findall(pattern, (root / name).read_text(), re.MULTILINE)
+        assert len(found) == 1, f'Expected one explicit Go toolchain in {name}'
+        versions[name] = found[0]
+    assert len(set(versions.values())) == 1, versions
+    version = versions['.github/workflows/python-publish.yml']
+    assert tuple(int(part) for part in version.split('.')) >= (1, 27, 3)
