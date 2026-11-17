@@ -32,7 +32,7 @@ def _is_temporary_error(output: str) -> bool:
     if statuses:
         return all(code in (408, 429) or 500 <= code <= 599 for code in statuses)
     lower = output.lower()
-    if any(marker in lower for marker in ('certificate', 'invalid payload', 'credentials', 'bad authentication')):
+    if any(marker in lower for marker in ('certificate', 'invalid payload', 'bad authentication')):
         return False
     return any(marker in lower for marker in (
         'connection reset', 'connection refused', 'connection closed',

@@ -12,6 +12,8 @@ from tests.test_google_play_artifacts import run_download
     ('HTTP 408 Request Timeout', True),
     ('HTTP/1.1 502 Bad Gateway', True),
     ('STING_DOWNLOAD_ERROR: connection reset by peer', True),
+    ('Could not log in. Please check your credentials. error sending request for url', True),
+    ('error sending request: certificate verify failed', False),
     ('STING_DOWNLOAD_ERROR: timed out', True),
     ('STING_DOWNLOAD_ERROR: Status(403, None)', False),
     ('STING_DOWNLOAD_ERROR: Status(401, None)', False),
