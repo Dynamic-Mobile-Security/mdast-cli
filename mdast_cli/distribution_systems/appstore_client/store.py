@@ -5,10 +5,10 @@ import plistlib
 import re
 import time
 from email.utils import parsedate_to_datetime
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlsplit
 import requests
 from requests.adapters import HTTPAdapter
-from mdast_cli.distribution_systems.appstore_client.sap import SAPError, SAPSigner, parse_bag, validate_endpoint
+from mdast_cli.distribution_systems.appstore_client.sap import SAPError, SAPSigner, parse_bag, validate_endpoint, store_identity
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +61,7 @@ from mdast_cli.distribution_systems.appstore_client.schemas.store_download_resp 
 
 # User-Agent aligned with ipatool post-PR #316 (Apple API compatibility)
 APPSTORE_USER_AGENT = (
-    "Configurator/2.17 (Macintosh; OS X 15.2; 24C5089c) AppleWebKit/0620.1.16.11.6"
+    "Configurator/2.21 (Macintosh; OS X 27.0.1; 26A434) AppleWebKit/0625.2.5.11.6"
 )
 
 
@@ -97,6 +97,13 @@ def _log_response_on_plist_error(r: requests.Response, context: str) -> None:
             logger.warning("Response body (first 100 bytes repr): %r", content[:100])
     else:
         logger.warning("Response body is empty")
+
+
+class StoreMachineAction(Exception):
+    def __init__(self, action, challenge):
+        self.action = action
+        self.challenge = challenge
+        super().__init__('Apple requires machine provisioning')
 
 
 class StoreClient(object):
@@ -141,7 +148,8 @@ class StoreClient(object):
         return self.sess.post(
             url,
             headers={
-                "Accept": "*/*", "Content-Type": "application/x-www-form-urlencoded",
+                "Accept": "*/*", "Content-Type": "application/x-apple-plist",
+                **getattr(self, "_authentication_headers", {}),
                 "User-Agent": APPSTORE_USER_AGENT,
                 "X-Apple-ActionSignature": signature,
             },
@@ -188,7 +196,7 @@ class StoreClient(object):
                 transient = (status in (204, 404, 429) or status >= 500
                              or (status == 403 and html)
                              or (status == 301 and html and not response.headers.get('Location')))
-                if data is not None or not transient:
+                if response.headers.get('X-Apple-AMD-Action') or data is not None or not transient:
                     return response, data
                 outcomes.append('HTTP %s' % status)
             if retry + 1 == AUTH_MAX_REQUEST_ATTEMPTS:
@@ -201,6 +209,9 @@ class StoreClient(object):
         while True:
             response, data = self._auth_request(url, appleId, password, attempt, signer)
             status = response.status_code
+            action = response.headers.get('X-Apple-AMD-Action', '').strip()
+            if action:
+                raise StoreMachineAction(action, response.headers.get('X-Apple-AMD-Data', '').strip())
             if status in (301, 302, 303, 307, 308):
                 location = response.headers.get('Location')
                 if not location or not location.strip():
@@ -216,7 +227,8 @@ class StoreClient(object):
                 raise StoreException('authenticate', 'Apple returned a non-plist authentication response (HTTP %s)' % status) from None
             resp = StoreAuthenticateResp.from_dict(data)
             # Both response shapes are in use: older clients read download-queue-info.
-            dsid = data.get('dsPersonId') or (data.get('download-queue-info') or {}).get('dsid')
+            dsid = (data.get('dsPersonId') or (data.get('download-queue-info') or {}).get('dsid')
+                    or response.headers.get('X-Dsid') or response.headers.get('iCloud-Dsid'))
             if status == 200 and resp.passwordToken and dsid and not resp.failureType:
                 if not resp.download_queue_info:
                     resp = StoreAuthenticateResp.from_dict(dict(data, **{'download-queue-info': {'dsid': dsid}}))
@@ -233,12 +245,69 @@ class StoreClient(object):
             self.guid = self._generateGuid(appleId)
         try:
             config = self.get_bag()
-            with SAPSigner(config, self.guid) as signer:
-                response, result = self._authenticate_at(config['auth_url'], appleId, password, signer)
+            if urlsplit(config['auth_url']).path == '/auth/v1/native':
+                response, result = self._native_authenticate(config, appleId, password)
+            else:
+                with SAPSigner(config, self.guid) as signer:
+                    response, result = self._authenticate_at(config['auth_url'], appleId, password, signer)
             self._store_auth_result(response, result, config['auth_url'])
             return result
         except SAPError as exc:
             raise StoreException('authenticate', str(exc), 'sap') from exc
+
+    def _identity(self, operation, endpoint='', challenge='', headers=None):
+        proof, self.store_amd_state = store_identity(
+            operation, self.guid, getattr(self, 'store_amd_state', ''),
+            endpoint, challenge, headers)
+        return proof
+
+    def _native_authenticate(self, config, apple_id, password):
+        endpoint = config['auth_url']
+
+        def authenticate_request():
+            # Release the signer before provisioning starts another emulator.
+            with SAPSigner(config, self.guid) as signer:
+                return self._authenticate_at(endpoint, apple_id, password, signer)
+
+        try:
+            if getattr(self, 'store_amd_state', ''):
+                try:
+                    self._authentication_headers = self._identity('store_amd', endpoint)
+                except SAPError:
+                    pass
+                else:
+                    return authenticate_request()
+            identity = self._identity('anisette')
+            self._authentication_headers = dict(identity)
+            for source, target in [('X-Apple-I-Md', 'X-Apple-AMD'), ('X-Apple-I-Md-M', 'X-Apple-AMD-M')]:
+                # Go canonicalizes Header keys; match without relying on casing.
+                for key in list(self._authentication_headers):
+                    if key.lower() == source.lower():
+                        self._authentication_headers[target] = self._authentication_headers.pop(key)
+            try:
+                return authenticate_request()
+            except StoreMachineAction as action:
+                if action.action != 'RP':
+                    raise StoreException('authenticate', 'Unexpected Apple machine provisioning action') from None
+            self._authentication_headers = {k: v for k, v in identity.items()
+                                            if k.lower() not in ('x-apple-i-md', 'x-apple-i-md-m', 'x-apple-i-md-rinfo')}
+            try:
+                return authenticate_request()
+            except StoreMachineAction as action:
+                if action.action != 'SP' or not action.challenge or len(action.challenge) > 65536:
+                    raise StoreException('authenticate', 'Invalid Apple provisioning challenge') from None
+                self._identity('store_provision', challenge=action.challenge, headers=identity)
+            self._authentication_headers = self._identity('store_amd', endpoint)
+            return authenticate_request()
+        except StoreMachineAction:
+            raise StoreException('authenticate', 'Apple machine provisioning did not complete') from None
+        finally:
+            self._authentication_headers = {}
+
+    def download_proof(self, endpoint):
+        if not getattr(self, 'store_amd_state', ''):
+            return {}
+        return self._identity('store_amd', endpoint)
 
     def _store_auth_result(self, r, resp, auth_url):
         self.sess.headers['X-Dsid'] = self.sess.headers['iCloud-Dsid'] = str(resp.download_queue_info.dsid)
@@ -351,11 +420,12 @@ class StoreClient(object):
         r = self.sess.post(
             download_url,
             headers={
+                **self.download_proof(download_url),
                 "Content-Type": "application/x-www-form-urlencoded",
                 "User-Agent": APPSTORE_USER_AGENT,
             },
             data=plistlib.dumps(req.as_dict()),
-            verify=False,
+            verify=True, allow_redirects=False, timeout=60,
         )
 
         logger.debug(

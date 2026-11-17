@@ -16,7 +16,7 @@ TARGETS = ('linux-amd64', 'linux-arm64', 'darwin-amd64', 'darwin-arm64',
 
 def configure_runtime_cache(source):
     """Apply one guarded cache-location hook to verified upstream sources."""
-    for name in ('internal/sap/assets/assets.go', 'internal/sap/assets/storeagent.go',
+    for name in ('internal/sap/assets/assets.go',
                  'internal/sap/unicorn/cache_runtime.go'):
         path = source / name
         content = path.read_text()
@@ -31,6 +31,26 @@ def configure_runtime_cache(source):
     directory.mkdir()
     for name in ('cache.go', 'cache_test.go'):
         shutil.copy2(ROOT / 'tools/sap' / name, directory / name)
+
+
+
+def configure_kernel_reader(source):
+    """Keep ZIP integrity checks while batching the sequential remote reads."""
+    path = source / 'internal/sap/assets/kernel.go'
+    content = path.read_text()
+    start = content.index('\treader, err := entry.Open()')
+    end = content.index('\n\tif len(data) != kernelCacheArchiveSize', start)
+    old = content[start:end]
+    if 'io.ReadAll(io.LimitReader(reader, kernelCacheArchiveSize+1))' not in old:
+        raise SystemExit('Pinned kernel reader hook no longer matches upstream')
+    replacement = ('\tdata, err := readBufferedZipEntry(entry, kernelCacheArchiveSize)\n'
+                   '\tif err != nil { return fmt.Errorf("read pinned kernel collection: %w", err) }\n')
+    content = content[:start] + replacement + content[end:]
+    if 'io.' not in content:
+        content = content.replace('\t"io"\n', '')
+    path.write_text(content)
+    for name in ('kernel_read.go', 'kernel_read_test.go'):
+        shutil.copy2(ROOT / 'tools/sap' / name, source / 'internal/sap/assets' / name)
 
 
 def configure_dependencies(source, go, overrides):
@@ -85,11 +105,17 @@ def main():
             path.chmod(0o755 if path.is_dir() else 0o644)
         configure_dependencies(source, args.go, pin['dependency_overrides'])
         configure_runtime_cache(source)
+        configure_kernel_reader(source)
+        subprocess.run([args.go, 'test', '-mod=readonly', './internal/sap/assets', '-run', 'TestBufferedKernelArchive'],
+                       cwd=source, check=True)
         subprocess.run([args.go, 'test', '-mod=readonly', './internal/sap/cachepath'],
                        cwd=source, check=True)
         command = source / 'cmd/mdast-sap'
         command.mkdir()
         shutil.copy2(ROOT / 'tools/sap/main.go', command / 'main.go')
+        shutil.copy2(ROOT / 'tools/sap/main_test.go', command / 'main_test.go')
+        subprocess.run([args.go, 'test', '-mod=readonly', './cmd/mdast-sap'],
+                       cwd=source, check=True)
         for target in targets:
             goos, goarch = target.split('-')
             binary = out / ('mdast-sap-' + target + ('.exe' if goos == 'windows' else ''))

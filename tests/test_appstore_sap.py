@@ -230,3 +230,19 @@ def test_invalid_kbsync_response_is_private_and_reaps_helper(monkeypatch, output
     with pytest.raises(sap.SAPError) as error:sap.generate_kbsync('AABBCCDDEEFF', '42')
     assert 'private token' not in str(error.value)
     assert process.terminated
+
+
+def test_native_auth_bag_retains_exact_path_and_query():
+    endpoint = 'https://auth.itunes.apple.com/auth/v1/native?guid=ABCDEF123456'
+    assert sap.parse_bag(dict(BAG, authenticateAccount=endpoint))['auth_url'] == endpoint
+
+
+@pytest.mark.parametrize('endpoint', [
+    'https://auth.itunes.apple.com/auth/v1/native/',
+    'https://auth.itunes.apple.com/auth/v1/fast',
+    'https://evil.apple.com/auth/v1/native',
+    'https://auth.itunes.apple.com.evil.example/auth/v1/native',
+])
+def test_native_auth_rejects_untrusted_path_or_host(endpoint):
+    with pytest.raises(sap.SAPError):
+        sap.parse_bag(dict(BAG, authenticateAccount=endpoint))
