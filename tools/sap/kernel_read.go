@@ -19,7 +19,7 @@ func readBufferedZipEntry(entry *zip.File, maximum int64) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	buffered := bufio.NewReaderSize(raw, 256<<10)
+	buffered := bufio.NewReaderSize(raw, 2<<20)
 	var reader io.ReadCloser
 	switch entry.Method {
 	case zip.Deflate:

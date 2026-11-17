@@ -32,4 +32,6 @@
 
 ## Холодная загрузка runtime
 
-Живая первая подготовка превышает 25 минут; kernel ZIP entry читается flate-reader небольшими ReadAt, каждый порождает HTTP Range. Добавить только для kernel entry буфер 256 KiB перед распаковкой. Сохранить pinned compressed/uncompressed sizes, CRC ZIP, SHA256 итоговых assets и общий deadline. Проверить количество чтений на synthetic ZIP, повреждённый архив, превышение лимита, равенство распакованных байтов. Guarded patch применяется только к checksum-verified upstream. Это не разрешает менять TLS, источники или инфраструктуру.
+Живая первая подготовка превышает 25 минут; kernel ZIP entry читается flate-reader небольшими ReadAt, каждый порождает HTTP Range. Добавить только для kernel entry буфер 2 MiB перед распаковкой. Сохранить pinned compressed/uncompressed sizes, CRC ZIP, SHA256 итоговых assets и общий deadline. Проверить количество чтений на synthetic ZIP, повреждённый архив, превышение лимита, равенство распакованных байтов. Guarded patch применяется только к checksum-verified upstream. Это не разрешает менять TLS, источники или инфраструктуру.
+
+Повтор на 256 KiB не уложился в отдельный пятиминутный тест kernel: около 126 последовательных Range. Увеличить только этот bounded sequential buffer до 2 MiB (около 16 запросов на pinned entry). Проверка synthetic 2 MiB ZIP допускает не более четырёх ReadAt с учётом заголовка. Дополнительная память буфера менее 2 MiB.

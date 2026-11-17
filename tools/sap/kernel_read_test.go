@@ -45,7 +45,7 @@ func TestBufferedKernelArchive(t *testing.T) {
 	if err != nil || !bytes.Equal(data, input) {
 		t.Fatalf("invalid decoded entry: %v", err)
 	}
-	if counted.calls > 20 {
+	if counted.calls > 4 {
 		t.Fatalf("too many remote range requests: %d", counted.calls)
 	}
 	if _, err = readBufferedZipEntry(archive.File[0], 1024); err == nil {
