@@ -232,7 +232,7 @@ def _confirm_scan_started(mdast, scan_id, conflict=False):
                 if not isinstance(current, dict) or current.get('id') != scan_id:
                     break
                 last_stage = current.get('stage')
-                if last_stage in (ScanStage.FAIL, 'CANCELLED'):
+                if last_stage in (ScanStage.FAIL, ScanStage.CANCELLED):
                     logger.error(f'Scan {scan_id} failed or was cancelled: '
                                  f'{sanitize(current.get("message"))}')
                     sys.exit(ExitCode.SCAN_FAILED)
@@ -500,12 +500,13 @@ def _run_microservices_flow(arguments, url, token, app_file, user_agent, verify)
             logger.info(f'Wait {SLEEP_TIMEOUT} seconds and try again')
             time.sleep(SLEEP_TIMEOUT)
 
-    if scan.get('stage') not in ACTIVE_STAGES | {ScanStage.SUCCESS, ScanStage.FAIL}:
+    if scan.get('stage') not in ACTIVE_STAGES | {ScanStage.SUCCESS, ScanStage.FAIL, ScanStage.CANCELLED}:
         logger.error(f'Error with scan id {scan_id}. Scan did not start, '
                      f'current state: {scan_pair(scan)}, message: {sanitize(scan.get("message"))}')
         sys.exit(ExitCode.SCAN_FAILED)
 
-    if scan_type == 'manual' and not is_terminal(scan) and scan.get('stage') != ScanStage.STOP:
+    if (scan_type == 'manual' and not is_terminal(scan)
+            and scan.get('stage') not in (ScanStage.STOP, ScanStage.CANCELLED)):
         logger.info(f'This is a scan without a test case, '
                     f'lets wait for {END_SCAN_TIMEOUT} seconds and stop it.')
         time.sleep(END_SCAN_TIMEOUT)
@@ -536,6 +537,9 @@ def _run_microservices_flow(arguments, url, token, app_file, user_agent, verify)
     if not is_terminal(scan):
         logger.error(f'Scan {scan_id} did not reach a terminal state within the wait budget '
                      f'(last state {scan_pair(scan)}). Increase timeout with --long_wait.')
+        sys.exit(ExitCode.SCAN_FAILED)
+    if scan.get('stage') == ScanStage.CANCELLED:
+        logger.error(f'Scan {scan_id} was cancelled. Message: {sanitize(scan.get("message"))}')
         sys.exit(ExitCode.SCAN_FAILED)
     if not is_success(scan):
         logger.error(f'Scan {scan_id} finished with state {scan_pair(scan)}, '

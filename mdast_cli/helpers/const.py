@@ -56,6 +56,7 @@ class ScanStage:
     STOP = 'STOP'
     SUCCESS = 'SUCCESS'
     FAIL = 'FAIL'
+    CANCELLED = 'CANCELLED'
 
 
 class ScanStageStatus:
@@ -73,6 +74,7 @@ TERMINAL_SCAN_PAIRS = {
     (ScanStage.SUCCESS, ScanStageStatus.COMPLETE),
     (ScanStage.SUCCESS, ScanStageStatus.PARTIAL_COMPLETE),
     (ScanStage.FAIL, ScanStageStatus.FAIL),
+    (ScanStage.CANCELLED, ScanStageStatus.COMPLETE),
 }
 PRE_START_STAGES = {ScanStage.CREATED, ScanStage.START}
 ACTIVE_STAGES = {ScanStage.WORKING, ScanStage.STOP}

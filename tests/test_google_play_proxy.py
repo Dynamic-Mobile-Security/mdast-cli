@@ -102,7 +102,7 @@ def test_partial_failure_retries_fresh_directory(monkeypatch, tmp_path):
 
 
 def test_retries_exhaust_without_direct_or_arm_fallback_and_hide_secrets(monkeypatch, tmp_path):
-    message = f'STING_DOWNLOAD_ERROR: {PROXY} proxy-user secret@word secret%40word private-token user@example.com'
+    message = f'STING_DOWNLOAD_ERROR: Status(503, None) {PROXY} proxy-user secret@word secret%40word private-token user@example.com'
     calls = fake_process(monkeypatch, [{'partial': True, 'code': 3, 'stderr': message}] * 3)
     with pytest.raises(RuntimeError, match='through configured proxy') as error:
         asyncio.run(gp.download_app(str(tmp_path), 'com.example.app', 'user@example.com', 'private-token', 30, PROXY))
@@ -219,7 +219,7 @@ def test_retry_budget_is_shared(monkeypatch, tmp_path):
         async def communicate(self):
             await asyncio.sleep(0.04)
             self.returncode = 3
-            return b'', b'STING_DOWNLOAD_ERROR: timeout'
+            return b'', b'STING_DOWNLOAD_ERROR: timed out'
 
         def kill(self):
             killed.append(True)
@@ -235,5 +235,6 @@ def test_retry_budget_is_shared(monkeypatch, tmp_path):
     with pytest.raises(RuntimeError, match='timeout'):
         asyncio.run(gp.download_app(str(tmp_path), 'com.example.app', 'email', 'token', 0.06))
     assert 1 <= len(calls) <= 2
-    assert killed == [True]
+    # The completed failed child needs no kill when the deadline cannot cover backoff.
+    assert killed == []
     assert not list(tmp_path.glob('.google-play-*'))
