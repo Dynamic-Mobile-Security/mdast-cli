@@ -21,6 +21,26 @@ DEFAULT_DOWNLOAD_DIR: Final[str] = 'downloaded_apps'
 DEFAULT_LOG_LEVEL: Final[str] = 'INFO'
 
 
+class GooglePlayTemporaryError(RuntimeError):
+    """A transient provider failure; callers may retry within their own budget."""
+
+
+def _is_temporary_error(output: str) -> bool:
+    if 'STING_APP_UNAVAILABLE:' in output:
+        return False
+    statuses = [int(code) for code in re.findall(r'(?:Status\(\s*|HTTP(?:/\d(?:\.\d)?)?\s+)([1-5]\d{2})\b', output, re.I)]
+    if statuses:
+        return all(code in (408, 429) or 500 <= code <= 599 for code in statuses)
+    lower = output.lower()
+    if any(marker in lower for marker in ('certificate', 'invalid payload', 'bad authentication')):
+        return False
+    return any(marker in lower for marker in (
+        'connection reset', 'connection refused', 'connection closed',
+        'temporary failure in name resolution', 'timed out',
+        'error sending request', 'connect error',
+    ))
+
+
 def _proxy_environment(proxy: Optional[str]) -> dict[str, str]:
     """Select one route for this child only; explicit proxy never falls back to direct."""
     if proxy is not None:
@@ -72,7 +92,7 @@ async def fetch_aas_token(email: str, oauth2_token: str, timeout_sec: int, proxy
             proc.kill()
         await proc.wait()
         logger.error('gp:token_fetch_timeout')
-        raise RuntimeError('Google Play: timeout while executing apkeep for token fetch')
+        raise GooglePlayTemporaryError('Google Play: timeout while executing apkeep for token fetch')
 
     except asyncio.CancelledError:
         if proc.returncode is None:
@@ -92,7 +112,8 @@ async def fetch_aas_token(email: str, oauth2_token: str, timeout_sec: int, proxy
     logger.debug(f'Google Play - full apkeep output when fetching token: {sanitized_output_text}')
 
     if proc.returncode != 0:
-        raise RuntimeError(sanitized_output_text.strip() or 'Google Play: apkeep returned non-zero exit code')
+        error_type = GooglePlayTemporaryError if _is_temporary_error(output) else RuntimeError
+        raise error_type(sanitized_output_text.strip() or 'Google Play: apkeep returned non-zero exit code')
 
     token_line = None
     for line in output.splitlines():
@@ -124,6 +145,7 @@ async def download_app(
     aas_token: str,
     timeout_sec: int,
     proxy: Optional[str] = None,
+    retry_delays: tuple[float, ...] = (2, 5),
 ) -> str:
     if not re.fullmatch(r'[A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)+', package_name):
         raise RuntimeError('Google Play: invalid package name')
@@ -135,11 +157,11 @@ async def download_app(
     deadline = loop.time() + timeout_sec
     for device in ('sting_x86_64', 'px_9a'):
         logger.info('Google Play: запрос профиля %s', device)
-        for attempt in range(3):
+        for attempt in range(len(retry_delays) + 1):
             with tempfile.TemporaryDirectory(prefix='.google-play-', dir=directory) as work:
                 remaining = deadline - loop.time()
                 if remaining <= 0:
-                    raise RuntimeError('Google Play: download timeout exceeded')
+                    raise GooglePlayTemporaryError('Google Play: download timeout exceeded')
                 proc = await asyncio.create_subprocess_exec(
                     apkeep_path, '-a', package_name, '-d', 'google-play', '-e', email,
                     '-o', f'split_apk=true,locale=ru_RU,device={device}', '-t', aas_token, work,
@@ -151,7 +173,7 @@ async def download_app(
                     if proc.returncode is None:
                         proc.kill()
                     await proc.wait()
-                    raise RuntimeError('Google Play: download timeout exceeded') from error
+                    raise GooglePlayTemporaryError('Google Play: download timeout exceeded') from error
                 except asyncio.CancelledError:
                     if proc.returncode is None:
                         proc.kill()
@@ -163,11 +185,18 @@ async def download_app(
                     if proc.returncode == 3 and unavailable and device == 'sting_x86_64':
                         logger.warning('Google Play: приложение недоступно профилю x86_64; пробую ARM fallback')
                         break
-                    if proc.returncode == 3 and 'STING_DOWNLOAD_ERROR:' in output and not unavailable and attempt < 2:
-                        logger.warning('Google Play: ошибка загрузки, повторная попытка %s/3', attempt + 2)
+                    transient = _is_temporary_error(output)
+                    if transient and attempt < len(retry_delays):
+                        delay = retry_delays[attempt]
+                        if deadline - loop.time() <= delay:
+                            raise GooglePlayTemporaryError('Google Play: download timeout exceeded')
+                        logger.warning('Google Play: temporary download failure, retry %s/%s in %ss',
+                                       attempt + 2, len(retry_delays) + 1, delay)
+                        await asyncio.sleep(delay)
                         continue
                     route = ' through configured proxy' if proxy else ''
-                    raise RuntimeError('Google Play: apkeep failed' + route + ': ' + _safe_output(output, email, aas_token, *_proxy_secrets(proxy)))
+                    error_type = GooglePlayTemporaryError if transient else RuntimeError
+                    raise error_type('Google Play: apkeep failed' + route + ': ' + _safe_output(output, email, aas_token, *_proxy_secrets(proxy)))
                 found = _find_artifact(work, package_name, output)
                 if found is None:
                     raise RuntimeError('Google Play: apkeep produced no valid APK artifact')
