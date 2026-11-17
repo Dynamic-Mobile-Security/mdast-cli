@@ -29,3 +29,7 @@
 ## Проверка кандидата
 
 Полный набор: 523 passed. Сборка helper с unit-проверкой allowlist выполнена для Linux/macOS/Windows amd64 и arm64. Живой cold start пока выполняется, успешный вход и IPA не подтверждены. Версия кандидата 2026.11.5, публикация после живой приёмки.
+
+## Холодная загрузка runtime
+
+Живая первая подготовка превышает 25 минут; kernel ZIP entry читается flate-reader небольшими ReadAt, каждый порождает HTTP Range. Добавить только для kernel entry буфер 256 KiB перед распаковкой. Сохранить pinned compressed/uncompressed sizes, CRC ZIP, SHA256 итоговых assets и общий deadline. Проверить количество чтений на synthetic ZIP, повреждённый архив, превышение лимита, равенство распакованных байтов. Guarded patch применяется только к checksum-verified upstream. Это не разрешает менять TLS, источники или инфраструктуру.

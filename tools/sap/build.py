@@ -33,6 +33,26 @@ def configure_runtime_cache(source):
         shutil.copy2(ROOT / 'tools/sap' / name, directory / name)
 
 
+
+def configure_kernel_reader(source):
+    """Keep ZIP integrity checks while batching the sequential remote reads."""
+    path = source / 'internal/sap/assets/kernel.go'
+    content = path.read_text()
+    start = content.index('\treader, err := entry.Open()')
+    end = content.index('\n\tif len(data) != kernelCacheArchiveSize', start)
+    old = content[start:end]
+    if 'io.ReadAll(io.LimitReader(reader, kernelCacheArchiveSize+1))' not in old:
+        raise SystemExit('Pinned kernel reader hook no longer matches upstream')
+    replacement = ('\tdata, err := readBufferedZipEntry(entry, kernelCacheArchiveSize)\n'
+                   '\tif err != nil { return fmt.Errorf("read pinned kernel collection: %w", err) }\n')
+    content = content[:start] + replacement + content[end:]
+    if 'io.' not in content:
+        content = content.replace('\t"io"\n', '')
+    path.write_text(content)
+    for name in ('kernel_read.go', 'kernel_read_test.go'):
+        shutil.copy2(ROOT / 'tools/sap' / name, source / 'internal/sap/assets' / name)
+
+
 def configure_dependencies(source, go, overrides):
     """Apply only checksum-verified security updates to pinned upstream modules."""
     for pin in overrides:
@@ -85,6 +105,9 @@ def main():
             path.chmod(0o755 if path.is_dir() else 0o644)
         configure_dependencies(source, args.go, pin['dependency_overrides'])
         configure_runtime_cache(source)
+        configure_kernel_reader(source)
+        subprocess.run([args.go, 'test', '-mod=readonly', './internal/sap/assets', '-run', 'TestBufferedKernelArchive'],
+                       cwd=source, check=True)
         subprocess.run([args.go, 'test', '-mod=readonly', './internal/sap/cachepath'],
                        cwd=source, check=True)
         command = source / 'cmd/mdast-sap'
