@@ -16,7 +16,7 @@ TARGETS = ('linux-amd64', 'linux-arm64', 'darwin-amd64', 'darwin-arm64',
 
 def configure_runtime_cache(source):
     """Apply one guarded cache-location hook to verified upstream sources."""
-    for name in ('internal/sap/assets/assets.go', 'internal/sap/assets/storeagent.go',
+    for name in ('internal/sap/assets/assets.go',
                  'internal/sap/unicorn/cache_runtime.go'):
         path = source / name
         content = path.read_text()
@@ -90,6 +90,9 @@ def main():
         command = source / 'cmd/mdast-sap'
         command.mkdir()
         shutil.copy2(ROOT / 'tools/sap/main.go', command / 'main.go')
+        shutil.copy2(ROOT / 'tools/sap/main_test.go', command / 'main_test.go')
+        subprocess.run([args.go, 'test', '-mod=readonly', './cmd/mdast-sap'],
+                       cwd=source, check=True)
         for target in targets:
             goos, goarch = target.split('-')
             binary = out / ('mdast-sap-' + target + ('.exe' if goos == 'windows' else ''))

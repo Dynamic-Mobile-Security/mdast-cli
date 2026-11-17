@@ -437,3 +437,60 @@ def test_download_info_buys_a_missing_license_then_retries(monkeypatch):
 def test_sanitize_file_name(raw, expected):
     from mdast_cli.distribution_systems.appstore import sanitize_file_name
     assert sanitize_file_name(raw) == expected
+
+NATIVE_URL = 'https://auth.itunes.apple.com/auth/v1/native'
+
+
+def _native_client(monkeypatch, responses, state=''):
+    client = _client(responses)
+    client.store_amd_state = state
+    monkeypatch.setattr(StoreClient, 'get_bag', lambda self: dict(BAG_CONFIG, auth_url=NATIVE_URL))
+    calls = []
+
+    def identity(operation, guid, saved, endpoint, challenge, headers):
+        calls.append((operation, saved, endpoint, challenge, headers))
+        if operation == 'anisette':
+            return {'X-Apple-I-Md': 'proof', 'X-Apple-I-Md-M': 'machine', 'X-Mme-Device-Id': 'id'}, 'general'
+        if operation == 'store_provision':
+            return {}, 'provisioned'
+        return {'X-Apple-AMD': 'native', 'X-Apple-AMD-M': 'native-machine'}, 'updated'
+
+    monkeypatch.setattr(store_mod, 'store_identity', identity)
+    return client, calls
+
+
+def test_native_provisioning_actions_are_bounded_and_state_survives(monkeypatch):
+    client, calls = _native_client(monkeypatch, [
+        FakeResponse(200, headers={'X-Apple-AMD-Action': 'RP'}),
+        FakeResponse(200, headers={'X-Apple-AMD-Action': 'SP', 'X-Apple-AMD-Data': 'Y2hhbGxlbmdl'}),
+        FakeResponse(200, plistlib.dumps(SUCCESS_PLIST)),
+    ])
+    client.authenticate('user@example.com', 'secret123456')
+    assert [x[0] for x in calls] == ['anisette', 'store_provision', 'store_amd']
+    assert client.store_amd_state == 'updated'
+    first, second, third = [x['headers'] for x in client.sess.calls]
+    assert first['X-Apple-AMD'] == 'proof'
+    assert 'X-Apple-AMD' not in second and 'X-Apple-I-Md' not in second
+    assert third['X-Apple-AMD'] == 'native'
+    assert client._authentication_headers == {}
+    assert all(x['url'] == NATIVE_URL and x['verify'] and not x['allow_redirects'] for x in client.sess.calls)
+
+
+def test_native_saved_state_does_not_reprovision(monkeypatch):
+    client, calls = _native_client(monkeypatch, [FakeResponse(200, plistlib.dumps(SUCCESS_PLIST))], 'saved')
+    client.authenticate('user@example.com', 'secret123456')
+    assert [x[0] for x in calls] == ['store_amd']
+    assert client.store_amd_state == 'updated'
+
+
+@pytest.mark.parametrize('actions', [['UNKNOWN'], ['RP', 'RP'], ['RP', 'SP', 'SP']])
+def test_native_bad_or_repeated_machine_action_fails_closed(monkeypatch, actions):
+    client, _ = _native_client(monkeypatch, [FakeResponse(200, headers={
+        'X-Apple-AMD-Action': action, 'X-Apple-AMD-Data': 'challenge-secret',
+    }) for action in actions])
+    with pytest.raises(StoreException) as error:
+        client.authenticate('user@example.com', 'password-secret')
+    assert 'challenge-secret' not in str(error.value)
+    assert 'password-secret' not in str(error.value)
+    assert len(client.sess.calls) == len(actions)
+    assert client._authentication_headers == {}

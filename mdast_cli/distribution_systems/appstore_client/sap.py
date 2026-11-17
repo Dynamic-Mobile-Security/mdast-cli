@@ -11,6 +11,7 @@ from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit
 
 logger = logging.getLogger(__name__)
+NATIVE_AUTH_PATH = '/auth/v1/native'
 AUTH_PATH = '/WebObjects/MZFinance.woa/wa/authenticate'
 MAX_MESSAGE = 1 << 20
 SETUP_TIMEOUT = 1800
@@ -29,9 +30,10 @@ def validate_endpoint(value, authentication=False):
                  and not url.username and not url.password and not url.fragment
                  and (host.endswith('.apple.com') or host == 's.mzstatic.com'))
         if authentication:
-            valid = (valid and url.path in (AUTH_PATH, AUTH_PATH + '/')
-                     and (host == 'buy.itunes.apple.com'
-                          or host.endswith('-buy.itunes.apple.com')))
+            valid = (valid and ((url.path == NATIVE_AUTH_PATH and host == 'auth.itunes.apple.com')
+                     or (url.path in (AUTH_PATH, AUTH_PATH + '/')
+                         and (host == 'buy.itunes.apple.com'
+                              or host.endswith('-buy.itunes.apple.com')))))
         if not valid:
             raise ValueError
     except (ValueError, TypeError, AttributeError):
@@ -51,7 +53,8 @@ def parse_bag(data):
     # Match the working Store request path, without changing the bag host/query
     # or guessing another endpoint after a refusal. Both path forms are valid
     # in upstream ipatool PR603; the C++ client uses the trailing-slash form.
-    auth_url = urlunsplit(urlsplit(auth_url)._replace(path=AUTH_PATH + '/'))
+    if urlsplit(auth_url).path != NATIVE_AUTH_PATH:
+        auth_url = urlunsplit(urlsplit(auth_url)._replace(path=AUTH_PATH + '/'))
     return {
         'auth_url': auth_url,
         'setup_url': validate_endpoint(values.get('sign-sap-setup')),
@@ -229,3 +232,40 @@ def generate_kbsync(guid, dsid):
         except (KeyError, ValueError, TypeError):
             raise SAPError('SAP helper returned invalid KBSync data') from None
         return base64.b64encode(data).decode('ascii')
+
+
+def store_identity(operation, guid, state='', endpoint='', challenge='', headers=None):
+    """Run one local Store identity operation. State is opaque and account scoped."""
+    _validate_guid(guid)
+    if operation not in ('anisette', 'store_provision', 'store_amd'):
+        raise SAPError('Unknown Store identity operation')
+    if not isinstance(state, str) or len(state) > 700000:
+        raise SAPError('Invalid Store identity state')
+    try:
+        base64.b64decode(state, validate=True)
+    except (ValueError, TypeError):
+        raise SAPError('Invalid Store identity encoding') from None
+    if operation == 'store_amd':
+        validate_endpoint(endpoint)
+    with _SAPHelper() as helper:
+        reply = helper._exchange({'op': operation, 'hardware_id': guid,
+                                  'state': state, 'endpoint': endpoint,
+                                  'challenge': challenge, 'headers': headers or {}}, SETUP_TIMEOUT)
+    updated = reply.get('state')
+    proof = reply.get('headers', {})
+    if not isinstance(updated, str) or not updated or len(updated) > 700000:
+        raise SAPError('Store helper returned invalid state')
+    try:
+        base64.b64decode(updated, validate=True)
+    except (ValueError, TypeError):
+        raise SAPError('Store helper returned invalid state encoding') from None
+    allowed = {'x-apple-amd', 'x-apple-amd-m', 'x-apple-i-md', 'x-apple-i-md-m',
+               'x-apple-i-md-rinfo', 'x-apple-i-md-lu', 'x-apple-i-client-time',
+               'x-apple-i-srl-no', 'x-apple-i-timezone', 'x-apple-locale',
+               'x-mme-device-id', 'x-mme-client-info'}
+    if (not isinstance(proof, dict) or any(
+            not isinstance(k, str) or k.lower() not in allowed or not isinstance(v, str)
+            or not v or len(v) > 32768 or any(ord(c) < 32 or ord(c) > 126 for c in v)
+            for k, v in proof.items())):
+        raise SAPError('Store helper returned invalid proof headers')
+    return proof, updated

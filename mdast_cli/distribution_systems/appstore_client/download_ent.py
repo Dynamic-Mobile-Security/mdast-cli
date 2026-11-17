@@ -28,6 +28,7 @@ def download_ent(client, endpoint, app_id, requested_version=''):
     client.sess.mount(endpoint, HTTPAdapter(max_retries=0))
     response = client.sess.post(endpoint, params={'guid': client.guid}, headers={
         'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8',
+        **client.download_proof(endpoint + '?guid=' + client.guid),
         'User-Agent': APPSTORE_USER_AGENT,
         'X-Dsid': str(client.dsid), 'iCloud-DSID': str(client.dsid),
         'X-Apple-Store-Front': client.store_front,

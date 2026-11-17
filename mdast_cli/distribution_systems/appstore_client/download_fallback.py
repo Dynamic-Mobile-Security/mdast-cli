@@ -109,6 +109,7 @@ def _download_request(client, endpoint, app_id, version):
     client.sess.mount(endpoint, HTTPAdapter(max_retries=0))
     return client.sess.post(endpoint, params={'guid': client.guid}, headers={
         'Content-Type': 'application/x-apple-plist', 'User-Agent': APPSTORE_USER_AGENT,
+        **client.download_proof(endpoint + '?guid=' + client.guid),
         'X-Dsid': str(client.dsid), 'iCloud-DSID': str(client.dsid),
     }, data=plistlib.dumps({
         'creditDisplay': '', 'guid': client.guid, 'salableAdamId': int(app_id),
