@@ -245,10 +245,10 @@ class StoreClient(object):
             self.guid = self._generateGuid(appleId)
         try:
             config = self.get_bag()
-            with SAPSigner(config, self.guid) as signer:
-                if urlsplit(config['auth_url']).path == '/auth/v1/native':
-                    response, result = self._native_authenticate(config['auth_url'], appleId, password, signer)
-                else:
+            if urlsplit(config['auth_url']).path == '/auth/v1/native':
+                response, result = self._native_authenticate(config, appleId, password)
+            else:
+                with SAPSigner(config, self.guid) as signer:
                     response, result = self._authenticate_at(config['auth_url'], appleId, password, signer)
             self._store_auth_result(response, result, config['auth_url'])
             return result
@@ -261,7 +261,14 @@ class StoreClient(object):
             endpoint, challenge, headers)
         return proof
 
-    def _native_authenticate(self, endpoint, apple_id, password, signer):
+    def _native_authenticate(self, config, apple_id, password):
+        endpoint = config['auth_url']
+
+        def authenticate_request():
+            # Release the signer before provisioning starts another emulator.
+            with SAPSigner(config, self.guid) as signer:
+                return self._authenticate_at(endpoint, apple_id, password, signer)
+
         try:
             if getattr(self, 'store_amd_state', ''):
                 try:
@@ -269,7 +276,7 @@ class StoreClient(object):
                 except SAPError:
                     pass
                 else:
-                    return self._authenticate_at(endpoint, apple_id, password, signer)
+                    return authenticate_request()
             identity = self._identity('anisette')
             self._authentication_headers = dict(identity)
             for source, target in [('X-Apple-I-Md', 'X-Apple-AMD'), ('X-Apple-I-Md-M', 'X-Apple-AMD-M')]:
@@ -278,20 +285,20 @@ class StoreClient(object):
                     if key.lower() == source.lower():
                         self._authentication_headers[target] = self._authentication_headers.pop(key)
             try:
-                return self._authenticate_at(endpoint, apple_id, password, signer)
+                return authenticate_request()
             except StoreMachineAction as action:
                 if action.action != 'RP':
                     raise StoreException('authenticate', 'Unexpected Apple machine provisioning action') from None
             self._authentication_headers = {k: v for k, v in identity.items()
                                             if k.lower() not in ('x-apple-i-md', 'x-apple-i-md-m', 'x-apple-i-md-rinfo')}
             try:
-                return self._authenticate_at(endpoint, apple_id, password, signer)
+                return authenticate_request()
             except StoreMachineAction as action:
                 if action.action != 'SP' or not action.challenge or len(action.challenge) > 65536:
                     raise StoreException('authenticate', 'Invalid Apple provisioning challenge') from None
                 self._identity('store_provision', challenge=action.challenge, headers=identity)
             self._authentication_headers = self._identity('store_amd', endpoint)
-            return self._authenticate_at(endpoint, apple_id, password, signer)
+            return authenticate_request()
         except StoreMachineAction:
             raise StoreException('authenticate', 'Apple machine provisioning did not complete') from None
         finally:

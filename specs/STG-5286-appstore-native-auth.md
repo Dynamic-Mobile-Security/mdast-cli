@@ -35,3 +35,9 @@
 Живая первая подготовка превышает 25 минут; kernel ZIP entry читается flate-reader небольшими ReadAt, каждый порождает HTTP Range. Добавить только для kernel entry буфер 2 MiB перед распаковкой. Сохранить pinned compressed/uncompressed sizes, CRC ZIP, SHA256 итоговых assets и общий deadline. Проверить количество чтений на synthetic ZIP, повреждённый архив, превышение лимита, равенство распакованных байтов. Guarded patch применяется только к checksum-verified upstream. Это не разрешает менять TLS, источники или инфраструктуру.
 
 Повтор на 256 KiB не уложился в отдельный пятиминутный тест kernel: около 126 последовательных Range. Увеличить только этот bounded sequential buffer до 2 MiB (около 16 запросов на pinned entry). Проверка synthetic 2 MiB ZIP допускает не более четырёх ReadAt с учётом заголовка. Дополнительная память буфера менее 2 MiB.
+
+## Память native authentication
+
+Живая CLI загрузка IPA успешна, но общий пик Python и helper составил 905504 KiB (около 884 MiB). Во время RP/SP provisioning остаётся открыт SAP signer и запускается второй emulator. Для Markea REST с limit 1Gi это оставляет мало запаса на HTTP-сервис.
+
+Перед выпуском выполнять native identity/provisioning и SAP signing последовательно: signer открывается только на signed authentication request и закрывается до следующего identity operation. Legacy auth и формат persisted state не меняются. Приёмка: тест запрещает overlap signer/identity в успешном и ошибочном RP/SP flow; полный suite; новый живой вход с замером памяти. Повторная загрузка того же IPA не нужна, если download path не меняется и предыдущий архив прошёл проверку.

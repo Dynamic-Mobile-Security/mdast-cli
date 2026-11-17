@@ -494,3 +494,42 @@ def test_native_bad_or_repeated_machine_action_fails_closed(monkeypatch, actions
     assert 'password-secret' not in str(error.value)
     assert len(client.sess.calls) == len(actions)
     assert client._authentication_headers == {}
+
+
+@pytest.mark.parametrize('fail_provisioning', [False, True])
+def test_native_identity_never_overlaps_signer(monkeypatch, fail_provisioning):
+    client, _ = _native_client(monkeypatch, [
+        FakeResponse(200, headers={'X-Apple-AMD-Action': 'RP'}),
+        FakeResponse(200, headers={'X-Apple-AMD-Action': 'SP', 'X-Apple-AMD-Data': 'challenge'}),
+        FakeResponse(200, plistlib.dumps(SUCCESS_PLIST)),
+    ])
+    active, instances = [], []
+    original_identity = store_mod.store_identity
+
+    class TrackedSigner(FakeSigner):
+        def __init__(self, config, guid):
+            assert not active
+            super().__init__(config, guid)
+            active.append(self)
+            instances.append(self)
+
+        def __exit__(self, *args):
+            super().__exit__(*args)
+            active.remove(self)
+
+    def identity(operation, *args):
+        assert not active, 'identity/provisioning must not overlap a SAP signer'
+        if operation == 'store_provision' and fail_provisioning:
+            raise store_mod.SAPError('provisioning unavailable')
+        return original_identity(operation, *args)
+
+    monkeypatch.setattr(store_mod, 'SAPSigner', TrackedSigner)
+    monkeypatch.setattr(store_mod, 'store_identity', identity)
+    if fail_provisioning:
+        with pytest.raises(StoreException):
+            client.authenticate('user@example.com', 'secret')
+    else:
+        client.authenticate('user@example.com', 'secret')
+    assert not active
+    assert len(instances) == (2 if fail_provisioning else 3)
+    assert all(signer.closed for signer in instances)
